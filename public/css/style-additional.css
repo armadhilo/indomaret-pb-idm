@@ -1,0 +1,90 @@
+h1.pagetitle{
+    font-size: 24px;
+    color: #012970;
+    font-weight: 600;
+    margin: 0;
+}
+
+.btn-warning{
+    box-shadow: 0 2px 6px #ffc473;
+    background: #ffa426;
+    color: white;
+    font-size: 15px;
+}
+
+.btn-warning:hover{
+    color: white;
+}
+
+.table tbody tr.deactive td{
+    background-color: #ffb6c19e;
+}
+
+.breadcrumb{
+    background: unset!important;
+    padding: 0;
+    font-size: 16px;
+    color: #899bbd;
+    font-weight: 600;
+}
+
+label{
+    font-size: 15px;
+    margin-bottom: 4px;
+    font-family: "Nunito", sans-serif;
+    color: black;
+    font-weight: 400;
+}
+
+.text-center-vh{
+    vertical-align: middle!important;
+    text-align: center;
+}
+
+.btn{
+    font-size: 14px;
+}
+
+.btn-success{
+    box-shadow: 0 2px 6px #81d694;
+    background-color: #47c363;
+    border-color: #47c363;
+    color: white;
+}
+
+.dataTables_wrapper .row:last-child{
+    margin-top: 10px!important;
+}
+
+.btn-primary{
+    box-shadow: 0 2px 6px #acb5f6;
+    background-color: #6777ef;
+    border-color: #6777ef;
+}
+
+.btn-primary:hover{
+    background-color: #394eea !important;
+}
+
+.table-responsive{
+    overflow-x: hidden;
+}
+
+.button-action{
+    margin-bottom: 20px;
+}
+
+.button-action .form-control{
+    display: inline-block;
+    width: unset;
+}
+
+.btn-lg{
+    font-size: 1rem!important;
+    font-weight: 600!important;
+}
+
+table.datatable-dark-primary thead tr{
+    background-color: #3546B3!important;
+    color: white!important;
+}
