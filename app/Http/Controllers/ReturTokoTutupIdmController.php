@@ -270,6 +270,7 @@ class ReturTokoTutupIdmController extends Controller
                             }
                         }
 
+                        //?? check if qty / price has value 0 return Error 
                         $requiredColumns = ['QTY', 'PRICE'];
                         foreach ($requiredColumns as $column) {
                             if ($rowDataAssoc[$column] === 0) {
@@ -413,12 +414,12 @@ class ReturTokoTutupIdmController extends Controller
                         $query .= "  AND rtt_idm_interface.toko = temp_rtt_idm.toko ";
                         $query .= ") ";
                         DB::insert($query);
-                        DB::commit();
-
-                        return ApiFormatter::success(200, "Sukses Upload File Excel..!");
                     }
-
                 }
+
+                DB::commit();
+                return ApiFormatter::success(200, "Sukses Upload File Excel..!");
+                
             } else {
                 return ApiFormatter::error(400, "File Tidak Ditemukan, Silahkan Upload Ulang File...!");
             }
