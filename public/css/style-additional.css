@@ -67,7 +67,7 @@ label{
 }
 
 .table-responsive{
-    overflow-x: hidden;
+    overflow-x: scroll;
 }
 
 .button-action{
@@ -87,4 +87,39 @@ label{
 table.datatable-dark-primary thead tr{
     background-color: #3546B3!important;
     color: white!important;
+}
+
+input[type=file]{
+    height: calc(1.5em + .75rem + 8px)!important;
+}
+
+input{
+    cursor: pointer;
+}
+
+.detail-info{
+    font-size: .99rem;
+    background: #012970;
+    font-weight: 600;
+    padding: 0 15px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    border-radius: 3px;
+    justify-content: center;
+    margin: 0;
+}
+
+.table-center thead tr th, .table-center tbody tr td{
+    text-align: center;
+}
+
+.bg-royal{
+    background-color: #6E214A!important;
+}
+
+.checkbox-table{
+    width: 20px;
+    margin: auto;
+    height: 20px;
 }

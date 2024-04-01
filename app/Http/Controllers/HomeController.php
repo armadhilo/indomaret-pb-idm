@@ -19,15 +19,16 @@ class HomeController extends Controller
 
     public function index(){
 
-        $this->checkICM();
-        $this->addMonitoringWT();
-        $this->addReturTT();
-        $this->addSortasi();
-        $this->addHistoryContainer_Idm_Omi();
-        $this->updateMenuSPI();
+        //!! Add later
+        // $this->checkICM();
+        // $this->addMonitoringWT();
+        // $this->addReturTT();
+        // $this->addSortasi();
+        // $this->addHistoryContainer_Idm_Omi();
+        // $this->updateMenuSPI();
 
-        $this->CreateMenuAll();
-        $this->addColKardus();
+        // $this->CreateMenuAll();
+        // $this->addColKardus();
 
         return view('home');
     }

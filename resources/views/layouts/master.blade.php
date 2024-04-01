@@ -46,9 +46,9 @@
     <script src="{{ asset('js/dataTables.fixedColumns.min.js')}}"></script>
     <script src="{{ asset('js/dataTables.fixedHeader.min.js')}}"></script>
     <script src="{{ asset('js/dataTables.fixedHeader.min.js')}}"></script>
-    <script src="{{ asset('js/Chart.min.js')}}"></script>
+    {{-- <script src="{{ asset('js/Chart.min.js')}}"></script>
     <script src="{{ asset('js/chart-area-demo.js')}}"></script>
-    <script src="{{ asset('js/chart-pie-demo.js')}}"></script>
+    <script src="{{ asset('js/chart-pie-demo.js')}}"></script> --}}
     <script src="{{ asset('js/sweatalert.js')}}"></script>
     <script src="{{ asset('js/dataTables.buttons.min.js')}}"></script>
     <script src="{{ asset('js/jszip.min.js')}}"></script>
@@ -90,13 +90,13 @@
 
 <body id="page-top">
     <div id="wrapper">
-        @include('sidebar')
+        @include('layouts.sidebar')
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
             <!-- Main Content -->
             <div id="content">
-                @include('header')
+                @include('layouts.header')
 
                 @yield('content')
 
@@ -117,22 +117,32 @@
     </div>
 
     <script>
-        function fungsiRupiah(angka){
-            if(angka === null || angka === ''){
-                return 0;
+        var currentURL;
+        $(document).ready(function(){
+            currentURL = window.location.href;
+            if (currentURL.charAt(currentURL.length - 1) === '/') {
+                currentURL = currentURL.slice(0, -1);
             }
+        });
+
+        $.ajaxSetup({
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+			}
+		});
+
+        function fungsiRupiah(angka){
             var number_string = angka.toString().replace(/[^,\d]/g, '').toString(),
-            split   		= number_string.split(','),
+            split   		= number_string.split('.'),
             sisa     		= split[0].length % 3,
             rupiah     		= split[0].substr(0, sisa),
             ribuan     		= split[0].substr(sisa).match(/\d{3}/gi);
 
-            // tambahkan titik jika yang di input sudah menjadi angka ribuan
             if(ribuan){
-                        separator = sisa ? ',' : '';
-                        rupiah += separator + ribuan.join(',');
+                    separator = sisa ? '.' : '';
+                    rupiah += separator + ribuan.join('.');
             }
-            rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+            rupiah = split[1] != undefined ? rupiah + '.' + split[1] : rupiah + ',00';
             return rupiah;
         }
 

@@ -4,15 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
-use App\Http\Requests\DetailKasirRequest;
-use App\Http\Requests\TableRequest;
-use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
+use Maatwebsite\Excel\Facades\Excel;
 
-class HomeController extends Controller
+
+class ReturTokoTutupIdmController extends Controller
 {
 
     public function __construct(Request $request){
@@ -20,10 +20,9 @@ class HomeController extends Controller
     }
 
     public function index(){
-
         $this->addMasterRTT();
 
-        return view('retur-toko-tutup-idm');
+        return view('menu.rtt-idm');
     }
 
     private function AddMasterRTT(){
@@ -90,7 +89,7 @@ class HomeController extends Controller
 
         //! SEQUENCE RTT
         $count = DB::table('information_schema.sequences')
-            ->whereRaw("upper(table_name) = 'SEQ_RTT_IDM'")
+            ->whereRaw("upper(sequence_name) = 'SEQ_RTT_IDM'")
             ->count();
 
         if($count == 0){
@@ -233,171 +232,208 @@ class HomeController extends Controller
             ->make(true);
     }
 
-    public function actionUpload(){
+    public function actionUpload(Request $request){
+        try{
+            DB::beginTransaction();
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $fileName = $file->getClientOriginalName();
+                    $query = '';
+                    $query .= "SELECT *";
+                    $query .= "FROM rtt_idm_interface ";
+                    $query .= "WHERE upper(rii_filename) = upper('" . $fileName . "') ";
+                    $dtCek = DB::select($query);
 
-        //* upload bisa multiple file
-        //! LOOP
-            $query = '';
-            $query .= "SELECT count(1) found ";
-            $query .= "FROM rtt_idm_interface ";
-            $query .= "WHERE upper(rii_filename) = upper('" & fileRTT & "') ";
-            $dtCek = DB::select($query);
+                    if(count($dtCek) > 0){
+                        return ApiFormatter::error(400, "File " . $fileName . " Sudah Pernah Diupload");
+                    }
 
-            if(count($dtCek) > 0){
-                return ApiFormatter::error("File " & fileRTT & " Sudah Pernah Diupload");
-            }
+                    $data = Excel::toArray([], $file);
 
-            //? check kolom kosong -> TOKO, GUDANG, SHOP -- File " & fileRTT & vbNewLine & "Ada Kolom " & col & " Yang Kosong.
-            //? check -> QTY, PRICE = 0 -- "File " & fileRTT & vbNewLine & "Ada Kolom " & col & " Yang Bernilai 0."
+                    $headerRow = $data[0][0];
+                    if(count($headerRow) !== 24){
+                        return ApiFormatter::error(400, "File " . $fileName . " Jumlah Kolom Tidak Standard (24)");
+                    };
+                    $dataRows = array_slice($data[0], 1);
 
-            //* jika data csv tidak kosong
+                    foreach ($dataRows as $rowData) {
+                        $rowDataAssoc = [];
+                        foreach ($headerRow as $index => $header) {
+                            $rowDataAssoc[$header] = $rowData[$index] ?? null;
+                        }
+                        
+                        //?? check if toko / gudang / shop has null return Error 
+                        $requiredColumns = ['TOKO', 'GUDANG', 'SHOP'];
+                        foreach ($requiredColumns as $column) {
+                            if (!isset($rowDataAssoc[$column])) {
+                                return ApiFormatter::error(400, "File " . $fileName . " Ada Kolom " . $column . " Yang Kosong");
+                            }
+                        }
 
-            DB::table('temp_rtt_idm')->truncate();
+                        $requiredColumns = ['QTY', 'PRICE'];
+                        foreach ($requiredColumns as $column) {
+                            if ($rowDataAssoc[$column] === 0) {
+                                return ApiFormatter::error(400, "File " . $fileName . " Ada Kolom " . $column . " Bernilai 0.");
+                            }
+                        }
 
-            DB::table('temp_rtt_idm')
-                ->insert([
-                    'docno' => $item['DOCNO'],
-                    'docno2' => $item['DOCNO2'],
-                    'div' => $item['DIV'],
-                    'toko' => $item['TOKO'],
-                    'toko_1' => $item['TOKO_1'],
-                    'gudang' => $item['GUDANG'],
-                    'prdcd' => $item['PRDCD'],
-                    'qty' => $item['QTY'],
-                    'price' => $item['PRICE'],
-                    'gross' => $item['GROSS'],
-                    'ppn' => $item['PPN'],
-                    'tanggal' => $item['TANGGAL'],
-                    'tanggal2' => $item['TANGGAL2'],
-                    'shop' => $item['SHOP'],
-                    'istype' => $item['ISTYPE'],
-                    'price_idm' => $item['PRICE_IDM'],
-                    'ppnbm_idm' => $item['PPNBM_IDM'],
-                    'ppnrp_idm' => $item['PPNRP_IDM'],
-                    'sctype' => $item['SCTYPE'],
-                    'bkp' => $item['BKP'],
-                    'sub_bkp' => $item['SUB_BKP'],
-                    'cabang' => $item['CABANG'],
-                    'tipe_gdg' => $item['TIPE_GDG'],
-                    'ppn_rate' => $item['PPN_RATE'],
-                ]);
+                        DB::table('temp_rtt_idm')->truncate();
 
-            //! CEK PRODMAST DAN PRODCRM
-            $query = '';
-            $query .= "SELECT DISTINCT prdcd ";
-            $query .= "FROM temp_rtt_idm ";
-            $query .= "LEFT JOIN tbmaster_prodcrm  ON prc_pluidm = prdcd AND prc_group = 'I' ";
-            $query .= "LEFT JOIN tbmaster_prodmast ON prd_prdcd = prc_pluigr ";
-            $query .= "WHERE (prc_pluigr IS NULL OR prd_prdcd IS NULL) ";
-            $query .= "ORDER BY 1 ASC";
-            $dtPlu = DB::select($query);
+                        DB::table('temp_rtt_idm')
+                        ->insert([
+                            'docno' => $rowDataAssoc['DOCNO'],
+                            'docno2' => $rowDataAssoc['DOCNO2'],
+                            'div' => $rowDataAssoc['DIV'],
+                            'toko' => $rowDataAssoc['TOKO'],
+                            'toko_1' => $rowDataAssoc['TOKO_1'],
+                            'gudang' => $rowDataAssoc['GUDANG'],
+                            'prdcd' => $rowDataAssoc['PRDCD'],
+                            'qty' => $rowDataAssoc['QTY'],
+                            'price' => $rowDataAssoc['PRICE'],
+                            'gross' => $rowDataAssoc['GROSS'],
+                            'ppn' => $rowDataAssoc['PPN'],
+                            'tanggal' => $rowDataAssoc['TANGGAL'],
+                            'tanggal2' => $rowDataAssoc['TANGGAL2'],
+                            'shop' => $rowDataAssoc['SHOP'],
+                            'istype' => $rowDataAssoc['ISTYPE'],
+                            'price_idm' => $rowDataAssoc['PRICE_IDM'],
+                            'ppnbm_idm' => $rowDataAssoc['PPNBM_IDM'],
+                            'ppnrp_idm' => $rowDataAssoc['PPNRP_IDM'],
+                            'sctype' => $rowDataAssoc['SCTYPE'],
+                            'bkp' => $rowDataAssoc['BKP'],
+                            'sub_bkp' => $rowDataAssoc['SUB_BKP'],
+                            'cabang' => $rowDataAssoc['CABANG'],
+                            'tipe_gdg' => $rowDataAssoc['TIPE_GDG'],
+                            'ppn_rate' => $rowDataAssoc['PPN_RATE'],
+                        ]);
 
-            if(count($dtPlu) > 0){
-                $string = '';
-                foreach($dtPlu as $item){
-                    $string .= $item['prdcd'];
+                        $query = '';
+                        $query .= "SELECT DISTINCT prdcd ";
+                        $query .= "FROM temp_rtt_idm ";
+                        $query .= "LEFT JOIN tbmaster_prodcrm  ON prc_pluidm = prdcd AND prc_group = 'I' ";
+                        $query .= "LEFT JOIN tbmaster_prodmast ON prd_prdcd = prc_pluigr ";
+                        $query .= "WHERE (prc_pluigr IS NULL OR prd_prdcd IS NULL) ";
+                        $query .= "ORDER BY 1 ASC";
+                        $dtPlu = DB::select($query);
+
+                        if(count($dtPlu) > 0){
+                            $string = '';
+                            foreach($dtPlu as $item){
+                                $string .= $item['prdcd'];
+                            }
+                            return ApiFormatter::error(400, "File " . $fileName . " PLU Tidak Ada DI Master IGR. " . $string);
+                        }
+
+                        $query = '';
+                        $query .= "INSERT INTO rtt_idm_interface ( ";
+                        $query .= "  DOCNO, ";
+                        $query .= "  DOCNO2, ";
+                        $query .= "  DIV, ";
+                        $query .= "  TOKO, ";
+                        $query .= "  TOKO_1, ";
+                        $query .= "  GUDANG, ";
+                        $query .= "  PRDCD, ";
+                        $query .= "  PLUIGR, ";
+                        $query .= "  QTY, ";
+                        $query .= "  PRICE, ";
+                        $query .= "  GROSS, ";
+                        $query .= "  PPN, ";
+                        $query .= "  TANGGAL, ";
+                        $query .= "  TANGGAL2, ";
+                        $query .= "  SHOP, ";
+                        $query .= "  ISTYPE, ";
+                        $query .= "  PRICE_IDM, ";
+                        $query .= "  PPNBM_IDM, ";
+                        $query .= "  PPNRP_IDM, ";
+                        $query .= "  SCTYPE, ";
+                        $query .= "  BKP, ";
+                        $query .= "  SUB_BKP, ";
+                        $query .= "  CABANG, ";
+                        $query .= "  TIPE_GDG, ";
+                        $query .= "  RII_CREATE_BY, ";
+                        $query .= "  RII_CREATE_DT, ";
+                        $query .= "  RII_FILENAME, ";
+                        $query .= "  PPN_RATE ";
+                        $query .= ") ";
+                        $query .= "SELECT  ";
+                        $query .= "  DOCNO, ";
+                        $query .= "  DOCNO2, ";
+                        $query .= "  DIV, ";
+                        $query .= "  TOKO, ";
+                        $query .= "  TOKO_1, ";
+                        $query .= "  GUDANG, ";
+                        $query .= "  PRDCD, ";
+                        $query .= "  prc_pluigr PLUIGR, ";
+                        $query .= "  QTY, ";
+                        $query .= "  PRICE, ";
+                        $query .= "  GROSS, ";
+                        $query .= "  PPN, ";
+                        $query .= "  COALESCE(TO_DATE(TANGGAL,'DD-MM-YYYY'),NULL) TANGGAL, ";
+                        $query .= "  COALESCE(TO_DATE(TANGGAL2,'DD-MM-YYYY'),NULL) TANGGAL2, ";
+                        $query .= "  SHOP, ";
+                        $query .= "  ISTYPE, ";
+                        $query .= "  PRICE_IDM, ";
+                        $query .= "  PPNBM_IDM, ";
+                        $query .= "  PPNRP_IDM, ";
+                        $query .= "  SCTYPE, ";
+                        $query .= "  BKP, ";
+                        $query .= "  SUB_BKP, ";
+                        $query .= "  CABANG, ";
+                        $query .= "  TIPE_GDG, ";
+                        $query .= "  '" . session('userid') . "', ";
+                        $query .= "  NOW(), ";
+                        $query .= "  '" . $fileName . "', ";
+                        $query .= "  PPN_RATE ";
+                        $query .= "FROM temp_rtt_idm ";
+                        $query .= "JOIN tbmaster_prodcrm ";
+                        $query .= "ON prc_pluidm = prdcd ";
+                        $query .= "AND prc_group = 'I' ";
+                        $query .= "JOIN tbmaster_prodmast ";
+                        $query .= "ON prd_prdcd = prc_pluigr ";
+                        $query .= "WHERE ISTYPE || SCTYPE = '05010000' ";
+                        $query .= "AND EXISTS ( ";
+                        $query .= "  SELECT 1 ";
+                        $query .= "  FROM tbmaster_perusahaan ";
+                        $query .= "  WHERE 'GI' || prs_kodeigr = gudang ";
+                        $query .= ")  ";
+                        $query .= "AND EXISTS ( ";
+                        $query .= "  SELECT 1 ";
+                        $query .= "  FROM tbmaster_tokoigr ";
+                        $query .= "  WHERE tko_kodeomi = toko ";
+                        $query .= ") ";
+                        $query .= "AND EXISTS ( ";
+                        $query .= "  SELECT 1 ";
+                        $query .= "  FROM tbmaster_tokoigr ";
+                        $query .= "  WHERE tko_kodeomi = shop ";
+                        $query .= ") ";
+                        $query .= "AND NOT EXISTS ( ";
+                        $query .= "  SELECT 1 ";
+                        $query .= "  FROM rtt_idm_interface ";
+                        $query .= "  WHERE rtt_idm_interface.docno = temp_rtt_idm.docno ";
+                        $query .= "  AND rtt_idm_interface.toko = temp_rtt_idm.toko ";
+                        $query .= ") ";
+                        DB::insert($query);
+                        DB::commit();
+
+                        return ApiFormatter::success(200, "Sukses Upload File Excel..!");
+                    }
+
                 }
-
-                //* File " & fileRTT & vbNewLine & dtPLU.Rows.Count & " PLU Tidak Ada Di Master IGR." & vbNewLine & strPLU
-                $message = "";
-                return ApiFormatter::error(400, $message);
+            } else {
+                return ApiFormatter::error(400, "File Tidak Ditemukan, Silahkan Upload Ulang File...!");
             }
+        } catch(\Exception $e){
 
-            $query = '';
-            $query .= "INSERT INTO rtt_idm_interface ( ";
-            $query .= "  DOCNO, ";
-            $query .= "  DOCNO2, ";
-            $query .= "  DIV, ";
-            $query .= "  TOKO, ";
-            $query .= "  TOKO_1, ";
-            $query .= "  GUDANG, ";
-            $query .= "  PRDCD, ";
-            $query .= "  PLUIGR, ";
-            $query .= "  QTY, ";
-            $query .= "  PRICE, ";
-            $query .= "  GROSS, ";
-            $query .= "  PPN, ";
-            $query .= "  TANGGAL, ";
-            $query .= "  TANGGAL2, ";
-            $query .= "  SHOP, ";
-            $query .= "  ISTYPE, ";
-            $query .= "  PRICE_IDM, ";
-            $query .= "  PPNBM_IDM, ";
-            $query .= "  PPNRP_IDM, ";
-            $query .= "  SCTYPE, ";
-            $query .= "  BKP, ";
-            $query .= "  SUB_BKP, ";
-            $query .= "  CABANG, ";
-            $query .= "  TIPE_GDG, ";
-            $query .= "  RII_CREATE_BY, ";
-            $query .= "  RII_CREATE_DT, ";
-            $query .= "  RII_FILENAME, ";
-            $query .= "  PPN_RATE ";
-            $query .= ") ";
-            $query .= "SELECT  ";
-            $query .= "  DOCNO, ";
-            $query .= "  DOCNO2, ";
-            $query .= "  DIV, ";
-            $query .= "  TOKO, ";
-            $query .= "  TOKO_1, ";
-            $query .= "  GUDANG, ";
-            $query .= "  PRDCD, ";
-            $query .= "  prc_pluigr PLUIGR, ";
-            $query .= "  QTY, ";
-            $query .= "  PRICE, ";
-            $query .= "  GROSS, ";
-            $query .= "  PPN, ";
-            $query .= "  COALESCE(TO_DATE(TANGGAL,'DD-MM-YYYY'),NULL) TANGGAL, ";
-            $query .= "  COALESCE(TO_DATE(TANGGAL2,'DD-MM-YYYY'),NULL) TANGGAL2, ";
-            $query .= "  SHOP, ";
-            $query .= "  ISTYPE, ";
-            $query .= "  PRICE_IDM, ";
-            $query .= "  PPNBM_IDM, ";
-            $query .= "  PPNRP_IDM, ";
-            $query .= "  SCTYPE, ";
-            $query .= "  BKP, ";
-            $query .= "  SUB_BKP, ";
-            $query .= "  CABANG, ";
-            $query .= "  TIPE_GDG, ";
-            $query .= "  '" . session('userid') . "', ";
-            $query .= "  NOW(), ";
-            $query .= "  '" & fileRTT & "', ";
-            $query .= "  PPN_RATE ";
-            $query .= "FROM temp_rtt_idm ";
-            $query .= "JOIN tbmaster_prodcrm ";
-            $query .= "ON prc_pluidm = prdcd ";
-            $query .= "AND prc_group = 'I' ";
-            $query .= "JOIN tbmaster_prodmast ";
-            $query .= "ON prd_prdcd = prc_pluigr ";
-            $query .= "WHERE ISTYPE || SCTYPE = '05010000' ";
-            $query .= "AND EXISTS ( ";
-            $query .= "  SELECT 1 ";
-            $query .= "  FROM tbmaster_perusahaan ";
-            $query .= "  WHERE 'GI' || prs_kodeigr = gudang ";
-            $query .= ")  ";
-            $query .= "AND EXISTS ( ";
-            $query .= "  SELECT 1 ";
-            $query .= "  FROM tbmaster_tokoigr ";
-            $query .= "  WHERE tko_kodeomi = toko ";
-            $query .= ") ";
-            $query .= "AND EXISTS ( ";
-            $query .= "  SELECT 1 ";
-            $query .= "  FROM tbmaster_tokoigr ";
-            $query .= "  WHERE tko_kodeomi = shop ";
-            $query .= ") ";
-            $query .= "AND NOT EXISTS ( ";
-            $query .= "  SELECT 1 ";
-            $query .= "  FROM rtt_idm_interface ";
-            $query .= "  WHERE rtt_idm_interface.docno = temp_rtt_idm.docno ";
-            $query .= "  AND rtt_idm_interface.toko = temp_rtt_idm.toko ";
-            $query .= ") ";
-            DB::insert($query);
-        //! ENDLOOP
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            return ApiFormatter::error(400, $message);
+        }
     }
 
-    public function actionCetak($noRTT,$tglRTT,$shop){
-        $noNrb = DB::select("SELECT DISTINCT rom_nodokumen FROM TBTR_RETUROMI WHERE rom_noreferensi = '" & noRTT & "' AND DATE_TRUNC('DAY',rom_tglreferensi) = TO_DATE('" & tglRTT & "','DD/MM/YYYY') AND rom_kodetoko = '" & shop & "' LIMIT 1");
-
+    public function actionCetak(Request $request){
+        $noNrb = DB::table('tbtr_returomi')->select('rom_nodokumen')->where('rom_noreferensi', $request->no_rtt)->where('rom_kodetoko', $request->shop)->distinct()->limit(1)->get();
+        
         $query = '';
         $query .= "SELECT prd_kodeigr kode_igr,ROM_NODOKUMEN, ROM_TGLDOKUMEN, ROM_PRDCD,PRD_UNIT,ROM_NOREFERENSI, ";
         $query .= "prd_frac, prd_deskripsipendek, (ROM_QTY+ROM_QTYTLR) qty,";
@@ -416,18 +452,22 @@ class HomeController extends Controller
             return ApiFormatter::error(400, 'table tbtr_returomi kosong report gagal ditampilkan');
         }
 
+        if ($request->method() === 'POST') {
+            return ApiFormatter::success(200, 'success', $request); 
+        }
+
         $data['namaCabang'] = DB::table('tbmaster_perusahaan')
             ->select('prs_namacabang')
             ->first()->prs_namacabang;
 
         $query = '';
         $query .= "select tko_kodeigr kode_igr, TKO_NAMAOMI , TKO_KODEOMI, ";
-        $query .= "'" . $noRTT . "' RETURID, '" . $tglRTT . "' TGLNRB ";
+        $query .= "'" . $request->no_rtt . "' RETURID, '" . $request->tgl_rtt . "' TGLNRB ";
         $query .= "from tbmaster_tokoigr ";
-        $query .= "where TKO_KODEOMI = '" . $shop . "'  ";
+        $query .= "where TKO_KODEOMI = '" . $request->shop . "'  ";
         $query .= "and TKO_NAMASBU = 'INDOMARET'";
         $data['toko'] = DB::select($query);
-
-        return view('report', $data);
+        $pdf = PDF::loadView('pdf.rtt-idm', $data);
+        return $pdf->stream('BUKTI PENERIMAAN BARANG RETUR.pdf');
     }
 }

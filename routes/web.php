@@ -3,6 +3,7 @@
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\StrukController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,28 +26,18 @@ Route::get('/logout', [LoginController::class, 'logout']);
 // Route::middleware(['mylogin'])->group(function () {
     //HOME
     Route::group(['prefix' => 'home'], function(){
-
         Route::get('/', [HomeController::class, 'index']);
-        Route::get('/datatables', [HomeController::class, 'datatables']);
-
-        Route::get('/datatables-laporan', [HomeController::class, 'datatablesLaporan']);
-
     });
 
-    Route::group(['prefix' => 'cashier'], function(){
+    Route::group(['prefix' => 'rtt-idm'], function(){
+        Route::get('/', [ReturTokoTutupIdmController::class, 'index']);
+        Route::get('/datatables', [ReturTokoTutupIdmController::class, 'datatables']);
+        Route::get('/datatables-detail/{no_rtt}/{toko_tutup}/{toko_tujuan}', [ReturTokoTutupIdmController::class, 'datatablesDetail']);
 
-        Route::get('/{id}/{station}/{date}', [CashierController::class, 'index']);
-        Route::get('/datatables', [CashierController::class, 'datatables']);
-    });
-
-    Route::group(['prefix' => 'struk'], function(){
-
-        Route::get('/', [StrukController::class, 'index']);
-        Route::get('/datatables', [StrukController::class, 'datatables']);
+        Route::group(['prefix' => 'action'], function(){
+            Route::post('/upload-excel', [ReturTokoTutupIdmController::class, 'actionUpload']);
+            Route::get('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
+            Route::post('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
+        });
     });
 // });
-
-
-    //tampilan only
-    Route::view('detail-penjualan', 'detail-penjualan');
-    Route::view('list-struk', 'list-struk');
