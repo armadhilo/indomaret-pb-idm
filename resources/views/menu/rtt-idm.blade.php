@@ -58,7 +58,7 @@
                                     <input type="file" id="upload_rtt" class="form-control" multiple accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
                                     <button class="btn btn-success btn-lg" style="padding: 8px 18px; white-space: nowrap" onclick="uploadExcel();">Upload Excel</button>
                                 </div>
-                                <div class="d-flex" style="gap: 25px">
+                                <div class="d-flex" style="gap: 15px">
                                     <div class="detail-info" style="flex: 1">* Tahan CTRL / SHIFT untuk Multiple Select File Excel</div>
                                     <button class="btn btn-warning btn-lg float-right" style="padding: 8px 26px;" onclick="prosesRTT();">Proses RTT</button>
                                 </div>
@@ -268,7 +268,7 @@
     function prosesRTT(){
         let checkboxElement = $(".checkbox-table:checked");
         if(checkboxElement.length !== 1){
-            Swal.fire('Oops!','Mohon Centang List RTT Kembali','error');
+            Swal.fire('Oops!','Mohon Centang List RTT Terlebih Dahulu','warning');
             $(".checkbox-table").prop('checked', false);
             return;
         }
