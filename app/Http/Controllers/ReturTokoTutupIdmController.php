@@ -234,6 +234,7 @@ class ReturTokoTutupIdmController extends Controller
 
     public function actionUpload(Request $request){
         try{
+            set_time_limit(240);
             DB::beginTransaction();
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
@@ -255,6 +256,7 @@ class ReturTokoTutupIdmController extends Controller
                         return ApiFormatter::error(400, "File " . $fileName . " Jumlah Kolom Tidak Standard (24)");
                     };
                     $dataRows = array_slice($data[0], 1);
+                    $dataCSV = [];
 
                     foreach ($dataRows as $rowData) {
                         $rowDataAssoc = [];
@@ -278,38 +280,16 @@ class ReturTokoTutupIdmController extends Controller
                             }
                         }
 
-                        DB::table('temp_rtt_idm')->truncate();
+                        $rowDataAssoc['nama_file'] = $fileName;
 
-                        DB::table('temp_rtt_idm')
-                        ->insert([
-                            'docno' => $rowDataAssoc['DOCNO'],
-                            'docno2' => $rowDataAssoc['DOCNO2'],
-                            'div' => $rowDataAssoc['DIV'],
-                            'toko' => $rowDataAssoc['TOKO'],
-                            'toko_1' => $rowDataAssoc['TOKO_1'],
-                            'gudang' => $rowDataAssoc['GUDANG'],
-                            'prdcd' => $rowDataAssoc['PRDCD'],
-                            'qty' => $rowDataAssoc['QTY'],
-                            'price' => $rowDataAssoc['PRICE'],
-                            'gross' => $rowDataAssoc['GROSS'],
-                            'ppn' => $rowDataAssoc['PPN'],
-                            'tanggal' => $rowDataAssoc['TANGGAL'],
-                            'tanggal2' => $rowDataAssoc['TANGGAL2'],
-                            'shop' => $rowDataAssoc['SHOP'],
-                            'istype' => $rowDataAssoc['ISTYPE'],
-                            'price_idm' => $rowDataAssoc['PRICE_IDM'],
-                            'ppnbm_idm' => $rowDataAssoc['PPNBM_IDM'],
-                            'ppnrp_idm' => $rowDataAssoc['PPNRP_IDM'],
-                            'sctype' => $rowDataAssoc['SCTYPE'],
-                            'bkp' => $rowDataAssoc['BKP'],
-                            'sub_bkp' => $rowDataAssoc['SUB_BKP'],
-                            'cabang' => $rowDataAssoc['CABANG'],
-                            'tipe_gdg' => $rowDataAssoc['TIPE_GDG'],
-                            'ppn_rate' => $rowDataAssoc['PPN_RATE'],
-                        ]);
+                        $dataCSV[] = $rowDataAssoc;
+                    }
 
+                    DB::table('temp_rtt_idm')->truncate();
+
+                    foreach ($dataCSV as $csvRow){
                         $query = '';
-                        $query .= "SELECT DISTINCT prdcd ";
+                        $query .= "SELECT * ";
                         $query .= "FROM temp_rtt_idm ";
                         $query .= "LEFT JOIN tbmaster_prodcrm  ON prc_pluidm = prdcd AND prc_group = 'I' ";
                         $query .= "LEFT JOIN tbmaster_prodmast ON prd_prdcd = prc_pluigr ";
@@ -320,10 +300,38 @@ class ReturTokoTutupIdmController extends Controller
                         if(count($dtPlu) > 0){
                             $string = '';
                             foreach($dtPlu as $item){
-                                $string .= $item['prdcd'];
+                                $string .= $item->prdcd;
                             }
-                            return ApiFormatter::error(400, "File " . $fileName . " PLU Tidak Ada DI Master IGR. " . $string);
+                            return ApiFormatter::error(400, "File " . $csvRow['nama_file'] . " PLU Tidak Ada DI Master IGR. " . $string);
                         }
+
+                        DB::table('temp_rtt_idm')
+                        ->insert([
+                            'docno' => $csvRow['DOCNO'],
+                            'docno2' => $csvRow['DOCNO2'],
+                            'div' => $csvRow['DIV'],
+                            'toko' => $csvRow['TOKO'],
+                            'toko_1' => $csvRow['TOKO_1'],
+                            'gudang' => $csvRow['GUDANG'],
+                            'prdcd' => $csvRow['PRDCD'],
+                            'qty' => $csvRow['QTY'],
+                            'price' => $csvRow['PRICE'],
+                            'gross' => $csvRow['GROSS'],
+                            'ppn' => $csvRow['PPN'],
+                            'tanggal' => $csvRow['TANGGAL'],
+                            'tanggal2' => $csvRow['TANGGAL2'],
+                            'shop' => $csvRow['SHOP'],
+                            'istype' => $csvRow['ISTYPE'],
+                            'price_idm' => $csvRow['PRICE_IDM'],
+                            'ppnbm_idm' => $csvRow['PPNBM_IDM'],
+                            'ppnrp_idm' => $csvRow['PPNRP_IDM'],
+                            'sctype' => $csvRow['SCTYPE'],
+                            'bkp' => $csvRow['BKP'],
+                            'sub_bkp' => $csvRow['SUB_BKP'],
+                            'cabang' => $csvRow['CABANG'],
+                            'tipe_gdg' => $csvRow['TIPE_GDG'],
+                            'ppn_rate' => $csvRow['PPN_RATE'],
+                        ]);
 
                         $query = '';
                         $query .= "INSERT INTO rtt_idm_interface ( ";
@@ -383,7 +391,7 @@ class ReturTokoTutupIdmController extends Controller
                         $query .= "  TIPE_GDG, ";
                         $query .= "  '" . session('userid') . "', ";
                         $query .= "  NOW(), ";
-                        $query .= "  '" . $fileName . "', ";
+                        $query .= "  '" . $csvRow['nama_file'] . "', ";
                         $query .= "  PPN_RATE ";
                         $query .= "FROM temp_rtt_idm ";
                         $query .= "JOIN tbmaster_prodcrm ";
