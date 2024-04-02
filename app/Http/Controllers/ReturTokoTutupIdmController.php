@@ -234,7 +234,7 @@ class ReturTokoTutupIdmController extends Controller
 
     public function actionUpload(Request $request){
         try{
-            set_time_limit(240);
+            set_time_limit(600);
             DB::beginTransaction();
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
