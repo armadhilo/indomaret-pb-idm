@@ -28,6 +28,11 @@
     <div class="sidebar-heading mt-2" style="padding-top: 8px">
         Menu
     </div>
+    <li class="nav-item @if($sub_url == 'monitoring-web-service') active @endif">
+        <a class="nav-link" href="{{ url('/monitoring-web-service') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>Monitoring Web Service</span></a>
+    </li>
     <li class="nav-item @if($sub_url == 'rtt-idm') active @endif">
         <a class="nav-link" href="{{ url('/rtt-idm') }}">
             <i class="fas fa-fw fa-tachometer-alt"></i>

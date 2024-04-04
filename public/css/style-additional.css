@@ -123,3 +123,7 @@ input{
     margin: auto;
     height: 20px;
 }
+
+table thead th, table tbody td{
+    vertical-align: middle!important;
+}

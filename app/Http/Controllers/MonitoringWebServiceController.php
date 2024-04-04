@@ -18,7 +18,7 @@ class MonitoringWebServiceController extends Controller
     }
 
     public function index(){
-        return view('home');
+        return view('menu.monitoring-web-service');
     }
 
     public function datatables($dtAwal, $dtAkhir){

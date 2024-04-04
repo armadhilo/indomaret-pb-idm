@@ -55,6 +55,7 @@
     <script src="{{ asset('js/buttons.flash.min.js')}}"></script>
     <script src="{{ asset('js/buttons.html5.min.js')}}"></script>
     <script src="{{ asset('js/pace.min.js')}}"></script>
+    <script src="{{ asset('js/moment.min.js')}}"></script>
     <script src="{{ asset('js/print.min.js')}}"></script>
     <script src="{{ asset('js/jquery.number.min.js')}}"></script>
     {{-- <script src="{{ asset('../resources/js/jquery.number.min.js.map')}}"></script> --}}
@@ -130,6 +131,11 @@
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			}
 		});
+
+        function setDateNow(element){
+            var today = moment().format('YYYY-MM-DD');
+            $(element).val(today).trigger('change');
+        }
 
         function fungsiRupiah(angka){
             var number_string = angka.toString().replace(/[^,\d]/g, '').toString(),

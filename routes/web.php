@@ -3,6 +3,7 @@
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\MonitoringWebServiceController;
 use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\StrukController;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,11 @@ Route::get('/logout', [LoginController::class, 'logout']);
     //HOME
     Route::group(['prefix' => 'home'], function(){
         Route::get('/', [HomeController::class, 'index']);
+    });
+
+    Route::group(['prefix' => 'monitoring-web-service'], function(){
+        Route::get('/', [MonitoringWebServiceController::class, 'index']);
+        Route::get('/datatables/{dtAwal}/{dtAkhir}', [MonitoringWebServiceController::class, 'datatables']);
     });
 
     Route::group(['prefix' => 'rtt-idm'], function(){
