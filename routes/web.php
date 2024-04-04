@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\StrukController;
+use App\Http\Controllers\MonitoringController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,13 +18,16 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-
+Route::get('/', function () {
+    // dd(Session::get('token'));
+    return redirect()->route('login');
+});
 //LOGIN
-Route::post('/login', [LoginController::class, 'login']);
+Route::post('/login', [LoginController::class, 'login'])->name("login");
 Route::get('/login', [LoginController::class, 'index']);
 Route::get('/logout', [LoginController::class, 'logout']);
 
-// Route::middleware(['mylogin'])->group(function () {
+Route::middleware(['mylogin'])->group(function () {
     //HOME
     Route::group(['prefix' => 'home'], function(){
         Route::get('/', [HomeController::class, 'index']);
@@ -40,4 +44,17 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
         });
     });
-// });
+
+
+
+  
+
+    Route::get('/monitoring', [MonitoringController::class, 'index']);
+    
+    // Route::prefix('/api')->group(function () {
+        /*  Monitoring */
+        // Route::prefix('/monitoring')->group(function () {
+        // });
+    // }
+
+});

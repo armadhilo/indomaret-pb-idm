@@ -33,6 +33,11 @@
             <i class="fas fa-fw fa-tachometer-alt"></i>
             <span>RTT IDM</span></a>
     </li>
+    <li class="nav-item @if($sub_url == 'monitoring') active @endif">
+        <a class="nav-link" href="{{ url('/monitoring') }}">
+            <i class="fa fa-desktop"></i>
+            <span>MONITORING</span></a>
+    </li>
 
     <!-- Sidebar Toggler (Sidebar) -->
     <!-- <div class="text-center d-none d-md-inline">

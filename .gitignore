@@ -16,7 +16,10 @@ public_html/storage
 public_html/hot
 
 storage/*.key
+nginx/
 .env
+docker-compose.yaml
+Dockerfile
 Homestead.yaml
 Homestead.json
 /.vagrant

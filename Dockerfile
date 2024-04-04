@@ -22,20 +22,20 @@ RUN apk add --no-cache \
 
 
 # Install Oracle Instant Client
-ENV LD_LIBRARY_PATH /usr/local/instantclient
-RUN apk add --no-cache libaio && \
-    curl -o /tmp/instantclient-basic.zip https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-basic-linux-arm64v8-21.1.0.0.0.zip && \
-    curl -o /tmp/instantclient-sdk.zip https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-sdk-linux-arm64v8-21.1.0.0.0.zip && \
-    mkdir -p /usr/local/instantclient && \
-    unzip /tmp/instantclient-basic.zip -d /usr/local/instantclient && \
-    unzip /tmp/instantclient-sdk.zip -d /usr/local/instantclient && \
-    ln -s /usr/local/instantclient/sqlplus /usr/bin/sqlplus && \
-    ln -s /usr/local/instantclient/sqlplus /usr/bin/sqlplus64 && \
-    rm -rf /tmp/instantclient-*.zip
+# ENV LD_LIBRARY_PATH /usr/local/instantclient
+# RUN apk add --no-cache libaio && \
+#     curl -o /tmp/instantclient-basic.zip https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-basic-linux-arm64v8-21.1.0.0.0.zip && \
+#     curl -o /tmp/instantclient-sdk.zip https://download.oracle.com/otn_software/linux/instantclient/211000/instantclient-sdk-linux-arm64v8-21.1.0.0.0.zip && \
+#     mkdir -p /usr/local/instantclient && \
+#     unzip /tmp/instantclient-basic.zip -d /usr/local/instantclient && \
+#     unzip /tmp/instantclient-sdk.zip -d /usr/local/instantclient && \
+#     ln -s /usr/local/instantclient/sqlplus /usr/bin/sqlplus && \
+#     ln -s /usr/local/instantclient/sqlplus /usr/bin/sqlplus64 && \
+#     rm -rf /tmp/instantclient-*.zip
 
 # Install OCI8 extension
-RUN docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/local/instantclient \
-    && docker-php-ext-install oci8
+# RUN docker-php-ext-configure oci8 --with-oci8=instantclient,/usr/local/instantclient \
+#     && docker-php-ext-install oci8
 
 
 # Install PHP extensions
@@ -54,8 +54,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         pdo_pgsql
 
 # Install Xdebug
-RUN pecl install xdebug \
-    && docker-php-ext-enable xdebug
+# RUN pecl install xdebug \
+#     && docker-php-ext-enable xdebug
 
 # Clean up
 RUN apk del autoconf g++ make \
