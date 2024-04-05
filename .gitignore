@@ -15,10 +15,11 @@ public/hot
 public_html/storage
 public_html/hot
 
+nginx/*
 storage/*.key
 nginx/
 .env
-docker-compose.yaml
+docker-compose.yml
 Dockerfile
 Homestead.yaml
 Homestead.json

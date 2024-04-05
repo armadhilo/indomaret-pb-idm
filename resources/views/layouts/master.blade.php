@@ -118,6 +118,8 @@
 
     <script>
         var currentURL;
+
+        var link = "{{url('/')}}";
         $(document).ready(function(){
             currentURL = window.location.href;
             if (currentURL.charAt(currentURL.length - 1) === '/') {

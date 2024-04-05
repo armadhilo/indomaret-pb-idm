@@ -51,10 +51,12 @@ Route::middleware(['mylogin'])->group(function () {
 
     Route::get('/monitoring', [MonitoringController::class, 'index']);
     
-    // Route::prefix('/api')->group(function () {
+    Route::prefix('/api')->group(function () {
         /*  Monitoring */
-        // Route::prefix('/monitoring')->group(function () {
-        // });
-    // }
+        Route::prefix('/monitoring')->group(function () {
+
+            Route::get('/zona', [MonitoringController::class, 'load_zona']);
+        });
+    });
 
 });

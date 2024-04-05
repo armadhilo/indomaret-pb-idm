@@ -11,48 +11,43 @@ let selectedTable,
 
 $(document).ready(function(){
 
-   /**
-    * table_plu
-    */
-      $('#table_plu input[type="checkbox"]').click(function () {
-            // Toggle the 'selected' class on the parent row
-            $(this).closest('tr').toggleClass('selected-row', this.checked);
-      });
-      $('#table_plu tbody').on('click', 'tr', function () {
+      /**
+       * table_plu
+       */
+      // $('#table_plu input[type="checkbox"]').click(function () {
+      //       // Toggle the 'selected' class on the parent row
+      //       $(this).closest('tr').toggleClass('selected-row', this.checked);
+      // });
+      // $('#table_plu tbody').on('click', 'tr', function () {
 
-         $(this).toggleClass('selected-row');
-         selectedTablePLU = $(this).find('td').map(function (data) {
-               return $(this).text();
-         }).get();
-         $(this).find('input[type="checkbox"]').prop('checked', function (i, oldProp) {
-            if ($(this).is(':checked')) {
-               addPlu(selectedTablePLU[1],false)
-         } else {
-               addPlu(selectedTablePLU[1],true)
-         }
-            return !oldProp;
-         });
+      //    $(this).toggleClass('selected-row');
+      //    selectedTablePLU = $(this).find('td').map(function (data) {
+      //          return $(this).text();
+      //    }).get();
+      //    $(this).find('input[type="checkbox"]').prop('checked', function (i, oldProp) {
+      //       if ($(this).is(':checked')) {
+      //          addPlu(selectedTablePLU[1],false)
+      //    } else {
+      //          addPlu(selectedTablePLU[1],true)
+      //    }
+      //       return !oldProp;
+      //    });
          
 
-      });
+      // });
 
-
-
-      $('.input-data').prop('disabled',true);
-      $('.list-plu').hide();
-      $('.input-form').hide();
-      $('.select2').select2({
-         allowClear: false
-      }); 
-      $("#datepicker").datepicker({
-         format: "dd-MM-yyyy",
-         autoclose: true,
-         todayHighlight: true
-      });
-      getDataPlu();
-      getDataRak();
-      $("#by-plu").prop("checked", true);
-      toggleInput('by-plu')
+      // $('.select2').select2({
+      //    allowClear: false
+      // }); 
+      // $("#datepicker").datepicker({
+      //    format: "dd-MM-yyyy",
+      //    autoclose: true,
+      //    todayHighlight: true
+      // });
+      getDataZona();
+      // getDataRak();
+      // $("#by-plu").prop("checked", true);
+      // toggleInput('by-plu')
 });
 
 toggleInput =(nameClass,deleteVar)=>{
@@ -78,12 +73,12 @@ changePRDCD=(data)=>{
 }
 
 
-getDataPlu =()=>{
+getDataZona =()=>{
    let select = "";
        listDataPLU = [];
 
-   $('#label-tag').loading('toggle');
-   $.getJSON(link + "/api/data/plu", function(data) {
+   // $('#label-tag').loading('toggle');
+   $.getJSON(link + "/api/monitoring/zona", function(data) {
      
       if(data){
          $.each(data,function(key,value){
@@ -91,12 +86,12 @@ getDataPlu =()=>{
                listDataPLU[value.prdcd] = value;
 
          });
-         $("#prdcd").append(select);
+         $("#zona").append(select);
       }
 
    })
 
-   $('#label-tag').loading('toggle');
+   // $('#label-tag').loading('toggle');
 
 }
 

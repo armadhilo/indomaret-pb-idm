@@ -116,6 +116,7 @@
                                                     <div class="form-group">
                                                         <select class="form-control form-control-sm select2" name="zona" id="zona">
                                                             <option value="" disabled selected>Pilih Zona</option>
+                                                            <option value="all">All</option>
                                                         
                                                         </select>
                                                     </div>
