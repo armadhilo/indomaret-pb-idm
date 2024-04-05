@@ -28,4 +28,14 @@ class MonitoringController extends Controller
     public function index(){
         return view("menu.monitoring.index");
     }
+
+    public function load_zona(){
+        $data = $this->DB_PGSQL
+                     ->table("zona_idm")
+                     ->select("zon_kode")
+                     ->distinct()
+                     ->orderBy("zon_kode","asc")
+                     ->get();
+        return $data;
+    }
 }
