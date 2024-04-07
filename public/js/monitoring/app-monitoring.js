@@ -36,9 +36,9 @@ $(document).ready(function(){
 
       // });
 
-      // $('.select2').select2({
-      //    allowClear: false
-      // }); 
+      $('.select2').select2({
+         allowClear: false
+      }); 
       // $("#datepicker").datepicker({
       //    format: "dd-MM-yyyy",
       //    autoclose: true,
@@ -82,7 +82,7 @@ getDataZona =()=>{
      
       if(data){
          $.each(data,function(key,value){
-               select+=` <option value="${value.prdcd}" >(${value.prdcd})</option>`;
+               select+=` <option value="${value.zon_kode}" >${value.zon_kode}</option>`;
                listDataPLU[value.prdcd] = value;
 
          });
