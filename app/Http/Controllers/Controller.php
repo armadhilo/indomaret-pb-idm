@@ -19,4 +19,8 @@ class Controller extends BaseController
 
         return $data[0]['data'];
     }
+
+    public function insertToNPB($cabang, $NamaFile, $dtH, $dtD){
+
+    }
 }

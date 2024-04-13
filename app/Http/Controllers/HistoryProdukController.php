@@ -29,12 +29,19 @@ class MonitoringWebServiceController extends Controller
     }
 
     public function datatables(){
-        // Sql = "select DISTINCT TKO_KODEOMI KODETK, TKO_NAMAOMI NAMATK "
-        // Sql += "from tbmaster_tokoigr "
-        // Sql += "where tko_kodesbu = 'I'  "
-        // Sql += "and TKO_FLAGKPH = 'Y' "
-        // Sql += "and tko_kodeigr = '" & KodeIGR & "'   "
-        // Sql += "order by 1  "
+
+        $query = '';
+        $query .= "select DISTINCT TKO_KODEOMI KODETK, TKO_NAMAOMI NAMATK ";
+        $query .= "from tbmaster_tokoigr ";
+        $query .= "where tko_kodesbu = 'I'  ";
+        $query .= "and TKO_FLAGKPH = 'Y' ";
+        $query .= "and tko_kodeigr = '" . session('KODECABANG') . "'   ";
+        $query .= "order by 1  ";
+        $data = DB::select($query);
+
+        return DataTables::of($data)
+            ->addIndexColumn()
+            ->make(true);
 
         // dgvHP.Rows.Add(data.Rows(i).Item("KODETK").ToString, _
         //                       data.Rows(i).Item("NAMATK").ToString)

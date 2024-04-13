@@ -59,12 +59,25 @@ class DspbRotiController extends Controller
             ->make(true);
     }
 
-    public function actionCetakDspb(){
+    public function actionCetakDspb($datatables, $cluster){
         //* cek STATUS pada datatables jika tidak ada yang "SIAP DSPB" muncul error -> Tidak ada data yang siap DSPB
 
-        //* jika ada maka muncul popup -> DSPB Cluster '" & cbCluster.Text & "' tanggal " & datePick.Value.ToString("dd-MM-yyyy") & " ini?
+        //* jika ada maka muncul popup -> DSPB Cluster '" . cbCluster.Text . "' tanggal " . datePick.Value.ToString("dd-MM-yyyy") . " ini?
 
-        //! LOOPING DATATABLES yang STATUS "SIAP DSPB"
+        //! LOOPING DATATABLES
+
+        $thnNow = Carbon::now()->format('yyyy');
+        $noRekap = DB::select("SELECT NEXTVAL('SEQ_ROTI')")[0]->nextval;
+
+        $noRekap = $thnNow . str_pad($noRekap, 5, "0", STR_PAD_LEFT);
+
+        //! CHECK HANYA YANG -> SIAP DSPB
+        foreach($datatables as $item){
+            if($item['status'] == 'SIAP DSPB'){
+                $this->DSPB_ROTI($item['KODETOKO'], $item['TGLTRANS'], $noRekap, $cluster);
+            }
+        }
+        //! END LOOP
     }
 
     private function createTableLogNPB(){
@@ -103,7 +116,7 @@ class DspbRotiController extends Controller
         return true;
     }
 
-    private function DspbRoti($kodetoko, $tgltrans, $noRekap, $cbCluster){
+    private function DSPB_ROTI($kodetoko, $tgltrans, $noRekap, $cbCluster){
 
         //! DEFAULT
         $noKoli = "";
@@ -130,8 +143,8 @@ class DspbRotiController extends Controller
             ->get();
 
         if(Count($dt)){
-            // $nmPb = "NPR" & _kodegudang & _toko & Format(_tglServer, "yyyyMMddHHmm")
-            // $nmRpb = "XPR" & _kodegudang & _toko & Format(_tglServer, "yyyyMMddHHmm")
+            // $nmPb = "NPR" . _kodegudang . _toko . Format(_tglServer, "yyyyMMddHHmm")
+            // $nmRpb = "XPR" . _kodegudang . _toko . Format(_tglServer, "yyyyMMddHHmm")
 
             $dtCek = DB::table('master_supply_idm')
                 ->select('msi_kodedc')
@@ -148,7 +161,7 @@ class DspbRotiController extends Controller
                 $query = '';
                 $query .= "SELECT '*' recid, ";
                 $query .= "  NULL rtype, ";
-                $query .= "  " & $noDspb & "  docno, ";
+                $query .= "  " . $noDspb . "  docno, ";
                 $query .= "  ROW_NUMBER() OVER() seqno, ";
                 $query .= "  pbo_nopb picno, ";
                 $query .= "  NULL picnot, ";
@@ -182,9 +195,9 @@ class DspbRotiController extends Controller
                 $query .= "FROM tbmaster_pbomi ";
                 $query .= "JOIN TBMASTER_PRODMAST ";
                 $query .= "ON pbo_pluigr = prd_prdcd ";
-                $query .= "WHERE PBO_TGLPB = TO_DATE('" & $tglPb & "','YYYY-MM-DD')  ";
-                $query .= "AND pbo_nopb = '" & $noPb & "' ";
-                $query .= "AND pbo_kodeomi = '" & $kodetoko & "' ";
+                $query .= "WHERE PBO_TGLPB = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
+                $query .= "AND pbo_nopb = '" . $noPb . "' ";
+                $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
                 $query .= "AND pbo_qtyrealisasi > 0 ";
                 $query .= "AND pbo_recordid = '4'";
                 $query .= "AND pbo_nokoli like '06%'";
@@ -224,7 +237,7 @@ class DspbRotiController extends Controller
             $query .= "GROUP BY pbo_tglpb, pbo_kodeomi ";
 
             //! SIMPAN NAMA NPB
-            simpanDSPB($nmNpb . ".ZIP", $kodetoko, $noPb, 0, 0, $noDspb, "R- PBROTI");
+            $this->simpanDSPB($nmNpb . ".ZIP", $kodetoko, $noPb, 0, 0, $noDspb, "R- PBROTI");
 
             $query = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 ";
             if($kodeDCIDM <> ''){
@@ -241,7 +254,7 @@ class DspbRotiController extends Controller
                     $query .= "AND wc_dc = '$kodeDCIDM'";
                 }
 
-                $npbGudang = DV::select($query)[0]['ws_url'];
+                $npbGudang = DB::select($query)[0]['ws_url'];
             }
 
             //! dtHeader
@@ -306,7 +319,17 @@ class DspbRotiController extends Controller
             $dtD = DB::select($query);
 
             if(isset($npbIP)){
-                $this->insertToNPB(carbon::now(), $npbGudang, $nmNpb, $dtH, $dtD);
+
+                $tglConfirm = null;
+                $npbRes = null;
+                $jmlItem = 0;
+
+                $okNPB = $this->insertToNPB(carbon::now(), $npbGudang, $nmNpb, $dtH, $dtD);
+                if($okNPB){
+                    $tglConfirm = $okNPB['tglConfirm'];
+                    $npbRes = $okNPB['npbRes'];
+                    $jmlItem = $okNPB['jmlItem'];
+                }
 
                 $query = '';
                 $query .= "INSERT INTO log_npb ( ";
@@ -329,87 +352,24 @@ class DspbRotiController extends Controller
                 $query .= "   npb_create_dt ";
                 $query .= " ) VALUES ( ";
                 $query .= "   DATE_TRUNC('DAY',CURRENT_DATE ), ";
-                $query .= "   '" & $kodetoko & "', ";
-                $query .= "   '" & $noPb & "', ";
-                $query .= "   to_date('" & Format(_tglpb, "yyyyMMdd") & "','YYYYMMDD'), ";
-                $query .= "   '" & $nodspb & "', ";
-                $query .= "   '" & $nmNpb & "', ";
-                $query .= "   '" & $jmlItem & "', ";
+                $query .= "   '" . $kodetoko . "', ";
+                $query .= "   '" . $noPb . "', ";
+                $query .= "   TO_DATE('" . $tglPb . "','YYYY-MM-DD'), ";
+                $query .= "   '" . $noDspb . "', ";
+                $query .= "   '" . $nmNpb . "', ";
+                $query .= "   '" . $jmlItem . "', ";
                 $query .= "   'ROTI', ";
-                $query .= "   '" & $npbIP & "', ";
-                $query .= "   '" & IIf(okNPB, "SUKSES! ", "GAGAL! ") & npbRes & "', ";
-                $query .= "   '" & jamCreateWeb & "', ";
-                $query .= "   '" & jamCreateCSV & "', ";
-                $query .= "   '" & jamKirim & "', ";
-                $query .= "   '" & tglConfirm & "', ";
+                $query .= "   '" . $npbIP . "', ";
+                $query .= "   '" . $npbRes . "', ";
+                $query .= "   '" . Carbon::now() . "', ";
+                $query .= "   '" . Carbon::now() . "', ";
+                $query .= "   '" . Carbon::now() . "', ";
+                $query .= "   '" . $tglConfirm . "', ";
                 $query .= "   0, ";
-                $query .= "   '" & UserMODUL & "', ";
+                $query .= "   '" . session('userid') . "', ";
                 $query .= "   NOW() ";
                 $query .= " ) ";
             }
-
-            // cmd.CommandText = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 " & _
-            //                   IIf(kodeDCIDM <> "", "AND ws_dc = '" & kodeDCIDM & "' ", "")
-            // npbIP = cmd.ExecuteScalar
-
-            // If kodeDCIDM <> "" Then
-            //     npbGudang = kodeDCIDM
-            // Else
-            //     cmd.CommandText = "SELECT ws_DC FROM tbmaster_webservice WHERE ws_nama = 'NPB' " & _
-            //         IIf(kodeDCIDM <> "", "AND ws_dc = '" & kodeDCIDM & "' ", "")
-            //     npbGudang = cmd.ExecuteScalar
-            // End If
-
-            // If Not (npbIP Is Nothing) Then
-            //     Dim okNPB As Boolean = True
-
-            //     okNPB = insertToNPB(Format(_tglServer, "yyyyMMdd") & npbGudang.ToString, _
-            //                         nmNpb, _
-            //                         dtH, _
-            //                         dtD)
-
-            //     sb = New StringBuilder
-            //     sb.AppendLine("INSERT INTO log_npb ( ")
-            //     sb.AppendLine("   npb_tgl_proses, ")
-            //     sb.AppendLine("   npb_kodetoko, ")
-            //     sb.AppendLine("   npb_nopb, ")
-            //     sb.AppendLine("   npb_tglpb, ")
-            //     sb.AppendLine("   npb_nodspb, ")
-            //     sb.AppendLine("   npb_file, ")
-            //     sb.AppendLine("   npb_jml_item, ")
-            //     sb.AppendLine("   npb_jenis, ")
-            //     sb.AppendLine("   npb_url, ")
-            //     sb.AppendLine("   npb_response, ")
-            //     sb.AppendLine("   npb_create_web, ")
-            //     sb.AppendLine("   npb_create_csv, ")
-            //     sb.AppendLine("   npb_kirim, ")
-            //     sb.AppendLine("   npb_confirm, ")
-            //     sb.AppendLine("   npb_jml_retry, ")
-            //     sb.AppendLine("   npb_create_by,  ")
-            //     sb.AppendLine("   npb_create_dt ")
-            //     sb.AppendLine(" ) VALUES ( ")
-            //     sb.AppendLine("   DATE_TRUNC('DAY',CURRENT_DATE ), ")
-            //     sb.AppendLine("   '" & _toko & "', ")
-            //     sb.AppendLine("   '" & _nopb & "', ")
-            //     sb.AppendLine("   to_date('" & Format(_tglpb, "yyyyMMdd") & "','YYYYMMDD'), ")
-            //     sb.AppendLine("   '" & noDspb & "', ")
-            //     sb.AppendLine("   '" & nmNpb & "', ")
-            //     sb.AppendLine("   '" & jmlItem & "', ")
-            //     sb.AppendLine("   'ROTI', ")
-            //     sb.AppendLine("   '" & npbIP & "', ")
-            //     sb.AppendLine("   '" & IIf(okNPB, "SUKSES! ", "GAGAL! ") & npbRes & "', ")
-            //     sb.AppendLine("   '" & jamCreateWeb & "', ")
-            //     sb.AppendLine("   '" & jamCreateCSV & "', ")
-            //     sb.AppendLine("   '" & jamKirim & "', ")
-            //     sb.AppendLine("   '" & tglConfirm & "', ")
-            //     sb.AppendLine("   0, ")
-            //     sb.AppendLine("   '" & UserMODUL & "', ")
-            //     sb.AppendLine("   NOW() ")
-            //     sb.AppendLine(" ) ")
-
-            //     cmd.CommandText = sb.ToString
-            //     cmd.ExecuteNonQuery()
-            // End If
 
             //! REPORT QR CODE
             // If checkQR.Checked Then
@@ -428,42 +388,36 @@ class DspbRotiController extends Controller
     }
 
     private function simpanDSPB($namafile,$kodetoko,$nopb,$nopick,$nosj,$nodspb,$jenispb){
-        jenispb = jenispb.ToUpper
+        $jenispb = strtoupper($jenispb);
 
-        sql = "KODEIGR = '" & KodeIGR & " ' " &
-        "AND NAMAFILE = '" & namafile & "' " &
-        "AND KODETOKO = '" & kodetoko & "' " &
-        "AND NOPB = '" & nopb & "' " &
-        "AND NOPICK = '" & nopick & "' " &
-        "AND NOSJ = '" & nosj & "' " &
-        "AND NODSPB = '" & nodspb & "'" &
-        "AND JENISPB = '" & jenispb & "'"
+        $dtCek = DB::table('tbhistory_dspb')
+            ->where([
+                'kodeigr' => session('KODECABANG'),
+                'namafile' => $namafile,
+                'kodetoko' => $kodetoko,
+                'nopb' => $nopb,
+                'nopick' => $nopick,
+                'nosj' => $nosj,
+                'nodspb' => $nodspb,
+                'jenispb' => $jenispb,
+            ])->count();
 
-        If ORADataFound(_cn, "TBHISTORY_DSPB", sql) = False Then
-                query = "INSERT INTO TBHISTORY_DSPB   "
-                query += "(KODEIGR,   "
-                query += "NAMAFILE,   "
-                query += "KODETOKO,   "
-                query += "NOPB,   "
-                query += "NOPICK,   "
-                query += "NOSJ,   "
-                query += "NODSPB,   "
-                query += "JENISPB,   "
-                query += "CREATEBY,   "
-                query += "CREATEDT)   "
-                query += "VALUES   "
-                query += "('" & KodeIGR & "',   "
-                query += "'" & namafile & "',   "
-                query += "'" & kodetoko & "',   "
-                query += "'" & nopb & "',   "
-                query += "'" & nopick & "',   "
-                query += "'" & nosj & "',   "
-                query += "'" & nodspb & "',   "
-                query += "'" & jenispb & "',   "
-                query += "'" & UserMODUL & "',   "
-                query += "NOW() )  "
-                NonQueryOra1(query)
-            End If
+        if($dtCek == 0){
+
+            $dtCek = DB::table('tbhistory_dspb')
+            ->insert([
+                'kodeigr' => session('KODECABANG'),
+                'namafile' => $namafile,
+                'kodetoko' => $kodetoko,
+                'nopb' => $nopb,
+                'nopick' => $nopick,
+                'nosj' => $nosj,
+                'nodspb' => $nodspb,
+                'jenispb' => $jenispb,
+                'createby' => session('userid'),
+                'createdt' => Carbon::now(),
+            ]);
+        }
     }
 
     private function cetakSJP($kodetoko, $noDspb, $noPb, $tglPb){
@@ -482,10 +436,10 @@ class DspbRotiController extends Controller
 
             if($check > 0){
                 $query = '';
-                $query .= "UPDATE PAKET_IPP SET PIP_NODSPB = '" & $noDspb & "', ";
+                $query .= "UPDATE PAKET_IPP SET PIP_NODSPB = '" . $noDspb . "', ";
                 $query .= "PIP_RECORDID = '3', ";
                 $query .= "PIP_TGLDSPB = CURRENT_DATE  ";
-                $query .= "WHERE PIP_KODETOKO = '" & $kodetoko & "' ";
+                $query .= "WHERE PIP_KODETOKO = '" . $kodetoko . "' ";
                 $query .= "AND PIP_RECORDID = '1' ";
                 $query .= "AND PIP_NODSPB IS NULL ";
             }
@@ -504,14 +458,14 @@ class DspbRotiController extends Controller
         //! UPDATE IDM KOLI
         $query = '';
         $query .= "UPDATE TBTR_IDMKOLI  ";
-        $query .= "SET IKL_REGISTERREALISASI = '" & $noDspb & "',  ";
+        $query .= "SET IKL_REGISTERREALISASI = '" . $noDspb . "',  ";
         $query .= "IKL_NOBPD = '1' , ";
-        $query .= "IKL_IDTRANSAKSI = '" & $noDspb & "',  ";
+        $query .= "IKL_IDTRANSAKSI = '" . $noDspb . "',  ";
         $query .= "IKL_TGLBPD = date_trunc('day',current_date), ";
         $query .= "IKL_RECORDID = '1' ";
-        $query .= "WHERE ikl_tglpb = TO_DATE('" & $tglPb & "','YYYY-MM-DD') ";
-        $query .= "AND ikl_kodeidm = '" & $kodetoko & "' ";
-        $query .= "AND ikl_nopb = '" & $noPb & "'   ";
+        $query .= "WHERE ikl_tglpb = TO_DATE('" . $tglPb . "','YYYY-MM-DD') ";
+        $query .= "AND ikl_kodeidm = '" . $kodetoko . "' ";
+        $query .= "AND ikl_nopb = '" . $noPb . "'   ";
         $query .= "AND ikl_nokoli like '06%' ";
 
         //! UPDATE TBMASTER_STOCK
@@ -525,22 +479,22 @@ class DspbRotiController extends Controller
         $query .= "AND pbo_pluigr = prd_prdcd ";
         $query .= "AND pbo_kodeigr = st_kodeigr ";
         $query .= "AND SUBSTR(pbo_pluigr, 1, 6) || '0' = st_prdcd ";
-        $query .= "AND date_trunc('day',PBO_TGLPB) = TO_DATE('" & $tglPb & "','YYYY-MM-DD')  ";
-        $query .= "AND pbo_nopb = '" & $noPb & "' ";
-        $query .= "AND pbo_kodeomi = '" & $kodetoko & "' ";
+        $query .= "AND date_trunc('day',PBO_TGLPB) = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
+        $query .= "AND pbo_nopb = '" . $noPb . "' ";
+        $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
         $query .= "AND pbo_recordid = '4' ";
         $query .= "AND SUBSTR(PRD_PRDCD,1,6) || '0' = ST_PRDCD ) ";
-        $query .= "WHERE st_kodeigr = '" & session('KODECABANG') & "' ";
+        $query .= "WHERE st_kodeigr = '" . session('KODECABANG') . "' ";
         $query .= "AND st_lokasi = '01' ";
         $query .= "AND EXISTS( ";
         $query .= "SELECT 1 ";
         $query .= "FROM tbmaster_pbomi ";
         $query .= "WHERE pbo_kodeigr = st_kodeigr ";
         $query .= "AND SUBSTR(pbo_pluigr, 1, 6) || '0' = st_prdcd ";
-        $query .= "AND date_trunc('day',PBO_TGLPB) = TO_DATE('" & $tglPb & "','YYYY-MM-DD')  ";
+        $query .= "AND date_trunc('day',PBO_TGLPB) = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
         $query .= "AND pbo_recordid = '4' ";
-        $query .= "AND pbo_nopb = '" & $noPb & "' ";
-        $query .= "AND pbo_kodeomi = '" & $kodetoko & "' ";
+        $query .= "AND pbo_nopb = '" . $noPb . "' ";
+        $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
         $query .= "AND pbo_nokoli like '06%' ";
         $query .= ")    ";
 
@@ -549,15 +503,15 @@ class DspbRotiController extends Controller
         $query .= "INSERT into tbtr_realpb (RPB_KODEIGR,RPB_NOKOLI,RPB_NOURUT,RPB_TGLDOKUMEN,RPB_NODOKUMEN,RPB_IDSURATJALAN,RPB_KODECUSTOMER,RPB_KODEOMI";
         $query .= ",RPB_PLU1,RPB_PLU2,RPB_HRGSATUAN,RPB_QTYORDER,RPB_QTYREALISASI,RPB_NILAIORDER,RPB_PPNORDER,RPB_TTLNILAI,RPB_TTLPPN,RPB_DISTRIBUTIONFEE,RPB_COST";
         $query .= ",RPB_QTYV,RPB_QTYBDR,RPB_HBDR,RPB_FLAG,RPB_CREATE_BY,RPB_CREATE_DT) ";
-        $query .= "SELECT PBO_KODEIGR,PBO_NOKOLI, row_number() over(),PBO_TGLPB, PBO_NOPB, '" & $noDspb & "',PBO_KODEMEMBER,PBO_KODEOMI,PBO_PLUOMI,PBO_PLUIGR,PBO_HRGSATUAN,";
-        $query .= "PBO_QTYORDER, PBO_QTYREALISASI,PBO_NILAIORDER,PBO_PPNORDER,PBO_TTLNILAI,PBO_TTLPPN,PBO_DISTRIBUTIONFEE,ST_AVGCOST,0,0,0,'4','" & session('userid') & "',now() ";
+        $query .= "SELECT PBO_KODEIGR,PBO_NOKOLI, row_number() over(),PBO_TGLPB, PBO_NOPB, '" . $noDspb . "',PBO_KODEMEMBER,PBO_KODEOMI,PBO_PLUOMI,PBO_PLUIGR,PBO_HRGSATUAN,";
+        $query .= "PBO_QTYORDER, PBO_QTYREALISASI,PBO_NILAIORDER,PBO_PPNORDER,PBO_TTLNILAI,PBO_TTLPPN,PBO_DISTRIBUTIONFEE,ST_AVGCOST,0,0,0,'4','" . session('userid') . "',now() ";
         $query .= "FROM tbmaster_pbomi  , tbmaster_STOCK   ";
         $query .= "WHERE PBO_KODEIGR = ST_KODEIGR ";
         $query .= "AND SUBSTR(PBO_PLUIGR,1,6) || '0' = ST_PRDCD ";
         $query .= "AND ST_LOKASI = '01' ";
-        $query .= "AND pbo_tglpb = TO_DATE('" & $tglPb & "','YYYY-MM-DD')  ";
-        $query .= "AND pbo_nopb = '" & $noPb & "' ";
-        $query .= "AND pbo_kodeomi = '" & $kodetoko & "' ";
+        $query .= "AND pbo_tglpb = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
+        $query .= "AND pbo_nopb = '" . $noPb . "' ";
+        $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
         $query .= "AND pbo_recordid = '4' ";
         $query .= "AND pbo_nokoli like '06%' ";
 
@@ -565,8 +519,8 @@ class DspbRotiController extends Controller
         $query = '';
         $query .= "UPDATE TBTR_HEADER_ROTI  ";
         $query .= "SET HDR_FLAG = '5' ";
-        $query .= "WHERE date_TRUNC('day',HDR_TGLPB) =  TO_DATE('" & $tglPb & "','YYYY-MM-DD')   ";
-        $query .= "AND HDR_NOPB= '" & $noPb & "' ";
-        $query .= "AND HDR_KODETOKO = '" & $noPb & "' ";
+        $query .= "WHERE date_TRUNC('day',HDR_TGLPB) =  TO_DATE('" . $tglPb . "','YYYY-MM-DD')   ";
+        $query .= "AND HDR_NOPB= '" . $noPb . "' ";
+        $query .= "AND HDR_KODETOKO = '" . $noPb . "' ";
     }
 }
