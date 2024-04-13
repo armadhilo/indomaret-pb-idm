@@ -11,6 +11,11 @@ class Controller extends BaseController
 {
     use AuthorizesRequests, ValidatesRequests;
 
+    public function getIP(){
+        return '127.0.0.4'; //! dummy
+        return $_SERVER['REMOTE_ADDR'];
+    }
+
     public function getPaketIPP($kodetoko){
         $data = DB::select("select coalesce(CLS_PAKETIPP,'0') as data FROM CLUSTER_IDM WHERE CLS_TOKO = '" . $kodetoko . "'");
         if(count($data) == 0){

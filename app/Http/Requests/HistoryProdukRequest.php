@@ -5,7 +5,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
 
-class StrukRequest extends FormRequest
+class HistoryProdukRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,10 +25,10 @@ class StrukRequest extends FormRequest
     public function rules()
     {
         return [
-            'cashier_id' => ['required'],
-            'cashier_station' => ['required'],
-            'transaction_no' => ['required'],
-            'transaction_date' => ['required', 'date_format:Y-m-d'],
+            'txtPath' => ['required'],
+            'pilBulan' => ['required'],
+            'pilTahun' => ['required'],
+            'mode' => ['required'],
         ];
     }
 
