@@ -103,7 +103,7 @@ class DspbRotiController extends Controller
         return true;
     }
 
-    private function DspbRoti($kodetoko, $tgltrans, $noRekap){
+    private function DspbRoti($kodetoko, $tgltrans, $noRekap, $cbCluster){
 
         //! DEFAULT
         $noKoli = "";
@@ -199,27 +199,154 @@ class DspbRotiController extends Controller
                 }
             }
 
-            sb = New StringBuilder
-            sb.AppendLine("INSERT INTO TBTR_REKAP_DSPB_ROTI")
-            sb.AppendLine("(SP_KODEIGR, DSP_NO_REKAP, DSP_NODSPB, DSP_CLUSTER, DSP_CREATE_BY, DSP_CREATE_DT)")
-            sb.AppendLine("VALUES('" & KodeIGR & "', '" & noRekap & "', '" & noDspb & "', '" & cbCluster.Text & "', '" & UserMODUL & "', NOW() )")
+            DB::table('tbtr_rekap_dspb_roti')
+                ->insert([
+                    'sp_kodeigr' => session('KODECABANG'),
+                    'dsp_no_rekap' => $noRekap,
+                    'dsp_nodspb' => $noDspb,
+                    'dsp_cluster' => $cbCluster,
+                    'dsp_create_by' => session('userid'),
+                    'dsp_create_dt' => Carbon::now(),
+                ]);
 
-            sb = New StringBuilder
-            sb.AppendLine("SELECT " & noDspb & " docno,")
-            sb.AppendLine("  TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,")
-            sb.AppendLine("  pbo_kodeomi toko,")
-            sb.AppendLine("  (SELECT 'GI' || prs_kodeigr FROM tbmaster_perusahaan LIMIT 1) gudang, ")
-            sb.AppendLine("  COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyrealisasi) qty, ")
-            sb.AppendLine("  SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi ")
-            sb.AppendLine("FROM tbmaster_pbomi a  ")
-            sb.AppendLine("WHERE  A.PBO_TGLPB = TO_DATE('" & _tglpb & "','dd/MM/YYYY')  ")
-            sb.AppendLine("AND pbo_kodeomi = '" & _toko & "' ")
-            sb.AppendLine("AND pbo_nokoli like '06%' ")
-            sb.AppendLine("AND PBO_QTYREALISASI > 0 ")
-            sb.AppendLine("GROUP BY pbo_tglpb, pbo_kodeomi ")
+            $query = '';
+            $query .= "SELECT " . $noDspb . " docno,";
+            $query .= "  TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,";
+            $query .= "  pbo_kodeomi toko,";
+            $query .= "  (SELECT 'GI' || prs_kodeigr FROM tbmaster_perusahaan LIMIT 1) gudang, ";
+            $query .= "  COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyrealisasi) qty, ";
+            $query .= "  SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi ";
+            $query .= "FROM tbmaster_pbomi a  ";
+            $query .= "WHERE  A.PBO_TGLPB = TO_DATE('" . $tglPb . "','dd/MM/YYYY')  ";
+            $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
+            $query .= "AND pbo_nokoli like '06%' ";
+            $query .= "AND PBO_QTYREALISASI > 0 ";
+            $query .= "GROUP BY pbo_tglpb, pbo_kodeomi ";
 
             //! SIMPAN NAMA NPB
-            simpanDSPB(nmNpb & ".ZIP", _toko, _nopb, 0, 0, noDspb, "R- PBROTI")
+            simpanDSPB($nmNpb . ".ZIP", $kodetoko, $noPb, 0, 0, $noDspb, "R- PBROTI");
+
+            $query = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 ";
+            if($kodeDCIDM <> ''){
+                $query .= "AND wc_dc = '$kodeDCIDM'";
+            }
+
+            $npbIP = DB::select($query)[0]['ws_url'];
+
+            if($kodeDCIDM <> ''){
+                $npbGudang = $kodeDCIDM;
+            }else{
+                $query = "SELECT ws_DC FROM tbmaster_webservice WHERE ws_nama = 'NPB' ";
+                if($kodeDCIDM <> ''){
+                    $query .= "AND wc_dc = '$kodeDCIDM'";
+                }
+
+                $npbGudang = DV::select($query)[0]['ws_url'];
+            }
+
+            //! dtHeader
+            $query = '';
+            $query .= "SELECT " . $noDspb . " docno,";
+            $query .= "  TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,";
+            $query .= "  pbo_kodeomi toko,";
+            $query .= "  (SELECT 'GI' || prs_kodeigr FROM tbmaster_perusahaan LIMIT 1) gudang, ";
+            $query .= "  COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyrealisasi) qty, ";
+            $query .= "  SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi ";
+            $query .= "FROM tbmaster_pbomi a  ";
+            $query .= "WHERE  A.PBO_TGLPB = TO_DATE('" . $tglPb . "','dd/MM/YYYY')  ";
+            $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
+            $query .= "AND pbo_nokoli like '06%' ";
+            $query .= "AND PBO_QTYREALISASI > 0 ";
+            $query .= "GROUP BY pbo_tglpb, pbo_kodeomi ";
+            $dtH = DB::select($query);
+
+            //! dtDetail
+            $query = '';
+            $query .= "SELECT '*' recid, ";
+            $query .= "  NULL rtype, ";
+            $query .= "  " . $noDspb . "  docno, ";
+            $query .= "  ROW_NUMBER() OVER() seqno, ";
+            $query .= "  pbo_nopb picno, ";
+            $query .= "  NULL picnot, ";
+            $query .= "  TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') pictgl, ";
+            $query .= "  pbo_pluomi prdcd, ";
+            $query .= "  (SELECT prd_deskripsipendek FROM tbmaster_prodmast WHERE prd_prdcd = pbo_pluigr) nama, ";
+            $query .= "  pbo_kodedivisi div, ";
+            $query .= "  pbo_qtyorder qty, ";
+            $query .= "  pbo_qtyrealisasi sj_qty, ";
+            $query .= "  pbo_hrgsatuan price, ";
+            $query .= "  pbo_ttlnilai gross, ";
+            $query .= "  pbo_ttlppn ppnrp, ";
+            $query .= "  pbo_hrgsatuan hpp, ";
+            $query .= "  pbo_kodeomi toko, ";
+            $query .= "  'R-' keter, ";
+            $query .= "  TO_CHAR(IKL_TGLBPD, 'dd-MM-YYYY') tanggal1, ";
+            $query .= "  TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') tanggal2, ";
+            $query .= "  pbo_nopb docno2, ";
+            $query .= "  NULL lt, ";
+            $query .= "  NULL rak, ";
+            $query .= "  NULL bar, ";
+            $query .= "  (SELECT 'GI' || prs_kodeigr ";
+            $query .= "  FROM tbmaster_perusahaan ";
+            $query .= "  LIMIT 1) kirim, ";
+            $query .= "  lpad(pbo_NOKOLI,12,'0') dus_no, ";
+            $query .= "  NULL TGLEXP, ";
+            $query .= "  COALESCE(prd_ppn, 0) ppn_rate, ";
+            $query .= "  COALESCE(prd_flagbkp1, 'N') BKP, ";
+            $query .= "  COALESCE(prd_flagbkp2,'N') SUB_BKP ";
+            $query .= "FROM tbmaster_pbomi ,TBTR_IDMKOLI, tbmaster_prodmast ";
+            $query .= "WHERE PBO_QTYREALISASI > 0 ";
+            $query .= "AND pbo_tglpb = TO_DATE(ikl_tglpb, 'YYYYMMdd')  ";
+            $query .= "AND pbo_nopb = ikl_nopb ";
+            $query .= "AND pbo_kodeomi = ikl_kodeidm ";
+            $query .= "AND pbo_nokoli = ikl_nokoli ";
+            $query .= "AND pbo_pluigr = prd_prdcd ";
+            $query .= "AND ikl_registerrealisasi = '" . $noDspb . "'";
+            $query .= "AND pbo_nokoli like '06%'";
+            $dtD = DB::select($query);
+
+            if(isset($npbIP)){
+                $this->insertToNPB(carbon::now(), $npbGudang, $nmNpb, $dtH, $dtD);
+
+                $query = '';
+                $query .= "INSERT INTO log_npb ( ";
+                $query .= "   npb_tgl_proses, ";
+                $query .= "   npb_kodetoko, ";
+                $query .= "   npb_nopb, ";
+                $query .= "   npb_tglpb, ";
+                $query .= "   npb_nodspb, ";
+                $query .= "   npb_file, ";
+                $query .= "   npb_jml_item, ";
+                $query .= "   npb_jenis, ";
+                $query .= "   npb_url, ";
+                $query .= "   npb_response, ";
+                $query .= "   npb_create_web, ";
+                $query .= "   npb_create_csv, ";
+                $query .= "   npb_kirim, ";
+                $query .= "   npb_confirm, ";
+                $query .= "   npb_jml_retry, ";
+                $query .= "   npb_create_by,  ";
+                $query .= "   npb_create_dt ";
+                $query .= " ) VALUES ( ";
+                $query .= "   DATE_TRUNC('DAY',CURRENT_DATE ), ";
+                $query .= "   '" & $kodetoko & "', ";
+                $query .= "   '" & $noPb & "', ";
+                $query .= "   to_date('" & Format(_tglpb, "yyyyMMdd") & "','YYYYMMDD'), ";
+                $query .= "   '" & $nodspb & "', ";
+                $query .= "   '" & $nmNpb & "', ";
+                $query .= "   '" & $jmlItem & "', ";
+                $query .= "   'ROTI', ";
+                $query .= "   '" & $npbIP & "', ";
+                $query .= "   '" & IIf(okNPB, "SUKSES! ", "GAGAL! ") & npbRes & "', ";
+                $query .= "   '" & jamCreateWeb & "', ";
+                $query .= "   '" & jamCreateCSV & "', ";
+                $query .= "   '" & jamKirim & "', ";
+                $query .= "   '" & tglConfirm & "', ";
+                $query .= "   0, ";
+                $query .= "   '" & UserMODUL & "', ";
+                $query .= "   NOW() ";
+                $query .= " ) ";
+            }
 
             // cmd.CommandText = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 " & _
             //                   IIf(kodeDCIDM <> "", "AND ws_dc = '" & kodeDCIDM & "' ", "")
