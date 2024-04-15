@@ -47,8 +47,8 @@ class MonitoringController extends Controller
         return $data;
     }
 
-    public function initial(){
-
+    public function initial($tanggal = null){
+        $dtTrans  = $tanggal;
         $sendJalur = 0;
         $picking = 0;
         $scanning = 0;
@@ -61,16 +61,28 @@ class MonitoringController extends Controller
         $sendJalur_condition =  " TKO_KODESBU = 'I'";
         $packing_condition ="";
         $packing_condition.= " TKO_KODESBU = 'I'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND (FMRCID = '1' OR FMRCID = '2')) q  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB AND nopicking = hpbi_nopicking AND nosuratjalan = hpbi_nosj) ";
+        $scanning_condition ="";
+        $scanning_condition.= " TKO_KODESBU = 'O'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND FMRCID = '3') t  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB) ";
+        $selesaiLoading_condition =  " TKO_KODESBU = 'I'";
+        $selesaiDspb_condition =  " TKO_KODESBU = 'I'";
         // if ($modeProgram == "OMI") {
         //    $jmlhPb_condition =  " TKO_KODESBU = 'O'";
         //    $sendJalur_condition =  " TKO_KODESBU = 'O'";
         //    $packing_condition.= " TKO_KODESBU = 'O'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND (FMRCID = '1' OR FMRCID = '2')) q  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB) ";
+        //    $scanning_condition.= " TKO_KODESBU = 'O'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND FMRCID = '3') t  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB) ";
+        //    $selesaiLoading_condition =  " TKO_KODESBU = 'O'";
+        //    $selesaiDspb_condition =  " TKO_KODESBU = 'O'";
         // } else {
         //    $jmlhPb_condition =  " TKO_KODESBU = 'I'";
         //    $sendJalur_condition =  " TKO_KODESBU = 'I'";
         //    $packing_condition.= " TKO_KODESBU = 'I'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND (FMRCID = '1' OR FMRCID = '2')) q  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB AND nopicking = hpbi_nopicking AND nosuratjalan = hpbi_nosj) ";
-        ;
+        //    $scanning_condition.=  " TKO_KODESBU = 'I'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND FMRCID = '3') t  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB AND nopicking = hpbi_nopicking AND nosuratjalan = hpbi_nosj)";
+        //    $selesaiLoading_condition =  " TKO_KODESBU = 'I'";
+        //    $selesaiDspb_condition =  " TKO_KODESBU = 'I'";
         // }
+        //
+
+        //jmlhPb
         $jmlhPb = $this->DB_PGSQL
                        ->table("tbtr_header_pbidm")
                        ->join("tbmaster_tokoigr",function($join){
@@ -78,10 +90,17 @@ class MonitoringController extends Controller
                         })
                        ->selectRaw("
                           COUNT(1) 
-                       ")
-                       ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d")."'::date")
+                       ");
+        if($dtTrans){
+        $jmlhPb =      $jmlhPb                       
+                       ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d" strtotime($dtTrans))."'::date");
+                    }
+        $jmlhPb =      $jmlhPb
                        ->whereRaw($jmlhPb_condition)
                        ->get();
+
+
+        //sendJalur                       
         $sendJalur =   $this->DB_PGSQL
                             ->table("tbtr_header_pbidm")
                             ->join("tbmaster_tokoigr",function($join){
@@ -89,11 +108,19 @@ class MonitoringController extends Controller
                             })
                             ->selectRaw("
                                 COUNT(1) 
-                            ") 
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d")."'::date")
+                            ") ;
+        if($dtTrans){
+        $sendJalur =      $sendJalur                            
+                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d" strtotime($dtTrans))."'::date");
+                        }
+        $sendJalur =      $sendJalur
                             ->whereRaw("HPBI_FLAG IS NOT NULL")
                             ->whereRaw($sendJalur_condition)
                             ->get();
+
+
+
+        //picking                            
         $picking =   $this->DB_PGSQL
                             ->table("tbtr_header_pbidm")
                             ->join("tbmaster_tokoigr",function($join){
@@ -101,11 +128,19 @@ class MonitoringController extends Controller
                             })
                             ->selectRaw("
                                 COUNT(1) 
-                            ") 
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d")."'::date")
+                            ") ;
+        if($dtTrans){
+        $picking =      $picking                            
+                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d" strtotime($dtTrans))."'::date");
+                        }
+        $picking =      $picking
                             ->whereRaw("HPBI_FLAG <> '5'")
                             ->whereRaw($packing_condition)
                             ->get();
+
+
+
+        //scanning                            
         $scanning =   $this->DB_PGSQL
                             ->table("tbtr_header_pbidm")
                             ->join("tbmaster_tokoigr",function($join){
@@ -113,17 +148,66 @@ class MonitoringController extends Controller
                             })
                             ->selectRaw("
                                 COUNT(1) 
-                            ") 
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d")."'::date")
-                            ->whereRaw("HPBI_FLAG <> '5'")
-                            ->whereRaw($packing_condition)
+                            ") ;
+        if($dtTrans){
+        $scanning =      $scanning                            
+                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d" strtotime($dtTrans))."'::date");
+                        }
+        $scanning =      $scanning
+                            ->whereRaw("hpbi_flag <> '5'")
+                            ->whereRaw($scanning_condition)
                             ->get();
+                            
+
+
+        //selesaiLoading                            
+        $selesaiLoading =   $this->DB_PGSQL
+                            ->table("tbtr_header_pbidm")
+                            ->join("tbmaster_tokoigr",function($join){
+                                $join->on("hpbi_kodetoko","=","tko_kodeomi");
+                            })
+                            ->selectRaw("
+                                COUNT(1) 
+                            ") ;
+        if($dtTrans){
+        $selesaiLoading =      $selesaiLoading                            
+                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d" strtotime($dtTrans))."'::date");
+                        }
+        $selesaiLoading =      $selesaiLoading
+                            ->whereRaw("hpbi_flag = '4'")
+                            ->whereRaw($selesaiLoading_condition)
+                            ->get();
+                            
+
+
+        //selesaiDspb                            
+        $selesaiDspb =   $this->DB_PGSQL
+                            ->table("tbtr_header_pbidm")
+                            ->join("tbmaster_tokoigr",function($join){
+                                $join->on("hpbi_kodetoko","=","tko_kodeomi");
+                            })
+                            ->selectRaw("
+                                COUNT(1) 
+                            ") ;
+        if($dtTrans){
+        $selesaiDspb =      $selesaiDspb                             
+                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d" strtotime($dtTrans))."'::date");
+                        }
+        $selesaiDspb =      $selesaiDspb
+                            ->whereRaw("hpbi_flag = '5'")
+                            ->whereRaw($selesaiDspb_condition)
+                            ->get();
+                            
+
+
 
                                      
         $jmlhPb = $jmlhPb[0]->count;
         $sendJalur = $sendJalur[0]->count;
         $picking = $picking[0]->count;
         $scanning = $scanning[0]->count;
+        $selesaiLoading = $selesaiLoading[0]->count;
+        $selesaiDspb = $selesaiDspb[0]->count;
         dd($picking);
         // $sql = "SELECT COUNT(1) ";
         // $sql .= "FROM tbtr_header_pbidm JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi ";
@@ -367,140 +451,6 @@ class MonitoringController extends Controller
         //  }
 
 
-        // $jmlhPb = DB::select("
-        //     SELECT COUNT(1)
-        //     FROM tbtr_header_pbidm
-        //     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-        //     WHERE hpbi_tgltransaksi = ?
-        //     AND (TKO_KODESBU = ? OR TKO_KODESBU = ?)",
-        //     [date('Y-m-d', strtotime($dtTrans)), $modeProgram === 'OMI' ? 'O' : 'I', $modeProgram === 'OMI' ? 'I' : 'O']
-        // );
-
-        // // Query 2
-        // $sendJalur = DB::select("
-        //     SELECT COUNT(1)
-        //     FROM tbtr_header_pbidm
-        //     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-        //     WHERE hpbi_tgltransaksi = ?
-        //     AND HPBI_FLAG IS NOT NULL
-        //     AND (TKO_KODESBU = ? OR TKO_KODESBU = ?)",
-        //     [date('Y-m-d', strtotime($dtTrans)), $modeProgram === 'OMI' ? 'O' : 'I', $modeProgram === 'OMI' ? 'I' : 'O']
-        // );
-
-        // // Query 3
-        // $picking = DB::select("
-        //     SELECT COUNT(1)
-        //     FROM tbtr_header_pbidm
-        //     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-        //     WHERE hpbi_tgltransaksi = ?
-        //     AND HPBI_FLAG <> '5'
-        //     AND (TKO_KODESBU = ? OR TKO_KODESBU = ?)
-        //     AND EXISTS (
-        //         SELECT 1 FROM (
-        //             SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan
-        //             FROM dpd_idm_ora
-        //             WHERE tglupd = ? AND (FMRCID = '1' OR FMRCID = '2')
-        //         ) q
-        //         WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB
-        //         AND nopicking = hpbi_nopicking AND nosuratjalan = hpbi_nosj
-        //     )",
-        //     [date('Y-m-d', strtotime($dtTrans)), $modeProgram === 'OMI' ? 'O' : 'I', $modeProgram === 'OMI' ? 'I' : 'O', date('Ymd', strtotime($dtTrans))]
-        // );
-
-        // // Query 4
-        // $scanning = DB::select("
-        //     SELECT COUNT(1)
-        //     FROM tbtr_header_pbidm
-        //     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-        //     WHERE hpbi_tgltransaksi = ?
-        //     AND HPBI_FLAG <> '5'
-        //     AND (TKO_KODESBU = ? OR TKO_KODESBU = ?)
-        //     AND EXISTS (
-        //         SELECT 1 FROM (
-        //             SELECT DISTINCT fmndoc, tglpb, fmkcab
-        //             FROM dpd_idm_ora
-        //             WHERE tglupd = ? AND FMRCID = '3'
-        //         ) t
-        //         WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB
-        //     )",
-        //     [date('Y-m-d', strtotime($dtTrans)), $modeProgram === 'OMI' ? 'O' : 'I', $modeProgram === 'OMI' ? 'I' : 'O', date('Ymd', strtotime($dtTrans))]
-        // );
-
-        // // Query 1
-        // $selesaiLoading = DB::select("
-        //     SELECT COUNT(1)
-        //     FROM tbtr_header_pbidm
-        //     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-        //     WHERE hpbi_tgltransaksi = ?
-        //     AND HPBI_FLAG = '4'
-        //     AND TKO_KODESBU = ?",
-        //     [date('Y-m-d', strtotime($dtTrans)), $modeProgram === 'OMI' ? 'O' : 'I']
-        // );
-
-        // // Query 2
-        // $selesaiDspb = DB::select("
-        //     SELECT COUNT(1)
-        //     FROM tbtr_header_pbidm
-        //     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-        //     WHERE hpbi_tgltransaksi = ?
-        //     AND HPBI_FLAG = '5'
-        //     AND TKO_KODESBU = ?",
-        //     [date('Y-m-d', strtotime($dtTrans)), $modeProgram === 'OMI' ? 'O' : 'I']
-        // );
-
-        // // Calculation for _siapDspb
-        // $sql = "
-        //             SELECT COUNT(1)
-        //             FROM (
-        //                 SELECT 
-        //                     fmkcab AS toko, 
-        //                     fmndoc AS nopb, 
-        //                     tglpb, 
-        //                     nopicking AS nopick, 
-        //                     nosuratjalan AS nosj, 
-        //                     COUNT(1) AS total, 
-        //                     SUM(CASE WHEN dca_flag = '3' THEN 1 ELSE 0 END) AS selesai
-        //                 FROM (
-        //                     SELECT 
-        //                         kodezona, 
-        //                         dcp, 
-        //                         fmkcab, 
-        //                         fmndoc, 
-        //                         tglpb, 
-        //                         nopicking, 
-        //                         nosuratjalan, 
-        //                         CASE WHEN dca_flag = '3' THEN 1 ELSE 0 END AS tutupkoli
-        //                     FROM (
-        //                         SELECT 
-        //                             kodezona, 
-        //                             MAX(grak) AS dcp, 
-        //                             fmkcab, 
-        //                             fmndoc, 
-        //                             tglpb, 
-        //                             nopicking, 
-        //                             nosuratjalan
-        //                         FROM dpd_idm_ora
-        //                         WHERE tglupd = ? 
-        //                         GROUP BY kodezona, fmkcab, fmndoc, tglpb, nopicking, nosuratjalan
-        //                     ) p
-        //                     INNER JOIN tbtr_header_pbidm ON hpbi_kodetoko = fmkcab AND hpbi_nopb = fmndoc AND hpbi_tglpb = tglpb AND hpbi_nopicking = nopicking AND hpbi_nosj = nosuratjalan
-        //                     INNER JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-        //                     WHERE hpbi_tgltransaksi = ? AND hpbi_flag <> '5' AND TKO_KODESBU = ?
-        //                 ) hdr
-        //                 LEFT JOIN dcp_antrian ON fmkcab = dca_toko AND fmndoc = dca_nopb AND tglpb = dca_tglpb AND dcp = dca_grouprak AND nopicking = dca_nopicking AND nosj = dca_nosj
-        //                 GROUP BY fmkcab, fmndoc, tglpb, nopicking, nosuratjalan
-        //             ) t
-        //             WHERE total > 0
-        //             ORDER BY nopicking
-        //         ";
-
-        // $siapDspbResult = DB::select($sql, [date('Ymd', strtotime($dtTrans)), date('Y-m-d', strtotime($dtTrans)), $modeProgram === 'OMI' ? 'O' : 'I']);
-        // $siapDspb = 0;
-        // foreach ($siapDspbResult as $row) {
-        //     if ($row->TOTAL == $row->SELESAI && $row->TOTAL > 0) {
-        //         $siapDspb++;
-        //     }
-        // }
 
 
     }
