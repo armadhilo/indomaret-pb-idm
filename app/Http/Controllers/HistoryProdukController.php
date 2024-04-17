@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
-use App\Http\Requests\DetailKasirRequest;
 use App\Http\Requests\HistoryProdukRequest;
-use App\Http\Requests\TableRequest;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -14,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
-class MonitoringWebServiceController extends Controller
+class HistoryProdukController extends Controller
 {
 
     private $jmlToko;
@@ -36,7 +34,7 @@ class MonitoringWebServiceController extends Controller
 
         //* diawal akan panggil function datatables
 
-        return view('menu.monitoring-web-service');
+        return view('menu.history-produk');
     }
 
     public function datatables(){
@@ -46,7 +44,7 @@ class MonitoringWebServiceController extends Controller
         $query .= "from tbmaster_tokoigr ";
         $query .= "where tko_kodesbu = 'I'  ";
         $query .= "and TKO_FLAGKPH = 'Y' ";
-        $query .= "and tko_kodeigr = '" . session('KODECABANG') . "'   ";
+        // $query .= "and tko_kodeigr = '" . session('KODECABANG') . "'   ";
         $query .= "order by 1  ";
         $data = DB::select($query);
 
@@ -59,10 +57,10 @@ class MonitoringWebServiceController extends Controller
     }
 
     public function actionProses(HistoryProdukRequest $request){
-
+        $formattedDate = $request->date . '-01';
         $dtCek = DB::table('tbtemp_hp')
-            ->whereMonth('tgl', $request->pilBulan)
-            ->whereYear('tgl', $request->pilTahun)
+            ->whereDate('tgl', '>=', $formattedDate)
+            ->whereDate('tgl', '<', date('Y-m-d', strtotime($formattedDate . ' +1 month')))
             ->count();
 
         if($dtCek){
@@ -450,13 +448,13 @@ class MonitoringWebServiceController extends Controller
         //! btnHitungKPH_Click
         //! initKPH
 
-        $dtCek = DB::select("SELECT COUNT(DISTINCT PRDCD) from tbtemp_minortk")[0]->count();
+        $dtCek = DB::select("SELECT COUNT(DISTINCT PRDCD) from tbtemp_minortk")[0]->count;
 
         if($dtCek < 50){
             return ApiFormatter::error(400, 'Belum upload file minor (data < 50)!');
         }
 
-        $dtCek = DB::select("SELECT COUNT(DISTINCT IDM_PLUIDM) FROM TBTEMP_PLUIDM WHERE DATE_TRUNC('DAY',IDM_CREATE_DT) = DATE_TRUNC('DAY',CURRENT_DATE)")[0]->count();
+        $dtCek = DB::select("SELECT COUNT(DISTINCT IDM_PLUIDM) FROM TBTEMP_PLUIDM WHERE DATE_TRUNC('DAY',IDM_CREATE_DT) = DATE_TRUNC('DAY',CURRENT_DATE)")[0]->count;
         if($dtCek == 0){
             return ApiFormatter::error(400, 'Data PLU IDM tidak sama dengan tanggal hari ini! Silahkan upload ulang ...');
         }

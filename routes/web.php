@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\CashierController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MonitoringWebServiceController;
 use App\Http\Controllers\ReturTokoTutupIdmController;
-use App\Http\Controllers\StrukController;
+use App\Http\Controllers\DspbRotiController;
+use App\Http\Controllers\HistoryProdukController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,6 +44,25 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post('/upload-excel', [ReturTokoTutupIdmController::class, 'actionUpload']);
             Route::get('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
             Route::post('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
+        });
+    });
+
+    Route::group(['prefix' => 'dspb-roti'], function(){
+        Route::get('/', [DspbRotiController::class, 'index']);
+        Route::get('/get-cluster-mobil', [DspbRotiController::class, 'getClusterMobil']);
+        Route::get('/datatables/{date}/{cluster}', [DspbRotiController::class, 'datatables']);
+
+        Route::group(['prefix' => 'action'], function(){
+            Route::post('/cetak-dspb', [DspbRotiController::class, 'actionCetakDspb']);
+        });
+    });
+
+    Route::group(['prefix' => 'history-produk'], function(){
+        Route::get('/', [HistoryProdukController::class, 'index']);
+        Route::get('/datatables', [HistoryProdukController::class, 'datatables']);
+        Route::group(['prefix' => 'action'], function(){
+            Route::post('/proses', [HistoryProdukController::class, 'actionProses']);
+            Route::post('/hit-kph', [HistoryProdukController::class, 'actionHitKPH']);
         });
     });
 // });

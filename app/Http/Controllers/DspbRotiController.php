@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
-use App\Http\Requests\DetailKasirRequest;
-use App\Http\Requests\TableRequest;
+use App\Http\Requests\CetakDspbRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +20,7 @@ class DspbRotiController extends Controller
     public function index(){
 
         $this->createTableLogNPB();
-
-        return view('home');
+        return view('menu.dspb-roti');
     }
 
     public function getClusterMobil(){
@@ -31,7 +29,7 @@ class DspbRotiController extends Controller
         return ApiFormatter::success(200, 'Berhasil menampilkan cluster mobil', $data);
     }
 
-    public function datatables($cluster, $date){
+    public function datatables($date, $cluster){
         $query = '';
         $query .= "SELECT ROW_NUMBER() OVER() NOURUT,  ";
         $query .= "  A.*  ";
@@ -48,7 +46,7 @@ class DspbRotiController extends Controller
         $query .= "  JOIN CLUSTER_ROTI_IDM  ";
         $query .= "  ON CRI_KODETOKO     = HDR_KODETOKO  ";
         $query .= "  AND CRI_KODECLUSTER = '" . $cluster . "'  ";
-        $query .= "  AND DATE_TRUNC('DAY',HDR_TGLTRANSAKSI) = TO_DATE('" . $date . "','YYYY-MM-DD')  ";
+        // $query .= "  AND DATE_TRUNC('DAY',HDR_TGLTRANSAKSI) = TO_DATE('" . $date . "','YYYY-MM-DD')  ";
         $query .= "  GROUP BY HDR_KODETOKO, HDR_TGLTRANSAKSI, HDR_TGLPB  ";
         $query .= "  ORDER BY HDR_KODETOKO  ";
         $query .= "  ) A  ";
@@ -59,25 +57,23 @@ class DspbRotiController extends Controller
             ->make(true);
     }
 
-    public function actionCetakDspb($datatables, $cluster){
-        //* cek STATUS pada datatables jika tidak ada yang "SIAP DSPB" muncul error -> Tidak ada data yang siap DSPB
-
-        //* jika ada maka muncul popup -> DSPB Cluster '" . cbCluster.Text . "' tanggal " . datePick.Value.ToString("dd-MM-yyyy") . " ini?
-
+    public function actionCetakDspb(CetakDspbRequest $request){
+        
         //! LOOPING DATATABLES
-
-        $thnNow = Carbon::now()->format('yyyy');
+        $thnNow = Carbon::now()->format('y');
         $noRekap = DB::select("SELECT NEXTVAL('SEQ_ROTI')")[0]->nextval;
 
+        
         $noRekap = $thnNow . str_pad($noRekap, 5, "0", STR_PAD_LEFT);
 
         //! CHECK HANYA YANG -> SIAP DSPB
-        foreach($datatables as $item){
+        foreach($request->datatables as $item){
             if($item['status'] == 'SIAP DSPB'){
-                $this->DSPB_ROTI($item['KODETOKO'], $item['TGLTRANS'], $noRekap, $cluster);
+                $this->DSPB_ROTI($item['kodetoko'], $item['tgltrans'], $noRekap, $request->cluster);
             }
         }
-        //! END LOOP
+
+        return ApiFormatter::success(200, "Proses Cetak DSPB Cluster Berhasil..!");
     }
 
     private function createTableLogNPB(){
@@ -132,6 +128,7 @@ class DspbRotiController extends Controller
         // Execute the second query to get the next value from the sequence
         $noDspb = DB::select("SELECT NEXTVAL('SEQ_NPB')")[0]->nextval;
 
+
         // Concatenate the values
         $noDspb = $thnPb . str_pad($noDspb, 5, "0", STR_PAD_LEFT);
 
@@ -154,8 +151,8 @@ class DspbRotiController extends Controller
             $kodeDCIDM = empty($dtCek) ? '' : $dtCek->msi_kodedc;
 
             foreach($dt as $item){
-                $noPb = $item->HDR_NOPB;
-                $tglPb = $item->HDR_TGLPB;
+                $noPb = $item->hdr_nopb;
+                $tglPb = Carbon::createFromFormat('Y-m-d H:i:s', $item->hdr_tglpb)->toDateString();
 
                 //! CHECK
                 $query = '';
@@ -212,6 +209,7 @@ class DspbRotiController extends Controller
                 }
             }
 
+
             DB::table('tbtr_rekap_dspb_roti')
                 ->insert([
                     'sp_kodeigr' => session('KODECABANG'),
@@ -222,42 +220,22 @@ class DspbRotiController extends Controller
                     'dsp_create_dt' => Carbon::now(),
                 ]);
 
-            $query = '';
-            $query .= "SELECT " . $noDspb . " docno,";
-            $query .= "  TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,";
-            $query .= "  pbo_kodeomi toko,";
-            $query .= "  (SELECT 'GI' || prs_kodeigr FROM tbmaster_perusahaan LIMIT 1) gudang, ";
-            $query .= "  COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyrealisasi) qty, ";
-            $query .= "  SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi ";
-            $query .= "FROM tbmaster_pbomi a  ";
-            $query .= "WHERE  A.PBO_TGLPB = TO_DATE('" . $tglPb . "','dd/MM/YYYY')  ";
-            $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
-            $query .= "AND pbo_nokoli like '06%' ";
-            $query .= "AND PBO_QTYREALISASI > 0 ";
-            $query .= "GROUP BY pbo_tglpb, pbo_kodeomi ";
-
             //! SIMPAN NAMA NPB
             $this->simpanDSPB($nmNpb . ".ZIP", $kodetoko, $noPb, 0, 0, $noDspb, "R- PBROTI");
-
-            $query = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 ";
-            if($kodeDCIDM <> ''){
-                $query .= "AND wc_dc = '$kodeDCIDM'";
-            }
-
-            $npbIP = DB::select($query)[0]['ws_url'];
 
             if($kodeDCIDM <> ''){
                 $npbGudang = $kodeDCIDM;
             }else{
                 $query = "SELECT ws_DC FROM tbmaster_webservice WHERE ws_nama = 'NPB' ";
                 if($kodeDCIDM <> ''){
-                    $query .= "AND wc_dc = '$kodeDCIDM'";
+                    $query .= "AND ws_dc = '$kodeDCIDM'";
                 }
 
                 $npbGudang = DB::select($query)[0]['ws_url'];
             }
 
             //! dtHeader
+            // dd(DB::select("SELECT * FROM tbmaster_pbomi LIMIT 10"));
             $query = '';
             $query .= "SELECT " . $noDspb . " docno,";
             $query .= "  TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,";
@@ -266,7 +244,7 @@ class DspbRotiController extends Controller
             $query .= "  COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyrealisasi) qty, ";
             $query .= "  SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi ";
             $query .= "FROM tbmaster_pbomi a  ";
-            $query .= "WHERE  A.PBO_TGLPB = TO_DATE('" . $tglPb . "','dd/MM/YYYY')  ";
+            $query .= "WHERE  A.PBO_TGLPB = '" . $tglPb . "'  ";
             $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
             $query .= "AND pbo_nokoli like '06%' ";
             $query .= "AND PBO_QTYREALISASI > 0 ";
@@ -318,7 +296,16 @@ class DspbRotiController extends Controller
             $query .= "AND pbo_nokoli like '06%'";
             $dtD = DB::select($query);
 
+            $query = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 ";
+            if($kodeDCIDM <> ''){
+                $query .= "AND ws_dc = '$kodeDCIDM'";
+            }
+
+            $checkNpbIP = DB::select($query);
+            
             if(isset($npbIP)){
+
+                $npbIP = $checkNpbIP[0]['ws_url'];
 
                 $tglConfirm = null;
                 $npbRes = null;

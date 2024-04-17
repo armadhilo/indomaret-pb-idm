@@ -89,12 +89,60 @@ table.datatable-dark-primary thead tr{
     color: white!important;
 }
 
-input[type=file]{
+input[type=file], input[type=month], select.form-select{
     height: calc(1.5em + .75rem + 8px)!important;
 }
 
 input{
     cursor: pointer;
+}
+
+.child-flex-1 > *{
+    flex: 1;
+}
+
+.btn-cust-warning:not([disabled]):hover{
+    background-color: #e18300;
+    border-color: #e18300;
+    color: white;
+}
+
+.btn:hover{
+    color: white!important;
+}
+
+select:hover{
+    cursor: pointer;
+}
+
+.btn-cust-warning{
+    background-color: #fb960a;
+    border-color: #fb960a;
+    color: white;
+}
+
+.btn-cust-success{
+    background-color: #47c363;
+    border-color: #47c363;
+    color: white;
+}
+
+.btn-cust-success:not([disabled]):hover{
+    background-color: #33944a;
+    border-color: #33944a;
+    color: white;
+}
+
+.btn-royal{
+    background-color: #6E214A;
+    border-color: #6E214A;
+    color: white;
+}
+
+.btn-royal:not([disabled]):hover{
+    background-color: #42142c;
+    border-color: #42142c;
+    color: white;
 }
 
 .detail-info{
@@ -108,6 +156,42 @@ input{
     border-radius: 3px;
     justify-content: center;
     margin: 0;
+}
+
+.select2-selection__rendered{
+    height: calc(1.5em + .75rem + 0px);
+    border: 1px solid #d1d3e2;
+    border-radius: .35rem;
+}
+
+.select2-selection--single, .select2-selection__arrow{
+    border: unset!important;
+    height: 100%!important
+}
+
+.select2-search__field:focus-visible{
+    outline: unset!important;
+}
+
+.checkbox-label:hover{
+    cursor: pointer;
+}
+
+.checkbox-label{
+    background-color: #6E214A;
+    color: white;
+    padding: 11px 14px;
+    font-size: 1rem;
+    display: flex;
+    width: 190px;
+    font-weight: 600;
+    gap: 15px;
+    white-space: nowrap;
+}
+
+.checkbox-label input{
+    width: 23px;
+    height: 23px;
 }
 
 .table-center thead tr th, .table-center tbody tr td{

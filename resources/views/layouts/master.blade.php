@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="{{ asset('css/print.min.css')}}">
     <link rel="stylesheet" href="{{ asset('css/pace-theme-default.min.css')}}">
     <link rel="stylesheet" href="{{ asset('css/style-additional.css')}}">
+    <link rel="stylesheet" href="{{asset('plugin/select2/dist/css/select2.min.css')}}">
 
     @yield('css')
 
@@ -58,6 +59,7 @@
     <script src="{{ asset('js/moment.min.js')}}"></script>
     <script src="{{ asset('js/print.min.js')}}"></script>
     <script src="{{ asset('js/jquery.number.min.js')}}"></script>
+    <script src="{{ asset('plugin/select2/dist/js/select2.min.js')}}"></script>
     {{-- <script src="{{ asset('../resources/js/jquery.number.min.js.map')}}"></script> --}}
     <script>
         setInterval(refreshToken, 3900000); // 65min
@@ -131,6 +133,8 @@
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			}
 		});
+
+        $('.select2').select2();
 
         function setDateNow(element){
             var today = moment().format('YYYY-MM-DD');

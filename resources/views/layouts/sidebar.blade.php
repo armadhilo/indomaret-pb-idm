@@ -38,6 +38,16 @@
             <i class="fas fa-fw fa-tachometer-alt"></i>
             <span>RTT IDM</span></a>
     </li>
+    <li class="nav-item @if($sub_url == 'dspb-roti') active @endif">
+        <a class="nav-link" href="{{ url('/dspb-roti') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>DSPB ROTI</span></a>
+    </li>
+    <li class="nav-item @if($sub_url == 'history-produk') active @endif">
+        <a class="nav-link" href="{{ url('/history-produk') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>History Produk</span></a>
+    </li>
 
     <!-- Sidebar Toggler (Sidebar) -->
     <!-- <div class="text-center d-none d-md-inline">

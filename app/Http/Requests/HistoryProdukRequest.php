@@ -25,11 +25,16 @@ class HistoryProdukRequest extends FormRequest
     public function rules()
     {
         return [
-            'txtPath' => ['required'],
-            'pilBulan' => ['required'],
-            'pilTahun' => ['required'],
+            'txtFile' => ['required'],
+            'date' => ['required', 'date_format:Y-m'],
             'mode' => ['required'],
         ];
+    }
+
+    protected function passedValidation(){
+        list($year, $month) = explode('-', $this->date);
+        $this->merge(['pilBulan' => $month]);
+        $this->merge(['pilTahun' => $year]);
     }
 
     protected function failedValidation(Validator $validator) {
