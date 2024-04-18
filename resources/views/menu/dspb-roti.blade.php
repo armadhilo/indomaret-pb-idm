@@ -31,7 +31,7 @@
                             </div>
                             <div class="form-group d-flex flex-column" style="gap: 15px">
                                 <button class="btn btn-lg btn-primary" onclick="cetakDspb();">CETAK DSPB</button>
-                                <button class="btn btn-lg btn-warning">TRANSFER ULANG DSPB</button>
+                                <button hidden class="btn btn-lg btn-warning">TRANSFER ULANG DSPB</button>
                             </div>
                             <label for="report_qr" class="checkbox-label">
                                 <input type="checkbox" id="report_qr">
@@ -85,17 +85,17 @@
                 { data: 'tgltrans',
                   "render": function(data, type, row, meta) {
                     return moment(data, "YYYY-MM-DD HH:mm:ss").format("YYYY-MM-DD");
-                   } 
-                },  
+                   }
+                },
                 { data: 'nopb'},
                 { data: 'tglpb',
                   "render": function(data, type, row, meta) {
                     return moment(data, "YYYY-MM-DD HH:mm:ss").format("YYYY-MM-DD");
-                   } 
-                },  
+                   }
+                },
                 { data: 'itemvalid'},
                 { data: 'rphvalid'},
-                
+
             ],
             columnDefs: [
                 { className: 'text-center-vh', targets: '_all' },
