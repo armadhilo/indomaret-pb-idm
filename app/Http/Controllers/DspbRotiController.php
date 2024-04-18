@@ -58,12 +58,12 @@ class DspbRotiController extends Controller
     }
 
     public function actionCetakDspb(CetakDspbRequest $request){
-        
+
         //! LOOPING DATATABLES
         $thnNow = Carbon::now()->format('y');
         $noRekap = DB::select("SELECT NEXTVAL('SEQ_ROTI')")[0]->nextval;
 
-        
+
         $noRekap = $thnNow . str_pad($noRekap, 5, "0", STR_PAD_LEFT);
 
         //! CHECK HANYA YANG -> SIAP DSPB
@@ -302,7 +302,7 @@ class DspbRotiController extends Controller
             }
 
             $checkNpbIP = DB::select($query);
-            
+
             if(isset($npbIP)){
 
                 $npbIP = $checkNpbIP[0]['ws_url'];
@@ -359,6 +359,7 @@ class DspbRotiController extends Controller
             }
 
             //! REPORT QR CODE
+            //! INI DI SKIP INFO PAK EVAN 17/04/2024
             // If checkQR.Checked Then
             //     Create_QRCode(nmNpb, _
             //                   _toko, _

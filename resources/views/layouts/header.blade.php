@@ -37,7 +37,7 @@
         <!-- Nav Item - User Information -->
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class="mr-2 d-none d-lg-inline text-gray-600 small"> <?php echo "SPI: " . session("SPI_NAMASPI") . ", STATION: " . session("SPI_STATION") . ", USER ID: " . session('userid') . ", USER LEVEL: " . session("sequencenumber") . ", KODE SPI: " . session("USP_KODESPI") ?></span>
+                <span class="mr-2 d-none d-lg-inline text-gray-600 small"> <?php echo "SERVER: " . session("SERVER") . ", BRANCH: " . session("NAMACABANG") . ", SPI: " . session("SPI_NAMASPI") . ", STATION: " . session("SPI_STATION") . ", USER ID: " . session('userid') . ", USER LEVEL: " . session("sequencenumber") . ", KODE SPI: " . session("USP_KODESPI") ?></span>
                 <img class="img-profile rounded-circle" src="https://source.unsplash.com/QAB-WJcbgJk/60x60">
             </a>
             <!-- Dropdown - User Information -->
