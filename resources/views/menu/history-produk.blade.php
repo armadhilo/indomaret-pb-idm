@@ -27,8 +27,8 @@
                                 <input type="file" class="form-control" accept=".txt" id="file_input">
                             </div>
                             <div class="form-group d-flex" style="gap: 15px; flex: 2;">
-                                <label for="priode" style="white-space: nowrap; width: 150px" class="detail-info">Priode &nbsp;:&nbsp;</label>
-                                <input type="month" class="form-control" id="priode" name="priode">
+                                <label for="periode" style="white-space: nowrap; width: 150px" class="detail-info">Periode &nbsp;:&nbsp;</label>
+                                <input type="month" class="form-control" id="periode" name="periode">
                             </div>
                             <div class="form-group d-flex" style="gap: 15px; flex: 3;">
                                 <label for="mode" style="white-space: nowrap; width: 150px" class="detail-info">Mode &nbsp;:&nbsp;</label>
@@ -53,7 +53,7 @@
                                     <th>Kode Toko</th>
                                     <th>Nama Toko</th>
                                     <th>Status</th>
-                                    <th>Priode</th>
+                                    <th>Periode</th>
                                 </tr>
                             </thead>
                         </table>
@@ -73,7 +73,7 @@
 <script>
     let tb;
     $(document).ready(function(){
-        $("#priode").val(moment().format('YYYY-MM'))
+        $("#periode").val(moment().format('YYYY-MM'))
         tb = $('#tb').DataTable({
             ajax: {
                 url: currentURL + "/datatables",
@@ -87,7 +87,7 @@
                 { data: 'namatk'},
                 { data: null, defaultContent: '' },
                 { data: null, defaultContent: '' },
-                
+
             ],
             columnDefs: [
                 { className: 'text-center-vh', targets: '_all' },
@@ -97,37 +97,37 @@
 
         $("#mode").on("change", function(){
             var currentValue = $(this).val();
-            var uploadText, statusText, browseDisabled, hitDisabled, priodeDisabled, priodeValue;
+            var uploadText, statusText, browseDisabled, hitDisabled, periodeDisabled, periodeValue;
 
             if (currentValue === "KPH MEAN") {
                 uploadText = "Upload CSV";
                 statusText = "Status : Pilih Path History Produk!";
                 browseDisabled = false;
                 hitDisabled = false;
-                priodeDisabled = false;
-                priodeValue = moment().format('YYYY-MM');
+                periodeDisabled = false;
+                periodeValue = moment().format('YYYY-MM');
             } else if (currentValue === "PRODUK BARU") {
                 uploadText = "KPH Produk Baru";
                 statusText = "Status : Tekan Tombol KPH Produk Baru Untuk Upload dan Proses KPH Produk Baru!";
                 browseDisabled = true;
                 hitDisabled = true;
-                priodeDisabled = true;
-                priodeValue = '';
+                periodeDisabled = true;
+                periodeValue = '';
             } else {
                 uploadText = "Upload CSV";
                 statusText = "Status : Pilih Path Item Pindah Supply!";
                 browseDisabled = true;
                 hitDisabled = true;
-                priodeDisabled = true;
-                priodeValue = '';
+                periodeDisabled = true;
+                periodeValue = '';
             }
 
             $("#btn_upload").text(uploadText);
             $("#status_text").text(statusText);
             $("#btn_browse").attr("disabled", browseDisabled);
             $("#btn_hit").attr("disabled", hitDisabled);
-            $("#priode").attr("disabled", priodeDisabled);
-            $("#priode").val(priodeValue);
+            $("#periode").attr("disabled", periodeDisabled);
+            $("#periode").val(periodeValue);
 
             $("#btn_proses").attr("disabled", false);
         });
@@ -137,14 +137,14 @@
         if ($("#file_input").val() === '') {
             Swal.fire('Peringatan!', 'File Path Masih Kosong..!', 'warning');
             return;
-        } else if ($("#priode").val() === '') {
-            Swal.fire('Peringatan!', 'Harap pilih Priode Terlebih Dahulu...!', 'warning');
+        } else if ($("#periode").val() === '') {
+            Swal.fire('Peringatan!', 'Harap pilih Periode Terlebih Dahulu...!', 'warning');
             return;
         }
 
         Swal.fire({
             title: 'Yakin?',
-            html: `Proses file pada priode ${moment($("#priode").val(), 'YYYY-MM').format("MM-YYYY")} ?`,
+            html: `Proses file pada periode ${moment($("#periode").val(), 'YYYY-MM').format("MM-YYYY")} ?`,
             icon: 'info',
             showCancelButton: true,
         })
@@ -152,7 +152,7 @@
             if (result.value) {
                 var formData = new FormData();
                 formData.append('txtFile', $("#file_input").val()[0]);
-                formData.append('date', $("#priode").val());
+                formData.append('date', $("#periode").val());
                 formData.append('mode', $("#mode").val());
                 $('#modal_loading').modal('show');
                 $.ajax({
