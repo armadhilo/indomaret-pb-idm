@@ -27,7 +27,7 @@ class HomeController extends Controller
         $this->addHistoryContainer_Idm_Omi();
         $this->addColKardus();
 
-        // $this->updateMenuSPI();
+        $this->updateMenuSPI();
         // $this->CreateMenuAll();
 
         return view('home');
@@ -654,15 +654,15 @@ class HomeController extends Controller
     }
 
     //! UPDATE MENU NAME
-    // Private Sub updateMenuSPI()
-    //     If flagSPI Then
-    //         If flagIGR Then
-    //             NonQueryOra("UPDATE tbmaster_access SET accessname = 'SPI-IN-IGR' WHERE url = 'OBI'")
-    //         Else
-    //             NonQueryOra("UPDATE tbmaster_access SET accessname = 'SPI' WHERE url = 'OBI'")
-    //         End If
-    //     Else
-    //         NonQueryOra("UPDATE tbmaster_access SET accessname = 'KLIK IGR' WHERE url = 'OBI' ")
-    //     End If
-    // End Sub
+    private function updateMenuSPI(){
+        if(session('flagSPI') == true){
+            if(session('flagIGR') == true){
+                DB::table('tbmaster_access')->where('url', 'OBI')->update(['accessname' => 'SPI-IN-IGR']);
+            }else{
+                DB::table('tbmaster_access')->where('url', 'OBI')->update(['accessname' => 'SPI']);
+            }
+        }else{
+            DB::table('tbmaster_access')->where('url', 'OBI')->update(['accessname' => 'KLIK IGR']);
+        }
+    }
 }

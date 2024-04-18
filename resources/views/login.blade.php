@@ -66,6 +66,14 @@
                                             </select>
                                         </div>
                                         <div class="form-group">
+                                            <label for="select-server">Mode Program</label>
+                                            <select class="selectpicker form-control" id="select-pil-mode" data-live-search="true">
+                                                @foreach ($pilMode as $item)
+                                                    <option value="{{ $item }}">{{ $item }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
                                             <input type="text" class="form-control form-control-user" name="username"
                                                 id="input-username"  placeholder="Username">
                                         </div>
@@ -78,6 +86,10 @@
                                                 <input type="checkbox" class="custom-control-input" id="customCheck">
                                             </div>
                                         </div>
+                                        <input type="text" id="flagFTZ" value="{{ $flagFTZ }}" hidden>
+                                        <input type="text" id="flagIGR" value="{{ $flagIGR }}" hidden>
+                                        <input type="text" id="flagSPI" value="{{ $flagSPI }}" hidden>
+                                        <input type="text" id="flagHHSPI" value="{{ $flagHHSPI }}" hidden>
                                         <button type="submit" class="btn btn-primary btn-user btn-block">Login</button>
                                     </form>
                                 </div>

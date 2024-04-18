@@ -81,6 +81,11 @@ $(document).ready(function () {
                     branch: $("#select-branch").val(),
                     branchname: $("#select-branch + button").attr("title"),
                     type: $("#select-server").val(),
+                    pilMode: $("#select-pil-mode").val(),
+                    flagFTZ: $("#flagFTZ").val(),
+                    flagIGR: $("#flagIGR").val(),
+                    flagSPI: $("#flagSPI").val(),
+                    flagHHSPI: $("#flagHHSPI").val(),
                 },
                 dataType: "JSON",
                 success: function (response) {

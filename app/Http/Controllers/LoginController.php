@@ -10,7 +10,44 @@ class LoginController extends Controller
 {
     function index()
     {
-        return view('login');
+
+        //! CUSTOM ONLY ON PB IDM
+        $dt = DB::table('tbmaster_perusahaan')
+            ->selectRaw("prs_kodeigr,prs_namacabang, prs_alamat1, prs_alamat2, prs_namaperusahaan, UPPER(prs_singkatancabang) prs_singkatancabang, COALESCE(prs_flag_ftz,'N') prs_flag_ftz")
+            ->first();
+
+        $dtSPI = DB::table('tbmaster_spi')
+            ->selectRaw("DISTINCT spi_kodespi, COALESCE(spi_flaghh, '0') spi_flaghh")
+            ->first();
+
+        $flagSPI = str_contains($dt->prs_singkatancabang, 'SPI') ? true : false;
+        $flagFTZ = str_contains($dt->prs_flag_ftz, 'Y') ? true : false;
+        $flagIGR = false;
+        $flagHHSPI = false;
+
+        $pilMode = [];
+
+        //! APPEND PIL MODE
+        if($flagSPI){
+            $pilMode[] = 'SPI';
+            $flagHHSPI = $dtSPI->spi_flaghh;
+        }else{
+            $flagIGR = true;
+            $pilMode[] = 'INDOMARET';
+            $pilMode[] = 'OMI';
+
+            if(!empty($dtSPI)) $pilMode[] = 'SPI';
+        }
+
+        $data = [
+            'pilMode' => $pilMode,
+            'flagFTZ' => $flagFTZ,
+            'flagIGR' => $flagIGR,
+            'flagSPI' => $flagSPI,
+            'flagHHSPI' => $flagHHSPI,
+        ];
+
+        return view('login', $data);
     }
 
     public function login(Request $req)
@@ -31,7 +68,11 @@ class LoginController extends Controller
                     "KODECABANG" => $req->branch,
                     "SERVER" => $req->type,
                     "userlevel" => $data[0]->userlevel,
-                    "sequencenumber" => $data[0]->userlevel
+                    "sequencenumber" => $data[0]->userlevel,
+                    "flagFTZ" => $req->flagFTZ,
+                    "flagIGR" => $req->flagIGR,
+                    "flagSPI" => $req->flagSPI,
+                    "flagHHSPI" => $req->flagHHSPI,
                 ]);
 
                 return response()->json(["success" => "user found", "status" => "200"], 200);
