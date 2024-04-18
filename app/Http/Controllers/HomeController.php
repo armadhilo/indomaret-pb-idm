@@ -463,13 +463,13 @@ class HomeController extends Controller
             DB::insert($query);
         }
 
-        $data = DB::select("SELECT COUNT(*) FROM information_schema.tables WHERE upper(table_name) = 'TEMP_RTT_IDM' AND upper(column_name) = 'KETERANGAN'");
-        if(count($data)){
+        $data = DB::select("SELECT COUNT(*) FROM information_schema.columns WHERE upper(table_name) = 'TEMP_RTT_IDM' AND upper(column_name) = 'KETERANGAN'");
+        if(!count($data)){
             DB::select("ALTER TABLE TEMP_RTT_IDM ADD COLUMN KETERANGAN VARCHAR(100)");
         }
 
-        $data = DB::select("SELECT COUNT(*) FROM information_schema.tables WHERE upper(table_name) = 'TEMP_RTT_IDM' AND upper(column_name) = 'PPN_RATE'");
-        if(count($data)){
+        $data = DB::select("SELECT COUNT(*) FROM information_schema.columns WHERE upper(table_name) = 'TEMP_RTT_IDM' AND upper(column_name) = 'PPN_RATE'");
+        if(!count($data)){
             DB::select("ALTER TABLE TEMP_RTT_IDM ADD COLUMN PPN_RATE NUMERIC");
         }
     }
@@ -573,7 +573,7 @@ class HomeController extends Controller
             DB::insert($query);
         }
 
-        $count = DB::table('PLU_CONTAINER_IDM')->count();
+        $count = DB::table('plu_container_idm')->count();
         if($count == 0){
             $query = '';
             $query .= "INSERT INTO plu_container_idm ( ";
@@ -633,7 +633,7 @@ class HomeController extends Controller
             DB::insert($query);
         }
 
-        $count = DB::table('PLU_CONTAINER_OMI')->count();
+        $count = DB::table('plu_container_omi')->count();
         if($count == 0){
             $query = '';
             $query .= "INSERT INTO plu_container_omi ( ";
@@ -648,7 +648,7 @@ class HomeController extends Controller
     private function addColKardus(){
         $count1 = DB::table('information_schema.tables')->whereRaw("upper(table_name) = 'TBTR_IDMKOLI'")->count();
         $count2 = DB::table('information_schema.columns')->whereRaw("upper(table_name) = 'TBTR_IDMKOLI' AND upper(column_name) = 'IKL_KARDUS'")->count();
-        if($count1 > 0 AND $count2 > 0){
+        if($count1 > 0 AND $count2 == 0){
             DB::select("ALTER TABLE tbtr_idmkoli ADD COLUMN IKL_KARDUS VARCHAR(2) DEFAULT 'N'");
         }
     }
