@@ -133,7 +133,7 @@
                 { className: 'text-center', targets: [0] },
             ],
             order: [],
-            "paging": false, 
+            "paging": false,
             "searching": false,
             "scrollY": "calc(100vh - 400px)",
             "scrollCollapse": true,
@@ -148,7 +148,7 @@
             rowCallback: function (row, data) {
                 $('td:eq(0)', row).html(`<input type="checkbox" class="form-control checkbox-table" data-rtt="${data.no_rtt}" data-tgl-rtt="${data.tgl_rtt}" data-toko-tutup="${data.toko_tutup}" data-toko-tujuan="${data.toko_tujuan}" onchange="checkboxTableChange(this)">`);
             }
-            
+
         });
 
         tb_detail = $('#tb_detail').DataTable({
@@ -280,28 +280,11 @@
         })
         .then((result) => {
             if (result.value) {
-                $('#modal_loading').modal('show');
-                $.ajax({
-                    url: currentURL + `/action/cetak`,
-                    type: "POST",
-                    data: {no_rtt: $(checkboxElement).data('rtt'), tgl_rtt: $(checkboxElement).data('tgl-rtt'), shop: $(checkboxElement).data('toko-tutup')},
-                    success: function(response) {
-                        setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                        var encodedRtt = encodeURIComponent($(checkboxElement).data('rtt'));
-                        var encodedTglRtt = encodeURIComponent($(checkboxElement).data('tglRtt'));
-                        var encodedTokoTutup = encodeURIComponent($(checkboxElement).data('tokoTutup'));
-                        var url = currentURL + `/action/cetak?no_rtt=${encodedRtt}&tgl_rtt=${encodedTglRtt}&shop=${encodedTokoTutup}`;
-                        window.open(url, '_blank');
-                    }, error: function(jqXHR, textStatus, errorThrown) {
-                        setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                        Swal.fire({
-                            text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                                ? jqXHR.responseJSON.message
-                                : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                            icon: "error"
-                        });
-                    }
-                });
+                var encodedRtt = encodeURIComponent($(checkboxElement).data('rtt'));
+                var encodedTglRtt = encodeURIComponent($(checkboxElement).data('tglRtt'));
+                var encodedTokoTutup = encodeURIComponent($(checkboxElement).data('tokoTutup'));
+                var url = currentURL + `/action/cetak?no_rtt=${encodedRtt}&tgl_rtt=${encodedTglRtt}&shop=${encodedTokoTutup}`;
+                window.open(url, '_blank');
             }
         });
     }

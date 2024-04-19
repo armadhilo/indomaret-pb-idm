@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+set_time_limit(0);
+
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -263,8 +265,8 @@ class ReturTokoTutupIdmController extends Controller
                         foreach ($headerRow as $index => $header) {
                             $rowDataAssoc[$header] = $rowData[$index] ?? null;
                         }
-                        
-                        //?? check if toko / gudang / shop has null return Error 
+
+                        //?? check if toko / gudang / shop has null return Error
                         $requiredColumns = ['TOKO', 'GUDANG', 'SHOP'];
                         foreach ($requiredColumns as $column) {
                             if (!isset($rowDataAssoc[$column])) {
@@ -272,7 +274,7 @@ class ReturTokoTutupIdmController extends Controller
                             }
                         }
 
-                        //?? check if qty / price has value 0 return Error 
+                        //?? check if qty / price has value 0 return Error
                         $requiredColumns = ['QTY', 'PRICE'];
                         foreach ($requiredColumns as $column) {
                             if ($rowDataAssoc[$column] === 0) {
@@ -427,7 +429,7 @@ class ReturTokoTutupIdmController extends Controller
 
                 DB::commit();
                 return ApiFormatter::success(200, "Sukses Upload File Excel..!");
-                
+
             } else {
                 return ApiFormatter::error(400, "File Tidak Ditemukan, Silahkan Upload Ulang File...!");
             }
@@ -442,7 +444,7 @@ class ReturTokoTutupIdmController extends Controller
 
     public function actionCetak(Request $request){
         $noNrb = DB::table('tbtr_returomi')->select('rom_nodokumen')->where('rom_noreferensi', $request->no_rtt)->where('rom_kodetoko', $request->shop)->distinct()->limit(1)->get();
-        
+
         $query = '';
         $query .= "SELECT prd_kodeigr kode_igr,ROM_NODOKUMEN, ROM_TGLDOKUMEN, ROM_PRDCD,PRD_UNIT,ROM_NOREFERENSI, ";
         $query .= "prd_frac, prd_deskripsipendek, (ROM_QTY+ROM_QTYTLR) qty,";
@@ -462,7 +464,7 @@ class ReturTokoTutupIdmController extends Controller
         }
 
         if ($request->method() === 'POST') {
-            return ApiFormatter::success(200, 'success', $request); 
+            return ApiFormatter::success(200, 'success', $request);
         }
 
         $data['namaCabang'] = DB::table('tbmaster_perusahaan')
