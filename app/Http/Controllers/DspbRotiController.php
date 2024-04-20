@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+ini_set('max_execution_time', '0');
+
+use App\Exports\DspbRotiExport;
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
 use App\Http\Requests\CetakDspbRequest;
@@ -10,6 +13,9 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\File;
+use ZipArchive;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DspbRotiController extends Controller
 {
@@ -19,7 +25,6 @@ class DspbRotiController extends Controller
     }
 
     public function index(){
-
         $this->createTableLogNPB();
         return view('menu.dspb-roti');
     }
@@ -66,14 +71,27 @@ class DspbRotiController extends Controller
 
 
         $noRekap = $thnNow . str_pad($noRekap, 5, "0", STR_PAD_LEFT);
+        if(!File::exists(storage_path('temp_dspb'))){
+            File::makeDirectory(storage_path('temp_dspb'));
+        }
+
+        $tempDir = storage_path('temp_dspb/' . Carbon::now()->format('Ymd_His'));
+        if (!File::exists($tempDir)) {
+            File::makeDirectory($tempDir);
+        } else {
+            return ApiFormatter::error(400, "Harap Tunggu 30 detik, lalu ulang Proses Cetak DSPB");
+        }
 
         //! CHECK HANYA YANG -> SIAP DSPB
         foreach($request->datatables as $item){
             if($item['status'] == 'SIAP DSPB'){
-                $this->DSPB_ROTI($item['kodetoko'], $item['tgltrans'], $noRekap, $request->cluster);
+                $this->DSPB_ROTI($item['kodetoko'], $item['tgltrans'], $noRekap, $request->cluster, $request->qr_code, $tempDir);
             }
         }
-
+        //! DELETE TEMP FOLDER
+        // File::deleteDirectory($tempDir);
+        dd("test");
+        
         $this->cetakReportRekap($noRekap, $request->cluster);
 
         return ApiFormatter::success(200, "Proses Cetak DSPB Cluster Berhasil..!");
@@ -140,7 +158,8 @@ class DspbRotiController extends Controller
         return true;
     }
 
-    private function DSPB_ROTI($kodetoko, $tgltrans, $noRekap, $cbCluster){
+    private function DSPB_ROTI($kodetoko, $tgltrans, $noRekap, $cbCluster, $qrCode = 0, $tempDir){
+        File::makeDirectory($tempDir . '/zip');
 
         //! DEFAULT
         $noKoli = "";
@@ -156,7 +175,11 @@ class DspbRotiController extends Controller
         // Execute the second query to get the next value from the sequence
         $noDspb = DB::select("SELECT NEXTVAL('SEQ_NPB')")[0]->nextval;
 
+        $kodeGudang = DB::table('tbmaster_perusahaan')
+            ->select(DB::raw("'GI' || prs_kodeigr as concatenated_value"))
+            ->first();
 
+        $tglServer = DB::select("SELECT NOW() as now")[0]->now;
         // Concatenate the values
         $noDspb = $thnPb . str_pad($noDspb, 5, "0", STR_PAD_LEFT);
 
@@ -168,8 +191,8 @@ class DspbRotiController extends Controller
             ->get();
 
         if(Count($dt)){
-            // $nmPb = "NPR" . _kodegudang . _toko . Format(_tglServer, "yyyyMMddHHmm")
-            // $nmRpb = "XPR" . _kodegudang . _toko . Format(_tglServer, "yyyyMMddHHmm")
+            $nmPb = "NPR" . $kodeGudang->concatenated_value . $kodetoko . Carbon::parse($tglServer)->format('YmdHi');
+            $nmRpb = "XPR" . $kodeGudang->concatenated_value . $kodetoko . Carbon::parse($tglServer)->format('YmdHi');
 
             $dtCek = DB::table('master_supply_idm')
                 ->select('msi_kodedc')
@@ -219,19 +242,21 @@ class DspbRotiController extends Controller
                 $query .= "  COALESCE(prd_flagbkp2,'N') SUB_BKP ";
                 $query .= "FROM tbmaster_pbomi ";
                 $query .= "JOIN TBMASTER_PRODMAST ";
-                $query .= "ON pbo_pluigr = prd_prdcd ";
-                $query .= "WHERE PBO_TGLPB = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
-                $query .= "AND pbo_nopb = '" . $noPb . "' ";
-                $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
-                $query .= "AND pbo_qtyrealisasi > 0 ";
-                $query .= "AND pbo_recordid = '4'";
-                $query .= "AND pbo_nokoli like '06%'";
+                $query .= "ON pbo_pluigr = prd_prdcd LIMIT 5";
+                // $query .= "WHERE PBO_TGLPB = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
+                // $query .= "AND pbo_nopb = '" . $noPb . "' ";
+                // $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
+                // $query .= "AND pbo_qtyrealisasi > 0 ";
+                // $query .= "AND pbo_recordid = '4'";
+                // $query .= "AND pbo_nokoli like '06%'";
                 $check = DB::select($query);
 
                 if(count($check)){
-                    $this->updateDb($noDspb,$tglPb,$kodetoko,$noPb);
+                    // $this->updateDb($noDspb,$tglPb,$kodetoko,$noPb);
 
-                    //! CETAK PDF
+                    $fileContent = Excel::raw(new DspbRotiExport($check), \Maatwebsite\Excel\Excel::CSV);
+                    file_put_contents($tempDir . '/zip/' . $nmPb . ".csv", $fileContent);
+
                     $this->cetakSJP($kodetoko, $noDspb, $noPb, $tglPb);
 
                     //! CETAK CSV NANTI JADI ZIP
@@ -280,6 +305,24 @@ class DspbRotiController extends Controller
             $query .= "GROUP BY pbo_tglpb, pbo_kodeomi ";
             $dtH = DB::select($query);
 
+            $fileContent = Excel::raw(new DspbRotiExport($dtH), \Maatwebsite\Excel\Excel::CSV);
+            file_put_contents($tempDir . '/zip/' . $nmRpb . ".csv", $fileContent);
+
+            $zip = new ZipArchive();
+            $zipDirectory = storage_path('temp_dspb/' . basename($tempDir) . '.zip');
+            if ($zip->open($zipDirectory, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+                $files = glob($tempDir . '/zip/*.csv');
+                foreach ($files as $file) {
+                    $zip->addFile($file, basename($file));
+                }
+                
+                $zip->close();
+                File::deleteDirectory($tempDir . '/zip/');
+            } else {
+                File::deleteDirectory($tempDir);
+                return ApiFormatter::error(400, "Gagal Membuat Zip");
+            }
+
             //! dtDetail
             $query = '';
             $query .= "SELECT '*' recid, ";
@@ -324,6 +367,11 @@ class DspbRotiController extends Controller
             $query .= "AND ikl_registerrealisasi = '" . $noDspb . "'";
             $query .= "AND pbo_nokoli like '06%'";
             $dtD = DB::select($query);
+
+            if(count($dtD) <= 0){
+                File::deleteDirectory($tempDir);
+                return ApiFormatter::error(400, 'Tidak ada Data');
+            }
 
             $query = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 ";
             if($kodeDCIDM <> ''){
@@ -385,6 +433,10 @@ class DspbRotiController extends Controller
                 $query .= "   '" . session('userid') . "', ";
                 $query .= "   NOW() ";
                 $query .= " ) ";
+            }
+
+            if((int)$qrCode === 1){
+                $this->Create_QRCode($nmNpb, $kodetoko, $noDspb, $dtD["tanggal1"], count($dtD), $dtD);
             }
 
             //! REPORT PDF
@@ -527,6 +579,7 @@ class DspbRotiController extends Controller
                 $query .= "AND PIP_NODSPB IS NULL ";
             }
 
+
             $this->DCPickingFinal($noDspb, $kodetoko, $noPb, $tglPb);
         }
 
@@ -534,7 +587,7 @@ class DspbRotiController extends Controller
     }
 
     private function writeCSV($nmNpb, $check){
-
+        
     }
 
     private function updateDb($noDspb,$tglPb,$kodetoko,$noPb){

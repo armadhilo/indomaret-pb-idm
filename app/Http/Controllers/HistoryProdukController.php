@@ -307,7 +307,6 @@ class HistoryProdukController extends Controller
     }
 
 
-
     private function insertData($table, $data, $periodeProses, $periodeFile){
         $periode = $this->getLastPeriod();
 
@@ -572,10 +571,11 @@ class HistoryProdukController extends Controller
         return false;
     }
 
-    public function actionReportKPH($periode){
+    public function actionReportKPH(Request $request){
         //! btnReport_Click
 
         //! form -> frmPilPeriode (digunakan hanya untuk memilih periode)
+        $periode = $request->periode;
 
         $pengaliKPH = DB::select("select coalesce(PRS_KPHCONST,1) V_KPH from tbmaster_perusahaan")[0]->v_kph ?? 0;
 
@@ -631,7 +631,8 @@ class HistoryProdukController extends Controller
         $data['jmltoko'] = DB::select("select count(distinct kodetoko) JML_TOKO_PROSES from tbtemp_hp where tgl = '" . $periode . "'");
         $data['periode'] = DB::select("SELECT coalesce(JML_TOKO,0) JMLTOKO, PERIODE FROM TEMP_LOG_HP WHERE PERIODE = '" . $periode . "' AND PROSES = 'P2'");
 
-        return view('report', $data);
+        // return view('report', $data);
+        return $data;
     }
 
     public function datatablesReportKPH(){

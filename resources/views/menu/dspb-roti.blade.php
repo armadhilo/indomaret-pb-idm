@@ -8,6 +8,14 @@
     .btn-lg{
         height: 50px;
     }
+
+    tr:hover{
+        cursor: pointer;
+    }
+
+    tr td:has(> div.datatable-no-git data){
+        cursor: auto
+    }
 </style>
 @endsection
 
@@ -30,14 +38,13 @@
                                 </select>
                             </div>
                             <div class="form-group d-flex flex-column" style="gap: 15px">
-                                <button class="btn btn-lg btn-primary" onclick="cetakDspb();">CETAK DSPB</button>
-                                <button hidden class="btn btn-lg btn-warning">TRANSFER ULANG DSPB</button>
+                                <button class="btn btn-lg btn-primary button-action" onclick="cetakDspb();">CETAK DSPB</button>
                             </div>
-                            <label for="report_qr" class="checkbox-label">
-                                <input type="checkbox" id="report_qr">
+                            <label for="report_qr" class="checkbox-label d-none">
+                                <input type="checkbox" id="report_qr" onclick="$(this).val(this.checked ? 1 : 0)" value="0">
                                 Report QR Code
                             </label>
-                        </div>
+                        </div>  
                         <div class="col-8">
                             <div class="table-responsive position-relative">
                                 <table class="table table-striped table-hover datatable-dark-primary w-100 table-center" id="tb">
@@ -73,6 +80,7 @@
     let tb;
     $(document).ready(function(){
         setDateNow("#tanggal_pick");
+        $(".button-action").attr("disabled", true);
         getClusterMobil();
         tb = $('#tb').DataTable({
             language: {
@@ -103,6 +111,11 @@
             ],
             data: [],
             ordering: false,
+            rowCallback: function(row, data){
+                $(row).click(function() {
+                    $(this).toggleClass("select-r");
+                });
+            },
         });
     });
 
@@ -151,6 +164,9 @@
                 setTimeout(function () { $('#loading_datatable').addClass('d-none'); }, 500);
                 $('.datatable-no-data').css('color', '#ababab');
                 tb.rows.add(response.data).draw();
+                if(response.data.length > 0){
+                    $(".button-action").attr("disabled", false);
+                }
             }, error: function(jqXHR, textStatus, errorThrown) {
                 setTimeout(function () { $('#loading_datatable').addClass('d-none'); }, 500);
                 $('.datatable-no-data').css('color', '#ababab');
@@ -163,14 +179,8 @@
     };
 
     function cetakDspb(){
-        var tableData = tb.rows().data().toArray();
-        var statusReady = false;
-        tableData.forEach(function(row) {
-            if (row.status === "SIAP DSPB") {
-                statusReady = true;
-            }
-        });
-        if (statusReady) {
+        var tableData = tb.rows('.select-r').data().toArray();
+        if (tableData.length > 0) {
             Swal.fire({
                 title: 'Yakin?',
                 html: `DSPB CLUSTER <b>${$("#cluster_mobil").val()}</b> Tanggal <b>${$("#tanggal_pick").val()}</b> ini ?`,
@@ -179,15 +189,11 @@
             })
             .then((result) => {
                 if (result.value) {
-                    tableData = tableData.filter(function(row) {
-                        return row.status === "SIAP DSPB";
-                    });
-
                     $('#modal_loading').modal('show');
                     $.ajax({
                         url: currentURL + `/action/cetak-dspb`,
                         type: "POST",
-                        data: {datatables: tableData, cluster: $("#cluster_mobil").val()},
+                        data: {datatables: tableData, cluster: $("#cluster_mobil").val(), qr_code: $("#report_qr").val()},
                         success: function(response) {
                             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                             Swal.fire('Success!', response.message,'success');
@@ -204,7 +210,7 @@
                 }
             });
         } else {
-            Swal.fire('Oops!','Tidak ada data yang siap DSPB..!','warning');
+            Swal.fire('Oops!','Harap Pilih Data DSPB Terlebih Dahulu..!','warning');
         }
 
     };

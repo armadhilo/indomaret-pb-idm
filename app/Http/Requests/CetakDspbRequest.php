@@ -26,6 +26,7 @@ class CetakDspbRequest extends FormRequest
     {
         return [
             'cluster' => ['required'],
+            'qr_code' => ['required', 'numeric', 'in:0,1'],
             
             'datatables' => ['required','array'],
             'datatables.*.status' => ['required'],

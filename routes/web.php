@@ -60,9 +60,13 @@ Route::get('/logout', [LoginController::class, 'logout']);
     Route::group(['prefix' => 'history-produk'], function(){
         Route::get('/', [HistoryProdukController::class, 'index']);
         Route::get('/datatables', [HistoryProdukController::class, 'datatables']);
+
+        Route::get('/datatables-report', [HistoryProdukController::class, 'datatablesReportKPH']);
+
         Route::group(['prefix' => 'action'], function(){
             Route::post('/proses', [HistoryProdukController::class, 'actionProses']);
             Route::post('/hit-kph', [HistoryProdukController::class, 'actionHitKPH']);
+            Route::post('/report-kph', [HistoryProdukController::class, 'actionReportKPH']);
         });
     });
 // });

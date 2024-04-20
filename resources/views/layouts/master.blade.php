@@ -103,11 +103,13 @@
 
                 @yield('content')
 
+                @yield('modal')
+
                 <!-- Modal Load-->
                 <div class="modal fade" role="dialog" id="modal_loading" data-keyboard="false" data-backdrop="static" style="z-index: 2000">
                     <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
-                        <div class="modal-body pt-0" style="background-color: #FAFAF8; border-radius: 6px;">
+                        <div class="modal-body pt-0" style="background-color: #F5F7F9; border-radius: 6px;">
                             <div class="text-center">
                                 <img style="border-radius: 4px; height: 140px;" src="{{ asset('img/loader_1.gif') }}" alt="Loading">
                                 <h6 style="position: absolute; bottom: 10%; left: 37%;" class="pb-2">Mohon Tunggu..</h6>

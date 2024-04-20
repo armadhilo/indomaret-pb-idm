@@ -9,6 +9,17 @@
         height: 50px;
         font-size: 1.2rem;
     }
+
+    .checkbox-table{
+        vertical-align: middle;
+    }
+
+    .periode-text{
+        vertical-align: middle;
+        margin-left: 11px;
+        font-weight: 600;
+        color: black;
+    }
 </style>
 @endsection
 
@@ -39,11 +50,10 @@
                             </div>
                         </div>
                         <div class="d-flex flex-row child-flex-1 mt-2" style="gap: 15px">
-                            <button class="btn btn-lg btn-cust-warning" id="btn_browse">Browse</button>
                             <button class="btn btn-lg btn-info" id="btn_proses" onclick="actionProses();">Proses</button>
                             <button class="btn btn-lg btn-cust-success" id="btn_upload">Upload CSV</button>
                             <button class="btn btn-lg btn-royal" id="btn_hit" onclick="actionHitKPH();">Hit. KPH</button>
-                            <button class="btn btn-lg btn-danger" id="btn_reprt">Report KPH</button>
+                            <button class="btn btn-lg btn-danger" id="btn_reprt" onclick="showModalReport()">Report KPH</button>
                         </div>
                     </div>
                     <div class="table-responsive position-relative">
@@ -69,9 +79,76 @@
 </div>
 @endsection
 
+@section('modal')
+<div class="modal fade" role="dialog" id="modal_csv" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600" id="modal_csv_title">Upload File CSV</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group d-flex" style="gap: 20px">
+                    <label for="tipe_upload" class="detail-info" style="width: 150px">Tipe Upload</label>
+                    <select name="tipe_upload" id="tipe_upload" class="form-control">
+                    </select>
+                </div>
+                <div class="form-group d-flex" style="gap: 20px; height: 38px">
+                    <label for="tipe_upload" class="detail-info" style="width: 150px">File CSV</label>
+                    <input type="file" id="file_input_modal" name="file_input_modal" style="padding: 3px 8px; height: 38px!important" class="form-control">
+                </div>
+                <div class="form-group m-0 d-flex justify-content-end" style="gap: 25px">
+                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" id="btn_ftp">FTP</button>
+                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" id="btn_browse">BROWSE</button>
+                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-info" id="btn_history">HISTORY PINDAH SUPPLY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_report" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">PILIH Periode</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive position-relative">
+                    <table class="table table-striped table-hover datatable-dark-primary w-100" id="tb_report">
+                        <thead>
+                            <tr>
+                                <th class="w-100">Periode</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <button class="btn btn-lg btn-primary d-none" id="loading_datatable_report" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" type="button" disabled>
+                            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                            Loading...
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionReportKPH();">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
 @push('page-script')
 <script>
     let tb;
+    let tb_report;
     $(document).ready(function(){
         $("#periode").val(moment().format('YYYY-MM'))
         tb = $('#tb').DataTable({
@@ -93,6 +170,26 @@
                 { className: 'text-center-vh', targets: '_all' },
             ],
             ordering: false,
+        });
+
+        tb_report = $('#tb_report').DataTable({
+            processing: true,
+            columnDefs: [
+                { className: 'text-center', targets: [0] },
+            ],
+            order: [],
+            "paging": false, 
+            "searching": false,
+            "scrollY": "calc(100vh - 400px)",
+            "scrollCollapse": true,
+            ordering: false,
+            columns: [
+                { data: 'periode' },
+            ],
+            rowCallback: function (row, data) {
+                $('td:eq(0)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-group" value="${data.periode}" name="periode-checkbox"><span class="periode-text">${data.periode}</span>`);
+            }
+            
         });
 
         $("#mode").on("change", function(){
@@ -124,12 +221,39 @@
 
             $("#btn_upload").text(uploadText);
             $("#status_text").text(statusText);
-            $("#btn_browse").attr("disabled", browseDisabled);
+            $("#file_input").attr("disabled", browseDisabled);
             $("#btn_hit").attr("disabled", hitDisabled);
             $("#periode").attr("disabled", periodeDisabled);
             $("#periode").val(periodeValue);
 
             $("#btn_proses").attr("disabled", false);
+        });
+
+        $("#btn_upload").on("click", function(){
+            var mode = $("#mode").val();
+            $("#modal_csv").modal("show");
+            $("#tipe_upload").empty();
+            if(mode === "KPH MEAN"){
+                $("#btn_ftp").css("display", "block");
+                $("#btn_history").css("display", "none");
+                $("#tipe_upload").append(`<option value="MINOR">MINOR</option>`);
+                $("#tipe_upload").append(`<option value="PLUIDM">PLUIDM</option>`);
+                $("#modal_csv_title").text("Upload File CSV");
+            } else if(mode === "PRODUK BARU"){
+                $("#btn_ftp").css("display", "none");
+                $("#btn_history").css("display", "none");
+                $("#tipe_upload").append(`<option value="PRODUK BARU">PRODUK BARU</option>`);
+                $("#modal_csv_title").text("Upload & Hitung KPH Produk Baru");
+            } else {
+                $("#btn_ftp").css("display", "none");
+                $("#btn_history").css("display", "block");
+                $("#tipe_upload").append(`<option value="PINDAH SUPPLY">PINDAH SUPPLY</option>`);
+                $("#modal_csv_title").text("Upload File CSV Pindah Supply");
+            }
+        });
+
+        $('.checkbox-group').click(function() {
+            $('.checkbox-group').not(this).prop('checked', false);
         });
     });
 
@@ -164,7 +288,6 @@
                     success: function(response) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                         Swal.fire('Success!', response.message,'success');
-                        tb.ajax.reload();
                     }, error: function(jqXHR, textStatus, errorThrown) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                         Swal.fire({
@@ -195,7 +318,6 @@
                     success: function(response) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                         Swal.fire('Success!', response.message,'success');
-                        tb.ajax.reload();
                     }, error: function(jqXHR, textStatus, errorThrown) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                         Swal.fire({
@@ -208,6 +330,66 @@
                 });
             }
         })
+    }
+
+    function showModalReport(){
+        $("#modal_report").modal("show");
+        tb_report.clear().draw();
+        $('.datatable-no-data').css('color', '#F2F2F2');
+        $('#loading_datatable_report').removeClass('d-none');
+        $.ajax({
+            url: currentURL + "/datatables-report",
+            type: "GET",
+            success: function(response) {
+                $('#loading_datatable_report').addClass('d-none');
+                $('.datatable-no-data').css('color', '#ababab');
+                tb_report.rows.add(response.data).draw();
+            }, error: function(jqXHR, textStatus, errorThrown) {
+                setTimeout(function () { $('#loading_datatable_report').addClass('d-none'); }, 500);
+                $('.datatable-no-data').css('color', '#ababab');
+                Swal.fire({
+                    text: "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                    icon: "error"
+                });
+            }
+        });
+    }
+
+    function actionReportKPH(){
+        var priodeValue = $('input[name="periode-checkbox"]:checked').val();
+        if (priodeValue === undefined || priodeValue === ''){
+            Swal.fire('Peringatan!', 'Harap pilih periode Terlebih Dahulu...!', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'Yakin?',
+            html: `Report KPH pada Priode ${priodeValue} ?`,
+            icon: 'info',
+            showCancelButton: true,
+        })
+        .then((result) => {
+            if (result.value) {
+                $("#modal_loading").modal("show");
+                $.ajax({
+                    url: currentURL + `/action/report-kph`,
+                    type: "POST",
+                    data: {periode: priodeValue},
+                    success: function(response) {
+                        setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                        Swal.fire('Success!', response.message,'success');
+                    }, error: function(jqXHR, textStatus, errorThrown) {
+                        setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                        Swal.fire({
+                            text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                                ? jqXHR.responseJSON.message
+                                : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                            icon: "error"
+                        });
+                    }
+                });
+            }
+        });
     }
 </script>
 @endpush

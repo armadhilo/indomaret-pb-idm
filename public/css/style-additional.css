@@ -70,15 +70,6 @@ label{
     overflow-x: scroll;
 }
 
-.button-action{
-    margin-bottom: 20px;
-}
-
-.button-action .form-control{
-    display: inline-block;
-    width: unset;
-}
-
 .btn-lg{
     font-size: 1rem!important;
     font-weight: 600!important;
@@ -143,6 +134,11 @@ select:hover{
     background-color: #42142c;
     border-color: #42142c;
     color: white;
+}
+
+.select-r td {
+    background-color: #566cfb !important;
+    color: white!important;
 }
 
 .detail-info{
