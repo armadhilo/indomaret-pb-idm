@@ -33,11 +33,27 @@
             <i class="fas fa-fw fa-tachometer-alt"></i>
             <span>RTT IDM</span></a>
     </li>
+    <!-- ================================================================ -->
+    <!-- ======================= START ================================== -->
+    <!-- ================================================================ -->
     <li class="nav-item @if($sub_url == 'monitoring') active @endif">
         <a class="nav-link" href="{{ url('/monitoring') }}">
             <i class="fa fa-desktop"></i>
             <span>MONITORING</span></a>
     </li>
+    <li class="nav-item @if($sub_url == 'voucher') active @endif">
+        <a class="nav-link" href="{{ url('/voucher') }}">
+            <i class="fa fa-desktop"></i>
+            <span>VOUCHER & MATERIAL</span></a>
+    </li>
+    <li class="nav-item @if($sub_url == 'proses_wt') active @endif">
+        <a class="nav-link" href="{{ url('/proses_wt') }}">
+            <i class="fa fa-desktop"></i>
+            <span>PROSES_WT</span></a>
+    </li>
+     <!-- ================================================================ -->
+    <!-- ======================= END ================================== -->
+    <!-- ================================================================ -->
 
     <!-- Sidebar Toggler (Sidebar) -->
     <!-- <div class="text-center d-none d-md-inline">

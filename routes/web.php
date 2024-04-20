@@ -6,6 +6,8 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\StrukController;
 use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\ProsesWTController;
+use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,12 +52,19 @@ Route::middleware(['mylogin'])->group(function () {
   
 
     Route::get('/monitoring', [MonitoringController::class, 'index']);
+    Route::get('/voucher', [VoucherController::class, 'index']);
+    Route::get('/proses_wt', [ProsesWTController::class, 'index']);
     
     Route::prefix('/api')->group(function () {
         /*  Monitoring */
         Route::prefix('/monitoring')->group(function () {
 
             Route::get('/zona', [MonitoringController::class, 'load_zona']);
+        });
+        /*  Voucher */
+        Route::prefix('/voucher')->group(function () {
+
+            Route::get('/data', [VoucherController::class, 'voucher_load']);
         });
     });
 
