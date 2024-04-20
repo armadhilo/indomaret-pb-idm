@@ -6,6 +6,7 @@ use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
 use App\Http\Requests\CetakDspbRequest;
 use Carbon\Carbon;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
@@ -73,7 +74,34 @@ class DspbRotiController extends Controller
             }
         }
 
+        $this->cetakReportRekap($noRekap, $request->cluster);
+
         return ApiFormatter::success(200, "Proses Cetak DSPB Cluster Berhasil..!");
+    }
+
+    private function cetakReportRekap($noRekap, $cluster){
+        $query = '';
+        $query .= "select distinct TKO_KODEOMI KODETOKO, TKO_NAMAOMI NAMATOKO, IKL_IDTRANSAKSI NODSPB, DSP_NO_REKAP NOREKAP,";
+        $query .= "CRI_KODECLUSTER KDCLUSTER, null ENCRYPT, ikl_tglbpd tgl_dspb";
+        $query .= "from TBTR_HEADER_ROTI join CLUSTER_ROTI_IDM on HDR_KODETOKO = CRI_KODETOKO";
+        $query .= "JOIN TBTR_IDMKOLI on HDR_NOPB = IKL_NOPB and HDR_KODETOKO = IKL_KODEIDM";
+        $query .= "join TBMASTER_TOKOIGR on HDR_KODETOKO = TKO_KODEOMI and TKO_KODESBU = 'I'";
+        $query .= "join TBTR_REKAP_DSPB_ROTI on DSP_NODSPB = IKL_IDTRANSAKSI and CRI_KODECLUSTER = DSP_CLUSTER";
+        $query .= "where CRI_KODECLUSTER = '" & $cluster & "' and HDR_FLAG = '5' and DSP_NO_REKAP = '" & $noRekap & "' ";
+        $data['data'] = DB::select($query);
+
+        if(!count($data['data'])){
+            throw new HttpResponseException(ApiFormatter::error(400, 'Tidak ada data report rekap'));
+        }
+
+        //! PERUSAHAAN
+        $data['perusahaan'] = DB::table('tbmaster_perusahaan')
+        ->select('prs_kodeigr','kode_igr','PRS_NAMACABANG')
+        ->first();
+
+        //! ENCRPYT YANG GATAU CARA ENCRYPT NYA
+
+        //! report view -> rptRekapDSPBRoti
     }
 
     private function createTableLogNPB(){
@@ -203,12 +231,13 @@ class DspbRotiController extends Controller
                 if(count($check)){
                     $this->updateDb($noDspb,$tglPb,$kodetoko,$noPb);
 
-                    $this->WriteCSV($nmNpb, $check);
-
+                    //! CETAK PDF
                     $this->cetakSJP($kodetoko, $noDspb, $noPb, $tglPb);
+
+                    //! CETAK CSV NANTI JADI ZIP
+                    $this->WriteCSV($nmNpb, $check);
                 }
             }
-
 
             DB::table('tbtr_rekap_dspb_roti')
                 ->insert([
@@ -358,6 +387,9 @@ class DspbRotiController extends Controller
                 $query .= " ) ";
             }
 
+            //! REPORT PDF
+            $this->cetakReportToko($noDspb, $kodetoko);
+
             //! REPORT QR CODE
             //! INI DI SKIP INFO PAK EVAN 17/04/2024
             // If checkQR.Checked Then
@@ -369,6 +401,69 @@ class DspbRotiController extends Controller
             //                   dtD)
             // End If
         }
+    }
+
+    private function cetakReportToko($noDspb, $kodetoko){
+
+        $query = '';
+        $query .= "SELECT DISTINCT HDR_KODETOKO TOKO, HDR_NOPB NOPB, ";
+        $query .= "COUNT(DISTINCT PBO_PLUIGR) JMLITEM,";
+        $query .= "CASE UPPER(SUBSTR(REVERSE(SUBSTR(REVERSE(hdr_filepb), 1, POSITION('\' IN REVERSE(hdr_filepb))-1)),1,2)) ";
+        $query .= "WHEN 'CM' THEN 'CAKE' WHEN 'MB' THEN 'MR. BREAD' WHEN 'GM' THEN 'PRIME BREAD' ELSE 'SARI ROTI' END TIPE,";
+        $query .= "count(case when prd_kodedivisi = '5' and prd_kodedepartement = '40' and prd_kodekategoribarang = '04' then null else pbo_pluigr end) as ITEM,";
+        $query .= "count(case when prd_kodedivisi||prd_kodedepartement||prd_kodekategoribarang = '54004' then pbo_pluigr else null end) as KRAT ";
+        $query .= "FROM TBMASTER_PBOMI, TBTR_HEADER_ROTI, TBMASTER_PRODMAST WHERE PBO_NOKOLI IN (SELECT DISTINCT IKL_NOKOLI FROM TBTR_IDMKOLI ";
+        $query .= "WHERE IKL_REGISTERREALISASI = '" . $noDspb . "' AND IKL_KODEIDM = '" . $kodetoko . "' )";
+        $query .= "AND pbo_pluigr = prd_prdcd ";
+        $query .= "and pbo_nokoli is not null";
+        $query .= "AND PBO_NOPB = HDR_NOPB";
+        $query .= "AND PBO_KODEOMI = HDR_KODETOKO";
+        $query .= "AND DATE_TRUNC('DAY',PBO_TGLPB) = DATE_TRUNC('DAY',HDR_TGLPB)";
+        $query .= "AND HDR_KODETOKO = '" . $kodetoko . "' ";
+        $query .= "GROUP BY HDR_KODETOKO, HDR_NOPB, HDR_FILEPB";
+        $data['data'] = DB::select($query);
+
+        if(!count($data['data'])){
+            throw new HttpResponseException(ApiFormatter::error(400, 'Tidak ada data report toko ' . $kodetoko));
+        }
+
+        //! HEADER
+        //! ADA HEADER ENCRPYT YANG GATAU CARA ENCRYPT NYA
+        $query = '';
+        $query .= "SELECT null encrypt,IKL_KODEIGR KODE_IGR,ikl_nopb, ikl_nobpd,  ";
+        $query .= "NULL reprint, ";
+        $query .= "ikl_registerrealisasi dspb, ikl_tglbpd tgl_dspb ";
+        $query .= "FROM tbtr_idmkoli  ";
+        $query .= "WHERE ikl_registerrealisasi = '" . $noDspb . "' ";
+        $query .= "AND ikl_kodeidm = '" . $kodetoko . "' ";
+        $query .= "AND IKL_NOKOLI is not null  ";
+        $query .= "AND IKL_NOKOLI like '06%'  ";
+        $query .= "LIMIT 1 ";
+        $data['header'] = DB::select($query);
+
+        //! TOKO
+        $data['toko'] = DB::table('tbmaster_tokoigr')
+            ->selectRaw("tko_kodeigr kode_igr ,tko_namaomi , tko_kodeomi")
+            ->where([
+                'tko_kodeomi' => $kodetoko,
+                'tko_namasbu' => 'INDOMARET'
+            ])->first();
+
+        //! CLUSTER
+        $data['cluster'] = DB::table('cluster_idm')
+            ->selectRaw("cls_kode")
+            ->where([
+                'cls_toko' => $kodetoko,
+            ])->first();
+
+        //! GROUP
+        $data['group'] = DB::table('cluster_idm')
+            ->selectRaw("cls_group")
+            ->where([
+                'cls_toko' => $kodetoko,
+            ])->first();
+
+        //! report view -> rptDSPBRoti
     }
 
     private function Create_QRCode($filename,$toko,$nodspb,$tgldspb,$jmlrecord,$sourceDetail, $reprint = false, $rpt = null){
