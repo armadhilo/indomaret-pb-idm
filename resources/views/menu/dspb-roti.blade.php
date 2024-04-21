@@ -197,6 +197,8 @@
                         success: function(response) {
                             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                             Swal.fire('Success!', response.message,'success');
+                            actionDownloadZip(response.data.temp);
+                            setTimeout(function () { queryDatatable(); }, 3000);
                         }, error: function(jqXHR, textStatus, errorThrown) {
                             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                             Swal.fire({
@@ -212,7 +214,32 @@
         } else {
             Swal.fire('Oops!','Harap Pilih Data DSPB Terlebih Dahulu..!','warning');
         }
-
     };
+
+    function actionDownloadZip(temp){
+        $.ajax({
+            url: currentURL + `/action/get-zip/${temp}`,
+            type: "GET",
+            xhrFields: {
+                responseType: 'blob' // Important for binary data
+            },
+            success: function(response) {
+                var blob = new Blob([response]);
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = 'DSPB ROTI.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, error: function(jqXHR, textStatus, errorThrown) {
+                Swal.fire({
+                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                        ? jqXHR.responseJSON.message
+                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                    icon: "error"
+                });
+            }
+        });
+    }
 </script>
 @endpush

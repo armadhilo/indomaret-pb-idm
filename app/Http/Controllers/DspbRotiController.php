@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\File;
 use ZipArchive;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 
 class DspbRotiController extends Controller
@@ -64,7 +65,6 @@ class DspbRotiController extends Controller
     }
 
     public function actionCetakDspb(CetakDspbRequest $request){
-
         //! LOOPING DATATABLES
         $thnNow = Carbon::now()->format('y');
         $noRekap = DB::select("SELECT NEXTVAL('SEQ_ROTI')")[0]->nextval;
@@ -85,30 +85,59 @@ class DspbRotiController extends Controller
         //! CHECK HANYA YANG -> SIAP DSPB
         foreach($request->datatables as $item){
             if($item['status'] == 'SIAP DSPB'){
-                $this->DSPB_ROTI($item['kodetoko'], $item['tgltrans'], $noRekap, $request->cluster, $request->qr_code, $tempDir);
+                $check = $this->DSPB_ROTI($item['kodetoko'], $item['tgltrans'], $noRekap, $request->cluster, $request->qr_code, $tempDir);
+                if($check !== true){
+                    File::deleteDirectory($tempDir);
+                    return ApiFormatter::error(400, json_decode($check->getContent(), true)["message"]);
+                }
             }
         }
         //! DELETE TEMP FOLDER
-        // File::deleteDirectory($tempDir);
-        dd("test");
         
-        $this->cetakReportRekap($noRekap, $request->cluster);
+        $this->cetakReportRekap($noRekap, $request->cluster, $tempDir);
 
-        return ApiFormatter::success(200, "Proses Cetak DSPB Cluster Berhasil..!");
+        $zip = new ZipArchive();
+        $zipDirectory = $tempDir . '/DSPB ROTI.zip';
+        if ($zip->open($zipDirectory, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+            $files = glob($tempDir . '/*');
+            foreach ($files as $file) {
+                $zip->addFile($file, basename($file));
+            }
+            
+            $zip->close();
+            $data['temp'] = basename($tempDir);
+            return ApiFormatter::success(200, "Berhasil DSPB ROTI", $data);
+        } else {
+            File::deleteDirectory($tempDir);
+            return ApiFormatter::error(400, "Gagal Membuat Zip");
+        }
+    
     }
 
-    private function cetakReportRekap($noRekap, $cluster){
+    public function getZipFile($temp){
+        $zipDirectory = storage_path('temp_dspb/' . $temp . '/DSPB ROTI.zip');
+        $zipContent = file_get_contents($zipDirectory);
+        File::deleteDirectory(storage_path('temp_dspb/' . $temp));
+        $headers = [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="DSPB ROTI.zip"',
+        ];
+        return response($zipContent, 200, $headers);
+    }
+
+    private function cetakReportRekap($noRekap, $cluster, $tempDir){
         $query = '';
-        $query .= "select distinct TKO_KODEOMI KODETOKO, TKO_NAMAOMI NAMATOKO, IKL_IDTRANSAKSI NODSPB, DSP_NO_REKAP NOREKAP,";
-        $query .= "CRI_KODECLUSTER KDCLUSTER, null ENCRYPT, ikl_tglbpd tgl_dspb";
-        $query .= "from TBTR_HEADER_ROTI join CLUSTER_ROTI_IDM on HDR_KODETOKO = CRI_KODETOKO";
-        $query .= "JOIN TBTR_IDMKOLI on HDR_NOPB = IKL_NOPB and HDR_KODETOKO = IKL_KODEIDM";
-        $query .= "join TBMASTER_TOKOIGR on HDR_KODETOKO = TKO_KODEOMI and TKO_KODESBU = 'I'";
-        $query .= "join TBTR_REKAP_DSPB_ROTI on DSP_NODSPB = IKL_IDTRANSAKSI and CRI_KODECLUSTER = DSP_CLUSTER";
-        $query .= "where CRI_KODECLUSTER = '" & $cluster & "' and HDR_FLAG = '5' and DSP_NO_REKAP = '" & $noRekap & "' ";
-        $data['data'] = DB::select($query);
+        $query .= "select distinct TKO_KODEOMI KODETOKO, TKO_NAMAOMI NAMATOKO, IKL_IDTRANSAKSI NODSPB, DSP_NO_REKAP NOREKAP, ";
+        $query .= "CRI_KODECLUSTER KDCLUSTER, null ENCRYPT, ikl_tglbpd tgl_dspb ";
+        $query .= "from TBTR_HEADER_ROTI join CLUSTER_ROTI_IDM on HDR_KODETOKO = CRI_KODETOKO ";
+        $query .= "JOIN TBTR_IDMKOLI on HDR_NOPB = IKL_NOPB and HDR_KODETOKO = IKL_KODEIDM ";
+        $query .= "join TBMASTER_TOKOIGR on HDR_KODETOKO = TKO_KODEOMI and TKO_KODESBU = 'I' ";
+        $query .= "join TBTR_REKAP_DSPB_ROTI on DSP_NODSPB = IKL_IDTRANSAKSI and CRI_KODECLUSTER = DSP_CLUSTER ";
+        $query .= "where CRI_KODECLUSTER = '" . $cluster . "' and HDR_FLAG = '5' and DSP_NO_REKAP = '" . $noRekap . "' ";
+        $data['data'] = DB::select($query); 
 
         if(!count($data['data'])){
+            File::deleteDirectory($tempDir);
             throw new HttpResponseException(ApiFormatter::error(400, 'Tidak ada data report rekap'));
         }
 
@@ -116,6 +145,11 @@ class DspbRotiController extends Controller
         $data['perusahaan'] = DB::table('tbmaster_perusahaan')
         ->select('prs_kodeigr','kode_igr','PRS_NAMACABANG')
         ->first();
+
+        $pdf = PDF::loadView('pdf.dspb-surat-jalan', $data);
+        $pdfContent = $pdf->output();
+        file_put_contents($tempDir . "/DSPB REKAP SURAT JALAN.pdf", $pdfContent);
+        return true;
 
         //! ENCRPYT YANG GATAU CARA ENCRYPT NYA
 
@@ -160,52 +194,164 @@ class DspbRotiController extends Controller
 
     private function DSPB_ROTI($kodetoko, $tgltrans, $noRekap, $cbCluster, $qrCode = 0, $tempDir){
         File::makeDirectory($tempDir . '/zip');
+        DB::beginTransaction();
+	    try{
 
-        //! DEFAULT
-        $noKoli = "";
-        $taxNum = "";
-        $nmRpb = "";
-        $nmNpb = "";
-        $flagCrtPjk = "N";
-        $_koli = "";
+            //! DEFAULT
+            $noKoli = "";
+            $taxNum = "";
+            $nmRpb = "";
+            $nmNpb = "";
+            $flagCrtPjk = "N";
+            $_koli = "";
 
-        // Execute the first query to get the current year
-        $thnPb = DB::select("SELECT TO_CHAR(CURRENT_DATE, 'YY')")[0]->to_char;
+            // Execute the first query to get the current year
+            $thnPb = DB::select("SELECT TO_CHAR(CURRENT_DATE, 'YY')")[0]->to_char;
 
-        // Execute the second query to get the next value from the sequence
-        $noDspb = DB::select("SELECT NEXTVAL('SEQ_NPB')")[0]->nextval;
+            // Execute the second query to get the next value from the sequence
+            $noDspb = DB::select("SELECT NEXTVAL('SEQ_NPB')")[0]->nextval;
 
-        $kodeGudang = DB::table('tbmaster_perusahaan')
-            ->select(DB::raw("'GI' || prs_kodeigr as concatenated_value"))
-            ->first();
-
-        $tglServer = DB::select("SELECT NOW() as now")[0]->now;
-        // Concatenate the values
-        $noDspb = $thnPb . str_pad($noDspb, 5, "0", STR_PAD_LEFT);
-
-        //! CHECK DATA
-        $dt = DB::table('tbtr_header_roti')
-            ->selectRaw("distinct hdr_nopb, hdr_tglpb")
-            ->where('hdr_kodetoko', $kodetoko)
-            ->whereDate('hdr_tgltransaksi', $tgltrans)
-            ->get();
-
-        if(Count($dt)){
-            $nmPb = "NPR" . $kodeGudang->concatenated_value . $kodetoko . Carbon::parse($tglServer)->format('YmdHi');
-            $nmRpb = "XPR" . $kodeGudang->concatenated_value . $kodetoko . Carbon::parse($tglServer)->format('YmdHi');
-
-            $dtCek = DB::table('master_supply_idm')
-                ->select('msi_kodedc')
-                ->where('msi_kodetoko', $kodetoko)
+            $kodeGudang = DB::table('tbmaster_perusahaan')
+                ->select(DB::raw("'GI' || prs_kodeigr as concatenated_value"))
                 ->first();
 
-            $kodeDCIDM = empty($dtCek) ? '' : $dtCek->msi_kodedc;
+            $tglServer = DB::select("SELECT NOW() as now")[0]->now;
+            // Concatenate the values
+            $noDspb = $thnPb . str_pad($noDspb, 5, "0", STR_PAD_LEFT);
 
-            foreach($dt as $item){
-                $noPb = $item->hdr_nopb;
-                $tglPb = Carbon::createFromFormat('Y-m-d H:i:s', $item->hdr_tglpb)->toDateString();
+            //! CHECK DATA
+            $dt = DB::table('tbtr_header_roti')
+                ->selectRaw("distinct hdr_nopb, hdr_tglpb")
+                ->where('hdr_kodetoko', $kodetoko)
+                ->whereDate('hdr_tgltransaksi', $tgltrans)
+                ->get();
 
-                //! CHECK
+            if(Count($dt)){
+                $nmPb = "NPR" . $kodeGudang->concatenated_value . $kodetoko . Carbon::parse($tglServer)->format('YmdHi');
+                $nmRpb = "XPR" . $kodeGudang->concatenated_value . $kodetoko . Carbon::parse($tglServer)->format('YmdHi');
+
+                $dtCek = DB::table('master_supply_idm')
+                    ->select('msi_kodedc')
+                    ->where('msi_kodetoko', $kodetoko)
+                    ->first();
+
+                $kodeDCIDM = empty($dtCek) ? '' : $dtCek->msi_kodedc;
+
+                foreach($dt as $item){
+                    $noPb = $item->hdr_nopb;
+                    $tglPb = Carbon::createFromFormat('Y-m-d H:i:s', $item->hdr_tglpb)->toDateString();
+
+                    //! CHECK
+                    $query = '';
+                    $query .= "SELECT '*' recid, ";
+                    $query .= "  NULL rtype, ";
+                    $query .= "  " . $noDspb . "  docno, ";
+                    $query .= "  ROW_NUMBER() OVER() seqno, ";
+                    $query .= "  pbo_nopb picno, ";
+                    $query .= "  NULL picnot, ";
+                    $query .= "  TO_CHAR(pbo_tglpb, 'YYYY-MM-DD') pictgl, ";
+                    $query .= "  pbo_pluomi prdcd, ";
+                    $query .= "  (select prd_deskripsipendek from tbmaster_prodmast ";
+                    $query .= "  where prd_prdcd = pbo_pluigr LIMIT 1) nama, ";
+                    $query .= "  pbo_kodedivisi div, ";
+                    $query .= "  pbo_qtyorder qty, ";
+                    $query .= "  pbo_qtyrealisasi sj_qty, ";
+                    $query .= "  pbo_hrgsatuan price, ";
+                    $query .= "  pbo_ttlnilai gross, ";
+                    $query .= "  pbo_ttlppn ppnrp, ";
+                    $query .= "  pbo_hrgsatuan hpp, ";
+                    $query .= "  pbo_kodeomi toko, ";
+                    $query .= "  'R-' keter, ";
+                    $query .= "  TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') tanggal1, ";
+                    $query .= "  TO_CHAR(pbo_tglpb, 'YYYY-MM-DD') tanggal2, ";
+                    $query .= "  pbo_nopb docno2, ";
+                    $query .= "  NULL lt, ";
+                    $query .= "  NULL rak, ";
+                    $query .= "  NULL bar, ";
+                    $query .= "  (SELECT 'GI' || prs_kodeigr ";
+                    $query .= "  FROM tbmaster_perusahaan ";
+                    $query .= "  LIMIT 1) kirim, ";
+                    $query .= "  lpad(pbo_NOKOLI,12,'0') dus_no, ";
+                    $query .= "  NULL TGLEXP, ";
+                    $query .= "  COALESCE(prd_ppn, 0) ppn_rate, ";
+                    $query .= "  COALESCE(prd_flagbkp1, 'N') BKP, ";
+                    $query .= "  COALESCE(prd_flagbkp2,'N') SUB_BKP ";
+                    $query .= "FROM tbmaster_pbomi ";
+                    $query .= "JOIN TBMASTER_PRODMAST ";
+                    $query .= "ON pbo_pluigr = prd_prdcd ";
+                    $query .= "WHERE PBO_TGLPB = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
+                    $query .= "AND pbo_nopb = '" . $noPb . "' ";
+                    $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
+                    $query .= "AND pbo_qtyrealisasi > 0 ";
+                    $query .= "AND pbo_recordid = '4'";
+                    $query .= "AND pbo_nokoli like '06%'";
+                    $check = DB::select($query);
+
+                    if(count($check)){
+                        $this->updateDb($noDspb,$tglPb,$kodetoko,$noPb);
+                        $this->cetakSJP($kodetoko, $noDspb, $noPb, $tglPb);
+                        $this->WriteCSV($tempDir, $nmPb, $check);
+                    }
+                }
+
+                DB::table('tbtr_rekap_dspb_roti')
+                    ->insert([
+                        'sp_kodeigr' => session('KODECABANG'),
+                        'dsp_no_rekap' => $noRekap,
+                        'dsp_nodspb' => $noDspb,
+                        'dsp_cluster' => $cbCluster,
+                        'dsp_create_by' => session('userid'),
+                        'dsp_create_dt' => Carbon::now(),
+                    ]);
+
+                //! SIMPAN NAMA NPB
+                $this->simpanDSPB($nmNpb . ".ZIP", $kodetoko, $noPb, 0, 0, $noDspb, "R- PBROTI");
+
+                if($kodeDCIDM <> ''){
+                    $npbGudang = $kodeDCIDM;
+                }else{
+                    $query = "SELECT ws_DC FROM tbmaster_webservice WHERE ws_nama = 'NPB' ";
+                    if($kodeDCIDM <> ''){
+                        $query .= "AND ws_dc = '$kodeDCIDM'";
+                    }
+
+                    $npbGudang = DB::select($query)[0]['ws_url'];
+                }
+
+                //! dtHeader
+                // dd(DB::select("SELECT * FROM tbmaster_pbomi LIMIT 10"));
+                $query = '';
+                $query .= "SELECT " . $noDspb . " docno,";
+                $query .= "  TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,";
+                $query .= "  pbo_kodeomi toko,";
+                $query .= "  (SELECT 'GI' || prs_kodeigr FROM tbmaster_perusahaan LIMIT 1) gudang, ";
+                $query .= "  COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyrealisasi) qty, ";
+                $query .= "  SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi ";
+                $query .= "FROM tbmaster_pbomi a  ";
+                $query .= "WHERE  A.PBO_TGLPB = '" . $tglPb . "'  ";
+                $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
+                $query .= "AND pbo_nokoli like '06%' ";
+                $query .= "AND PBO_QTYREALISASI > 0 ";
+                $query .= "GROUP BY pbo_tglpb, pbo_kodeomi ";
+                $dtH = DB::select($query);
+
+                $this->WriteCSV($tempDir, $nmRpb, $dtH);
+                $zip = new ZipArchive();
+                $zipDirectory = $tempDir . '/' . basename($tempDir) . '.zip';
+                if ($zip->open($zipDirectory, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+                    $files = glob($tempDir . '/zip/*.csv');
+                    foreach ($files as $file) {
+                        $zip->addFile($file, basename($file));
+                    }
+                    
+                    $zip->close();
+                    File::deleteDirectory($tempDir . '/zip/');
+                } else {
+                    File::deleteDirectory($tempDir);
+                    throw new HttpResponseException(ApiFormatter::error(400, 'Gagal Membuat Zip'));
+                }
+
+                //! dtDetail
                 $query = '';
                 $query .= "SELECT '*' recid, ";
                 $query .= "  NULL rtype, ";
@@ -213,10 +359,9 @@ class DspbRotiController extends Controller
                 $query .= "  ROW_NUMBER() OVER() seqno, ";
                 $query .= "  pbo_nopb picno, ";
                 $query .= "  NULL picnot, ";
-                $query .= "  TO_CHAR(pbo_tglpb, 'YYYY-MM-DD') pictgl, ";
+                $query .= "  TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') pictgl, ";
                 $query .= "  pbo_pluomi prdcd, ";
-                $query .= "  (select prd_deskripsipendek from tbmaster_prodmast ";
-                $query .= "  where prd_prdcd = pbo_pluigr LIMIT 1) nama, ";
+                $query .= "  (SELECT prd_deskripsipendek FROM tbmaster_prodmast WHERE prd_prdcd = pbo_pluigr) nama, ";
                 $query .= "  pbo_kodedivisi div, ";
                 $query .= "  pbo_qtyorder qty, ";
                 $query .= "  pbo_qtyrealisasi sj_qty, ";
@@ -226,8 +371,8 @@ class DspbRotiController extends Controller
                 $query .= "  pbo_hrgsatuan hpp, ";
                 $query .= "  pbo_kodeomi toko, ";
                 $query .= "  'R-' keter, ";
-                $query .= "  TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') tanggal1, ";
-                $query .= "  TO_CHAR(pbo_tglpb, 'YYYY-MM-DD') tanggal2, ";
+                $query .= "  TO_CHAR(IKL_TGLBPD, 'dd-MM-YYYY') tanggal1, ";
+                $query .= "  TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') tanggal2, ";
                 $query .= "  pbo_nopb docno2, ";
                 $query .= "  NULL lt, ";
                 $query .= "  NULL rak, ";
@@ -240,242 +385,134 @@ class DspbRotiController extends Controller
                 $query .= "  COALESCE(prd_ppn, 0) ppn_rate, ";
                 $query .= "  COALESCE(prd_flagbkp1, 'N') BKP, ";
                 $query .= "  COALESCE(prd_flagbkp2,'N') SUB_BKP ";
-                $query .= "FROM tbmaster_pbomi ";
-                $query .= "JOIN TBMASTER_PRODMAST ";
-                $query .= "ON pbo_pluigr = prd_prdcd LIMIT 5";
-                // $query .= "WHERE PBO_TGLPB = TO_DATE('" . $tglPb . "','YYYY-MM-DD')  ";
-                // $query .= "AND pbo_nopb = '" . $noPb . "' ";
-                // $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
-                // $query .= "AND pbo_qtyrealisasi > 0 ";
-                // $query .= "AND pbo_recordid = '4'";
-                // $query .= "AND pbo_nokoli like '06%'";
-                $check = DB::select($query);
+                $query .= "FROM tbmaster_pbomi ,TBTR_IDMKOLI, tbmaster_prodmast ";
+                $query .= "WHERE PBO_QTYREALISASI > 0 ";
+                $query .= "AND pbo_tglpb = TO_DATE(ikl_tglpb, 'YYYYMMdd')  ";
+                $query .= "AND pbo_nopb = ikl_nopb ";
+                $query .= "AND pbo_kodeomi = ikl_kodeidm ";
+                $query .= "AND pbo_nokoli = ikl_nokoli ";
+                $query .= "AND pbo_pluigr = prd_prdcd ";
+                $query .= "AND ikl_registerrealisasi = '" . $noDspb . "'";
+                $query .= "AND pbo_nokoli like '06%'";
+                $dtD = DB::select($query);
 
-                if(count($check)){
-                    // $this->updateDb($noDspb,$tglPb,$kodetoko,$noPb);
-
-                    $fileContent = Excel::raw(new DspbRotiExport($check), \Maatwebsite\Excel\Excel::CSV);
-                    file_put_contents($tempDir . '/zip/' . $nmPb . ".csv", $fileContent);
-
-                    $this->cetakSJP($kodetoko, $noDspb, $noPb, $tglPb);
-
-                    //! CETAK CSV NANTI JADI ZIP
-                    $this->WriteCSV($nmNpb, $check);
+                if(count($dtD) <= 0){
+                    return ApiFormatter::error(400, 'Tidak ada data');
                 }
-            }
 
-            DB::table('tbtr_rekap_dspb_roti')
-                ->insert([
-                    'sp_kodeigr' => session('KODECABANG'),
-                    'dsp_no_rekap' => $noRekap,
-                    'dsp_nodspb' => $noDspb,
-                    'dsp_cluster' => $cbCluster,
-                    'dsp_create_by' => session('userid'),
-                    'dsp_create_dt' => Carbon::now(),
-                ]);
-
-            //! SIMPAN NAMA NPB
-            $this->simpanDSPB($nmNpb . ".ZIP", $kodetoko, $noPb, 0, 0, $noDspb, "R- PBROTI");
-
-            if($kodeDCIDM <> ''){
-                $npbGudang = $kodeDCIDM;
-            }else{
-                $query = "SELECT ws_DC FROM tbmaster_webservice WHERE ws_nama = 'NPB' ";
+                $query = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 ";
                 if($kodeDCIDM <> ''){
                     $query .= "AND ws_dc = '$kodeDCIDM'";
                 }
 
-                $npbGudang = DB::select($query)[0]['ws_url'];
-            }
+                $checkNpbIP = DB::select($query);
 
-            //! dtHeader
-            // dd(DB::select("SELECT * FROM tbmaster_pbomi LIMIT 10"));
-            $query = '';
-            $query .= "SELECT " . $noDspb . " docno,";
-            $query .= "  TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,";
-            $query .= "  pbo_kodeomi toko,";
-            $query .= "  (SELECT 'GI' || prs_kodeigr FROM tbmaster_perusahaan LIMIT 1) gudang, ";
-            $query .= "  COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyrealisasi) qty, ";
-            $query .= "  SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi ";
-            $query .= "FROM tbmaster_pbomi a  ";
-            $query .= "WHERE  A.PBO_TGLPB = '" . $tglPb . "'  ";
-            $query .= "AND pbo_kodeomi = '" . $kodetoko . "' ";
-            $query .= "AND pbo_nokoli like '06%' ";
-            $query .= "AND PBO_QTYREALISASI > 0 ";
-            $query .= "GROUP BY pbo_tglpb, pbo_kodeomi ";
-            $dtH = DB::select($query);
+                if(isset($npbIP)){
 
-            $fileContent = Excel::raw(new DspbRotiExport($dtH), \Maatwebsite\Excel\Excel::CSV);
-            file_put_contents($tempDir . '/zip/' . $nmRpb . ".csv", $fileContent);
+                    $npbIP = $checkNpbIP[0]['ws_url'];
 
-            $zip = new ZipArchive();
-            $zipDirectory = storage_path('temp_dspb/' . basename($tempDir) . '.zip');
-            if ($zip->open($zipDirectory, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-                $files = glob($tempDir . '/zip/*.csv');
-                foreach ($files as $file) {
-                    $zip->addFile($file, basename($file));
-                }
-                
-                $zip->close();
-                File::deleteDirectory($tempDir . '/zip/');
-            } else {
-                File::deleteDirectory($tempDir);
-                return ApiFormatter::error(400, "Gagal Membuat Zip");
-            }
+                    $tglConfirm = null;
+                    $npbRes = null;
+                    $jmlItem = 0;
 
-            //! dtDetail
-            $query = '';
-            $query .= "SELECT '*' recid, ";
-            $query .= "  NULL rtype, ";
-            $query .= "  " . $noDspb . "  docno, ";
-            $query .= "  ROW_NUMBER() OVER() seqno, ";
-            $query .= "  pbo_nopb picno, ";
-            $query .= "  NULL picnot, ";
-            $query .= "  TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') pictgl, ";
-            $query .= "  pbo_pluomi prdcd, ";
-            $query .= "  (SELECT prd_deskripsipendek FROM tbmaster_prodmast WHERE prd_prdcd = pbo_pluigr) nama, ";
-            $query .= "  pbo_kodedivisi div, ";
-            $query .= "  pbo_qtyorder qty, ";
-            $query .= "  pbo_qtyrealisasi sj_qty, ";
-            $query .= "  pbo_hrgsatuan price, ";
-            $query .= "  pbo_ttlnilai gross, ";
-            $query .= "  pbo_ttlppn ppnrp, ";
-            $query .= "  pbo_hrgsatuan hpp, ";
-            $query .= "  pbo_kodeomi toko, ";
-            $query .= "  'R-' keter, ";
-            $query .= "  TO_CHAR(IKL_TGLBPD, 'dd-MM-YYYY') tanggal1, ";
-            $query .= "  TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') tanggal2, ";
-            $query .= "  pbo_nopb docno2, ";
-            $query .= "  NULL lt, ";
-            $query .= "  NULL rak, ";
-            $query .= "  NULL bar, ";
-            $query .= "  (SELECT 'GI' || prs_kodeigr ";
-            $query .= "  FROM tbmaster_perusahaan ";
-            $query .= "  LIMIT 1) kirim, ";
-            $query .= "  lpad(pbo_NOKOLI,12,'0') dus_no, ";
-            $query .= "  NULL TGLEXP, ";
-            $query .= "  COALESCE(prd_ppn, 0) ppn_rate, ";
-            $query .= "  COALESCE(prd_flagbkp1, 'N') BKP, ";
-            $query .= "  COALESCE(prd_flagbkp2,'N') SUB_BKP ";
-            $query .= "FROM tbmaster_pbomi ,TBTR_IDMKOLI, tbmaster_prodmast ";
-            $query .= "WHERE PBO_QTYREALISASI > 0 ";
-            $query .= "AND pbo_tglpb = TO_DATE(ikl_tglpb, 'YYYYMMdd')  ";
-            $query .= "AND pbo_nopb = ikl_nopb ";
-            $query .= "AND pbo_kodeomi = ikl_kodeidm ";
-            $query .= "AND pbo_nokoli = ikl_nokoli ";
-            $query .= "AND pbo_pluigr = prd_prdcd ";
-            $query .= "AND ikl_registerrealisasi = '" . $noDspb . "'";
-            $query .= "AND pbo_nokoli like '06%'";
-            $dtD = DB::select($query);
+                    $okNPB = $this->insertToNPB(carbon::now(), $npbGudang, $nmNpb, $dtH, $dtD);
+                    if($okNPB){
+                        $tglConfirm = $okNPB['tglConfirm'];
+                        $npbRes = $okNPB['npbRes'];
+                        $jmlItem = $okNPB['jmlItem'];
+                    }
 
-            if(count($dtD) <= 0){
-                File::deleteDirectory($tempDir);
-                return ApiFormatter::error(400, 'Tidak ada Data');
-            }
-
-            $query = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'NPB' AND COALESCE(ws_aktif, 0) = 1 ";
-            if($kodeDCIDM <> ''){
-                $query .= "AND ws_dc = '$kodeDCIDM'";
-            }
-
-            $checkNpbIP = DB::select($query);
-
-            if(isset($npbIP)){
-
-                $npbIP = $checkNpbIP[0]['ws_url'];
-
-                $tglConfirm = null;
-                $npbRes = null;
-                $jmlItem = 0;
-
-                $okNPB = $this->insertToNPB(carbon::now(), $npbGudang, $nmNpb, $dtH, $dtD);
-                if($okNPB){
-                    $tglConfirm = $okNPB['tglConfirm'];
-                    $npbRes = $okNPB['npbRes'];
-                    $jmlItem = $okNPB['jmlItem'];
+                    $query = '';
+                    $query .= "INSERT INTO log_npb ( ";
+                    $query .= "   npb_tgl_proses, ";
+                    $query .= "   npb_kodetoko, ";
+                    $query .= "   npb_nopb, ";
+                    $query .= "   npb_tglpb, ";
+                    $query .= "   npb_nodspb, ";
+                    $query .= "   npb_file, ";
+                    $query .= "   npb_jml_item, ";
+                    $query .= "   npb_jenis, ";
+                    $query .= "   npb_url, ";
+                    $query .= "   npb_response, ";
+                    $query .= "   npb_create_web, ";
+                    $query .= "   npb_create_csv, ";
+                    $query .= "   npb_kirim, ";
+                    $query .= "   npb_confirm, ";
+                    $query .= "   npb_jml_retry, ";
+                    $query .= "   npb_create_by,  ";
+                    $query .= "   npb_create_dt ";
+                    $query .= " ) VALUES ( ";
+                    $query .= "   DATE_TRUNC('DAY',CURRENT_DATE ), ";
+                    $query .= "   '" . $kodetoko . "', ";
+                    $query .= "   '" . $noPb . "', ";
+                    $query .= "   TO_DATE('" . $tglPb . "','YYYY-MM-DD'), ";
+                    $query .= "   '" . $noDspb . "', ";
+                    $query .= "   '" . $nmNpb . "', ";
+                    $query .= "   '" . $jmlItem . "', ";
+                    $query .= "   'ROTI', ";
+                    $query .= "   '" . $npbIP . "', ";
+                    $query .= "   '" . $npbRes . "', ";
+                    $query .= "   '" . Carbon::now() . "', ";
+                    $query .= "   '" . Carbon::now() . "', ";
+                    $query .= "   '" . Carbon::now() . "', ";
+                    $query .= "   '" . $tglConfirm . "', ";
+                    $query .= "   0, ";
+                    $query .= "   '" . session('userid') . "', ";
+                    $query .= "   NOW() ";
+                    $query .= " ) ";
                 }
 
-                $query = '';
-                $query .= "INSERT INTO log_npb ( ";
-                $query .= "   npb_tgl_proses, ";
-                $query .= "   npb_kodetoko, ";
-                $query .= "   npb_nopb, ";
-                $query .= "   npb_tglpb, ";
-                $query .= "   npb_nodspb, ";
-                $query .= "   npb_file, ";
-                $query .= "   npb_jml_item, ";
-                $query .= "   npb_jenis, ";
-                $query .= "   npb_url, ";
-                $query .= "   npb_response, ";
-                $query .= "   npb_create_web, ";
-                $query .= "   npb_create_csv, ";
-                $query .= "   npb_kirim, ";
-                $query .= "   npb_confirm, ";
-                $query .= "   npb_jml_retry, ";
-                $query .= "   npb_create_by,  ";
-                $query .= "   npb_create_dt ";
-                $query .= " ) VALUES ( ";
-                $query .= "   DATE_TRUNC('DAY',CURRENT_DATE ), ";
-                $query .= "   '" . $kodetoko . "', ";
-                $query .= "   '" . $noPb . "', ";
-                $query .= "   TO_DATE('" . $tglPb . "','YYYY-MM-DD'), ";
-                $query .= "   '" . $noDspb . "', ";
-                $query .= "   '" . $nmNpb . "', ";
-                $query .= "   '" . $jmlItem . "', ";
-                $query .= "   'ROTI', ";
-                $query .= "   '" . $npbIP . "', ";
-                $query .= "   '" . $npbRes . "', ";
-                $query .= "   '" . Carbon::now() . "', ";
-                $query .= "   '" . Carbon::now() . "', ";
-                $query .= "   '" . Carbon::now() . "', ";
-                $query .= "   '" . $tglConfirm . "', ";
-                $query .= "   0, ";
-                $query .= "   '" . session('userid') . "', ";
-                $query .= "   NOW() ";
-                $query .= " ) ";
+                //! REPORT PDF
+                $check = $this->cetakReportToko($noDspb, $kodetoko, $tempDir);
+                if($check !== true){
+                    return ApiFormatter::error(400, json_decode($check->getContent(), true)["message"]);
+                }
+
+                return true;
+
+                //! REPORT QR CODE
+                //! INI DI SKIP INFO PAK EVAN 17/04/2024
+                // If checkQR.Checked Then
+                //     Create_QRCode(nmNpb, _
+                //                   _toko, _
+                //                   noDspb, _
+                //                   dtD.Rows(0).Item("TANGGAL1").ToString.Replace("-", "/"), _
+                //                   dtD.Rows.Count, _
+                //                   dtD)
+                // End If
             }
-
-            if((int)$qrCode === 1){
-                $this->Create_QRCode($nmNpb, $kodetoko, $noDspb, $dtD["tanggal1"], count($dtD), $dtD);
-            }
-
-            //! REPORT PDF
-            $this->cetakReportToko($noDspb, $kodetoko);
-
-            //! REPORT QR CODE
-            //! INI DI SKIP INFO PAK EVAN 17/04/2024
-            // If checkQR.Checked Then
-            //     Create_QRCode(nmNpb, _
-            //                   _toko, _
-            //                   noDspb, _
-            //                   dtD.Rows(0).Item("TANGGAL1").ToString.Replace("-", "/"), _
-            //                   dtD.Rows.Count, _
-            //                   dtD)
-            // End If
+        } catch(\Exception $e){
+            
+            DB::rollBack();
+            
+            $message = "Oops! Something wrong ( $e )";
+            return ApiFormatter::error(400, $message);
         }
     }
 
-    private function cetakReportToko($noDspb, $kodetoko){
-
+    private function cetakReportToko($noDspb, $kodetoko, $tempDir){
         $query = '';
         $query .= "SELECT DISTINCT HDR_KODETOKO TOKO, HDR_NOPB NOPB, ";
-        $query .= "COUNT(DISTINCT PBO_PLUIGR) JMLITEM,";
+        $query .= "COUNT(DISTINCT PBO_PLUIGR) JMLITEM, ";
         $query .= "CASE UPPER(SUBSTR(REVERSE(SUBSTR(REVERSE(hdr_filepb), 1, POSITION('\' IN REVERSE(hdr_filepb))-1)),1,2)) ";
-        $query .= "WHEN 'CM' THEN 'CAKE' WHEN 'MB' THEN 'MR. BREAD' WHEN 'GM' THEN 'PRIME BREAD' ELSE 'SARI ROTI' END TIPE,";
-        $query .= "count(case when prd_kodedivisi = '5' and prd_kodedepartement = '40' and prd_kodekategoribarang = '04' then null else pbo_pluigr end) as ITEM,";
+        $query .= "WHEN 'CM' THEN 'CAKE' WHEN 'MB' THEN 'MR. BREAD' WHEN 'GM' THEN 'PRIME BREAD' ELSE 'SARI ROTI' END TIPE, ";
+        $query .= "count(case when prd_kodedivisi = '5' and prd_kodedepartement = '40' and prd_kodekategoribarang = '04' then null else pbo_pluigr end) as ITEM, ";
         $query .= "count(case when prd_kodedivisi||prd_kodedepartement||prd_kodekategoribarang = '54004' then pbo_pluigr else null end) as KRAT ";
-        $query .= "FROM TBMASTER_PBOMI, TBTR_HEADER_ROTI, TBMASTER_PRODMAST WHERE PBO_NOKOLI IN (SELECT DISTINCT IKL_NOKOLI FROM TBTR_IDMKOLI ";
-        $query .= "WHERE IKL_REGISTERREALISASI = '" . $noDspb . "' AND IKL_KODEIDM = '" . $kodetoko . "' )";
+        $query .= "FROM TBMASTER_PBOMI, TBTR_HEADER_ROTI, TBMASTER_PRODMAST ";
+        $query .= "WHERE PBO_NOKOLI IN (SELECT DISTINCT IKL_NOKOLI FROM TBTR_IDMKOLI ";
+        $query .= "WHERE IKL_REGISTERREALISASI = '" . $noDspb . "' AND IKL_KODEIDM = '" . $kodetoko . "' ) ";
         $query .= "AND pbo_pluigr = prd_prdcd ";
-        $query .= "and pbo_nokoli is not null";
-        $query .= "AND PBO_NOPB = HDR_NOPB";
-        $query .= "AND PBO_KODEOMI = HDR_KODETOKO";
-        $query .= "AND DATE_TRUNC('DAY',PBO_TGLPB) = DATE_TRUNC('DAY',HDR_TGLPB)";
+        $query .= "AND pbo_nokoli IS NOT NULL ";
+        $query .= "AND PBO_NOPB = HDR_NOPB ";
+        $query .= "AND PBO_KODEOMI = HDR_KODETOKO ";
+        $query .= "AND DATE_TRUNC('DAY',PBO_TGLPB) = DATE_TRUNC('DAY',HDR_TGLPB) ";
         $query .= "AND HDR_KODETOKO = '" . $kodetoko . "' ";
         $query .= "GROUP BY HDR_KODETOKO, HDR_NOPB, HDR_FILEPB";
+
         $data['data'] = DB::select($query);
 
         if(!count($data['data'])){
+            File::deleteDirectory($tempDir);
             throw new HttpResponseException(ApiFormatter::error(400, 'Tidak ada data report toko ' . $kodetoko));
         }
 
@@ -492,6 +529,11 @@ class DspbRotiController extends Controller
         $query .= "AND IKL_NOKOLI like '06%'  ";
         $query .= "LIMIT 1 ";
         $data['header'] = DB::select($query);
+
+        //! NAMA CABANG
+        $data['namaCabang'] = DB::table('tbmaster_perusahaan')
+            ->select('prs_namacabang')
+            ->first()->prs_namacabang;
 
         //! TOKO
         $data['toko'] = DB::table('tbmaster_tokoigr')
@@ -514,6 +556,11 @@ class DspbRotiController extends Controller
             ->where([
                 'cls_toko' => $kodetoko,
             ])->first();
+
+        $pdf = PDF::loadView('pdf.dspb-daftar-struk', $data);
+        $pdfContent = $pdf->output();
+        file_put_contents($tempDir . '/' . basename($tempDir) . ".pdf", $pdfContent);
+        return true;
 
         //! report view -> rptDSPBRoti
     }
@@ -586,8 +633,9 @@ class DspbRotiController extends Controller
 
     }
 
-    private function writeCSV($nmNpb, $check){
-        
+    private function writeCSV($tempDir, $nameFile, $check){
+        $fileContent = Excel::raw(new DspbRotiExport($check), \Maatwebsite\Excel\Excel::CSV);
+        file_put_contents($tempDir . '/zip/' . $nameFile . ".csv", $fileContent);
     }
 
     private function updateDb($noDspb,$tglPb,$kodetoko,$noPb){

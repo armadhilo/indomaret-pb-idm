@@ -54,6 +54,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
         Route::group(['prefix' => 'action'], function(){
             Route::post('/cetak-dspb', [DspbRotiController::class, 'actionCetakDspb']);
+            Route::get('/get-zip/{temp}', [DspbRotiController::class, 'getZipFile']);
         });
     });
 
