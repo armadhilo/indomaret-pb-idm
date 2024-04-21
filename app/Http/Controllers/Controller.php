@@ -93,13 +93,13 @@ class Controller extends BaseController
             $query .= "  SATUAN    Varchar(8), ";
             $query .= "  FMKSBU    Varchar(1), ";
             $query .= "  FMKCAB    Varchar(4), ";
-            $query .= "  ""desc""  Varchar(20), ";
+            $query .= "  DESC  Varchar(20), ";
             $query .= "  DESC2     Varchar(75), ";
             $query .= "  QTYO      NUMERIC(7), ";
             $query .= "  STOK      NUMERIC(12), ";
             $query .= "  QTYR      NUMERIC(7), ";
             $query .= "  FMSTS     Varchar(1), ";
-            $query .= "  ""time""  Varchar(8), ";
+            $query .= "  TIME  Varchar(8), ";
             $query .= "  REQ_ID    Varchar(30) ";
             $query .= ") ";
             DB::insert($query);
@@ -128,13 +128,13 @@ class Controller extends BaseController
             $query .= "  SATUAN    VARCHAR(8), ";
             $query .= "  FMKSBU    VARCHAR(1), ";
             $query .= "  FMKCAB    VARCHAR(4), ";
-            $query .= "  ""DESC""  VARCHAR(20), ";
+            $query .= "  DESC  VARCHAR(20), ";
             $query .= "  DESC2     VARCHAR(75), ";
             $query .= "  QTYO      NUMERIC(7), ";
             $query .= "  STOK      NUMERIC(12), ";
             $query .= "  QTYR      NUMERIC(7), ";
             $query .= "  FMSTS     VARCHAR(1), ";
-            $query .= "  ""TIME""  VARCHAR(8), ";
+            $query .= "  TIME  VARCHAR(8), ";
             $query .= "  REQ_ID    VARCHAR(30) ";
             $query .= ") ";
             DB::insert($query);
@@ -163,7 +163,7 @@ class Controller extends BaseController
             $query .= "  SATUAN    VARCHAR(8), ";
             $query .= "  FMKSBU    VARCHAR(1), ";
             $query .= "  FMKCAB    VARCHAR(4), ";
-            $query .= "  ""DESC""  VARCHAR(20), ";
+            $query .= "  DESC  VARCHAR(20), ";
             $query .= "  DESC2     VARCHAR(75), ";
             $query .= "  QTYO      NUMERIC(7), ";
             $query .= "  STOK      NUMERIC(12), ";
@@ -197,7 +197,7 @@ class Controller extends BaseController
             $query .= "  SATUAN       VARCHAR(8), ";
             $query .= "  FMKSBU       VARCHAR(1), ";
             $query .= "  FMKCAB       VARCHAR(4), ";
-            $query .= "  ""DESC""     VARCHAR(20), ";
+            $query .= "  DESC     VARCHAR(20), ";
             $query .= "  DESC2        VARCHAR(75), ";
             $query .= "  QTYO         NUMERIC(7), ";
             $query .= "  STOK         NUMERIC(12), ";
@@ -244,7 +244,7 @@ class Controller extends BaseController
             $query .= "  SATUAN       VARCHAR(8), ";
             $query .= "  FMKSBU       VARCHAR(1), ";
             $query .= "  FMKCAB       VARCHAR(4), ";
-            $query .= "  ""DESC""     VARCHAR(20), ";
+            $query .= "  DESC     VARCHAR(20), ";
             $query .= "  DESC2        VARCHAR(75), ";
             $query .= "  QTYO         NUMERIC(7), ";
             $query .= "  STOK         NUMERIC(12), ";
@@ -289,7 +289,7 @@ class Controller extends BaseController
             $query .= "  SATUAN       VARCHAR(8), ";
             $query .= "  FMKSBU       VARCHAR(1), ";
             $query .= "  FMKCAB       VARCHAR(4), ";
-            $query .= "  ""DESC""     VARCHAR(20), ";
+            $query .= "  DESC     VARCHAR(20), ";
             $query .= "  DESC2        VARCHAR(75), ";
             $query .= "  QTYO         NUMERIC(7), ";
             $query .= "  STOK         NUMERIC(12), ";
@@ -336,7 +336,7 @@ class Controller extends BaseController
             $query .= "  SATUAN       VARCHAR(8), ";
             $query .= "  FMKSBU       VARCHAR(1), ";
             $query .= "  FMKCAB       VARCHAR(4), ";
-            $query .= "  ""DESC""     VARCHAR(20), ";
+            $query .= "  DESC     VARCHAR(20), ";
             $query .= "  DESC2        VARCHAR(75), ";
             $query .= "  QTYO         NUMERIC(7), ";
             $query .= "  STOK         NUMERIC(12), ";
