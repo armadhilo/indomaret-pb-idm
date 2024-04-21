@@ -513,7 +513,7 @@ class DspbRotiController extends Controller
 
         if(!count($data['data'])){
             File::deleteDirectory($tempDir);
-            throw new HttpResponseException(ApiFormatter::error(400, 'Tidak ada data report toko ' . $kodetoko));
+            return ApiFormatter::error(400, 'Tidak ada data report toko ' . $kodetoko);
         }
 
         //! HEADER
