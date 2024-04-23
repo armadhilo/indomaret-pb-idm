@@ -38,6 +38,11 @@
             <i class="fas fa-fw fa-tachometer-alt"></i>
             <span>RTT IDM</span></a>
     </li>
+    <li class="nav-item @if($sub_url == 'klik-igr') active @endif">
+        <a class="nav-link" href="{{ url('/klik-igr') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>Klik IGR</span></a>
+    </li>
     <li class="nav-item @if($sub_url == 'dspb-roti') active @endif">
         <a class="nav-link" href="{{ url('/dspb-roti') }}">
             <i class="fas fa-fw fa-tachometer-alt"></i>

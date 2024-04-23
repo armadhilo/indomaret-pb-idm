@@ -21,93 +21,93 @@ class KlikIgrController extends Controller
 
     public function index(){
 
-        $this->createTableIPP_ONL();
-        $this->getKonversiItemPerishable(true);
+        // $this->createTableIPP_ONL();
+        // $this->getKonversiItemPerishable(true);
 
-        if(session('flagSPI')){
-            $this->createTablePSP_SPI();
-            $this->addColHitungUlang_SPI();
-            $this->alterDPDNOIDCTN();
+        // if(session('flagSPI')){
+        //     $this->createTablePSP_SPI();
+        //     $this->addColHitungUlang_SPI();
+        //     $this->alterDPDNOIDCTN();
 
-            $cbAutoSendHH = false;
-        }else{
-            $this->createLogUpdateRealisasiKlik();
-            $this->alterTablePickingRakToko();
+        //     $cbAutoSendHH = false;
+        // }else{
+        //     $this->createLogUpdateRealisasiKlik();
+        //     $this->alterTablePickingRakToko();
 
-            $cbAutoSendHH = true;
-        }
+        //     $cbAutoSendHH = true;
+        // }
 
-        //! Picking Rak Toko hanya IGRBDG
-        $cbPickRakToko = false;
-        if(session('KODECABANG') == '04'){
-            $cbPickRakToko = true;
-        }
+        // //! Picking Rak Toko hanya IGRBDG
+        // $cbPickRakToko = false;
+        // if(session('KODECABANG') == '04'){
+        //     $cbPickRakToko = true;
+        // }
 
-        $this->createAlasanBatalKlik();
-        $this->alterTableSendHHotomatis();
-        $this->alterTableCODVA();
-        $this->alterTableCODPOIN();
-        $this->alterTBTR_TRANSAKSI_VA();
+        // $this->createAlasanBatalKlik();
+        // $this->alterTableSendHHotomatis();
+        // $this->alterTableCODVA();
+        // $this->alterTableCODPOIN();
+        // $this->alterTBTR_TRANSAKSI_VA();
 
-        if(session('flagSPI')){
-            $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_SPI')->first();
-        }else{
-            $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_KLIK')->first();
-        }
+        // if(session('flagSPI')){
+        //     $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_SPI')->first();
+        // }else{
+        //     $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_KLIK')->first();
+        // }
 
-        if(!empty($dtUrl)){
-            $urlUpdateStatusKlik = $dtUrl->ws_url . '/updatestatustrx';
-            $urlUpdateRealisasiKlik = $dtUrl->ws_url . '/updtqtyrealisasi';
-        }
+        // if(!empty($dtUrl)){
+        //     $urlUpdateStatusKlik = $dtUrl->ws_url . '/updatestatustrx';
+        //     $urlUpdateRealisasiKlik = $dtUrl->ws_url . '/updtqtyrealisasi';
+        // }
 
-        if(session('flagSPI')){
-            if (str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
-                $statusGroupBox = "SPI";
-                $statusSiapPicking = "Siap Send HH";
-                $statusSiapPacking = "Siap Packing";
-                $btnSendJalur = "Send Handheld";
-            }elseif(str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D')){
-                $statusGroupBox = "SPI";
-                $statusSiapPicking = "Siap Send DPD";
-                $statusSiapPacking = "Siap Scanning";
-                $btnSendJalur = "Send DPD";
-            }else{
-                $statusGroupBox = "SPI";
-                $statusSiapPicking = "Siap Send Jalur";
-                $statusSiapPacking = "Siap Scanning";
-                $btnSendJalur = "Send Jalur";
+        // if(session('flagSPI')){
+        //     if (str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
+        //         $statusGroupBox = "SPI";
+        //         $statusSiapPicking = "Siap Send HH";
+        //         $statusSiapPacking = "Siap Packing";
+        //         $btnSendJalur = "Send Handheld";
+        //     }elseif(str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D')){
+        //         $statusGroupBox = "SPI";
+        //         $statusSiapPicking = "Siap Send DPD";
+        //         $statusSiapPacking = "Siap Scanning";
+        //         $btnSendJalur = "Send DPD";
+        //     }else{
+        //         $statusGroupBox = "SPI";
+        //         $statusSiapPicking = "Siap Send Jalur";
+        //         $statusSiapPacking = "Siap Scanning";
+        //         $btnSendJalur = "Send Jalur";
 
-                $btnCetakIIK = false;
-                $btnPBBatal = 'List PB dan Item Batal';
-            }
-        }else{
-            $statusGroupBox = "KLIK IGR";
-            $statusSiapPicking = "Siap Send HH";
-            $statusSiapPacking = "Siap packing";
-            $btnSendJalur = "Send Handheld";
+        //         $btnCetakIIK = false;
+        //         $btnPBBatal = 'List PB dan Item Batal';
+        //     }
+        // }else{
+        //     $statusGroupBox = "KLIK IGR";
+        //     $statusSiapPicking = "Siap Send HH";
+        //     $statusSiapPacking = "Siap packing";
+        //     $btnSendJalur = "Send Handheld";
 
-            $btnPBBatal = 'List Item PB Batal';
-        }
+        //     $btnPBBatal = 'List Item PB Batal';
+        // }
 
-        $this->bersihBersihIntransit();
+        // $this->bersihBersihIntransit();
 
-        $FlagProcess = False;
-        $FlagSendHH = False;
-        $alamatOK = False;
-        $memberOK = False;
-        $btnKonfirmasiBayar = False;
-        $dgv_notrans = false;
+        // $FlagProcess = False;
+        // $FlagSendHH = False;
+        // $alamatOK = False;
+        // $memberOK = False;
+        // $btnKonfirmasiBayar = False;
+        // $dgv_notrans = false;
 
-        $this->updateDataVoid();
-        $this->listObi_H();
+        // $this->updateDataVoid();
+        // $this->listObi_H();
 
-        if(session('flagSPI')){
-            $this->cekPBAkanBatal();
-        }
+        // if(session('flagSPI')){
+        //     $this->cekPBAkanBatal();
+        // }
 
-        $this->cekItemBatal(True);
+        // $this->cekItemBatal(True);
 
-        return view('menu.monitoring-web-service');
+        return view('menu.klik-igr');
     }
 
     //* function listObi_H

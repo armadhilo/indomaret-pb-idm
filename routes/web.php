@@ -6,6 +6,7 @@ use App\Http\Controllers\MonitoringWebServiceController;
 use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\DspbRotiController;
 use App\Http\Controllers\HistoryProdukController;
+use App\Http\Controllers\KlikIgrController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,6 +45,14 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post('/upload-excel', [ReturTokoTutupIdmController::class, 'actionUpload']);
             Route::get('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
             Route::post('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
+        });
+    });
+    
+    Route::group(['prefix' => 'klik-igr'], function(){
+        Route::get('/', [KlikIgrController::class, 'index']);
+        Route::get('/datatables', [KlikIgrController::class, 'datatables']);
+
+        Route::group(['prefix' => 'action'], function(){
         });
     });
 
