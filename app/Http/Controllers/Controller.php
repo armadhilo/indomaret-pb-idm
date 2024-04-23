@@ -29,8 +29,48 @@ class Controller extends BaseController
 
     }
 
+    public function logUpdateStatus($notrans, $tgltrans, $nopb, $statusBaru, $statusKlik){
+        if (str_contains($nopb, 'TMI')) {
+            return;
+        }
+
+        $noTrx = explode('/', $nopb)[0];
+
+        $flag = '1';
+        //! INI AGAK MEMBINGUNGKAN
+        // If respKlik("response_code").ToString <> "200" Then
+        //     flag = "0"
+        // Else
+
+        sb.AppendLine("INSERT INTO log_obi_status ( ")
+        sb.AppendLine("  notrans, ")
+        sb.AppendLine("  tgltrans, ")
+        sb.AppendLine("  nopb, ")
+        sb.AppendLine("  notrx_klik, ")
+        sb.AppendLine("  status_baru, ")
+        sb.AppendLine("  flag, ")
+        sb.AppendLine("  url, ")
+        sb.AppendLine("  status_klik, ")
+        sb.AppendLine("  response, ")
+        sb.AppendLine("  create_by, ")
+        sb.AppendLine("  create_dt ")
+        sb.AppendLine(") VALUES ( ")
+        sb.AppendLine("  '" & notrans & "', ")
+        sb.AppendLine("  TO_DATE('" & tgltrans & "','DD-MM-YYYY'), ")
+        sb.AppendLine("  '" & nopb & "', ")
+        sb.AppendLine("  '" & notrx & "', ")
+        sb.AppendLine("  '" & statusBaru & "', ")
+        sb.AppendLine("  '" & flag & "', ")
+        sb.AppendLine("  '" & urlUpdateStatusKlik & "', ")
+        sb.AppendLine("  '" & statusKlik & "', ")
+        sb.AppendLine("  '" & respKlik.ToString & "', ")
+        sb.AppendLine("  '" & UserMODUL & "', ")
+        sb.AppendLine("  NOW() ")
+        sb.AppendLine(") ")
+    }
+
     //! SPI - DIPAKE DI KLIK IGR
-    private function createTablePSP_SPI(){
+    public function createTablePSP_SPI(){
 
         //! CEK SEQUENCE SEQ_PICKING_SPI
         $count = DB::table('information_schema.sequences')
@@ -795,7 +835,7 @@ class Controller extends BaseController
         }
     }
 
-    private function addColHitungUlang_SPI(){
+    public function addColHitungUlang_SPI(){
 
         //! ADD COLUMN TBTR_OBI_D - OBI_QTY_HITUNGULANG
         $count = DB::table('information_schema.columns')
@@ -855,6 +895,1242 @@ class Controller extends BaseController
 
         if($count == 0){
             DB::select("ALTER TABLE TBTR_OBI_D ADD COLUMN OBI_QTYBA NUMERIC");
+        }
+    }
+
+    public function sendJalur_SPI($kodeMember, $noPB, $noTrans, $tglTrans){
+
+        $KodeToko = 'SPI0';
+        $PSP_NoPB = explode("/", $noPB)[0];
+        $PSP_TglPB = $tglTrans;
+        $FMKSBU = '5';
+        $PSP_GATE = 'GT00';
+
+        //! TAMBAHAN CEGATAN SUDAH PERNAH SEND JALUR
+        $query = '';
+        $query .= " SELECT DISTINCT nopicking, nosuratjalan  ";
+        $query .= " FROM dpd_idm_ora ";
+        $query .= " WHERE fmndoc = '" . $PSP_NoPB . "' ";
+        $query .= " AND fmkcab = 'SPI0' ";
+        $query .= " AND tglpb = TO_CHAR(TO_DATE('" . $PSP_TglPB . "','DD-MM-YYYY'), 'YYYYMMDD') ";
+        $dtCek = DB::select($query);
+
+        if(count($dtCek)){
+            throw new HttpResponseException(ApiFormatter::error(400, "Sudah pernah send jalur noPick
+            noPick " . $dtCek[0]->nopicking . " | noSJ " . $dtCek[0]->nosuratjalan));
+        }
+
+        if($this->konversi_SPI($noTrans, $tglTrans) == false){
+            return;
+        }
+
+        // ExecScalar("select nextval('SEQ_PICKING_SPI')", "GET NO PICK", PSP_NoPick)
+        // PSP_NoSJ = PSP_NoPick
+
+        // noPick = PSP_NoPick
+        // noSJ = PSP_NoSJ
+
+        // ExecScalar("SELECT TO_CHAR(current_timestamp, 'YYYYMMDD;HH24:MI:SS;') FROM DUAL", "GET NO PICK", PSP_TglPick)
+
+        //! DELETE TEMP_DPD_IDM
+        DB::table('temp_dpd_idm')->where('req_id', $this->getIP());
+
+        //! DELETE DPD_IDM_NOBARCODE
+        DB::table('dpd_idm_nobarcode')->where('req_id', $this->getIP());
+
+        //! DELETE TEMP_HHELD_IDM
+        DB::table('temp_hheld_idm')->where('req_id', $this->getIP());
+
+        //! INSERT INTO TEMP_DPD_IDM - BULKY
+        sb.AppendLine("INSERT INTO TEMP_DPD_IDM ( ")
+        sb.AppendLine("  FMNDOC, ")
+        sb.AppendLine("  FMNBTC, ")
+        sb.AppendLine("  TRNRAK, ")
+        sb.AppendLine("  FMNTRN, ")
+        sb.AppendLine("  PRDCD, ")
+        sb.AppendLine("  BARC, ")
+        sb.AppendLine("  BAR2, ")
+        sb.AppendLine("  BARK, ")
+        sb.AppendLine("  GRAK, ")
+        sb.AppendLine("  NOUR, ")
+        sb.AppendLine("  KODERAK, ")
+        sb.AppendLine("  NOID, ")
+        sb.AppendLine("  SATUAN, ")
+        sb.AppendLine("  FMKSBU, ")
+        sb.AppendLine("  FMKCAB, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  DESC2, ")
+        sb.AppendLine("  QTYO, ")
+        sb.AppendLine("  STOK, ")
+        sb.AppendLine("  QTYR, ")
+        sb.AppendLine("  FMSTS, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  REQ_ID ")
+        sb.AppendLine(") ")
+        sb.AppendLine("SELECT ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  MIN(brc_barcode) AS barc, ")
+        sb.AppendLine("  CASE WHEN MIN(brc_barcode) = MAX(brc_barcode) ")
+        sb.AppendLine("    THEN NULL ")
+        sb.AppendLine("    ELSE MAX(brc_barcode) ")
+        sb.AppendLine("  END AS bar2, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr, ")
+        sb.AppendLine("  fmsts, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  '" & IP & "' ")
+        sb.AppendLine("FROM ( ")
+        sb.AppendLine("  SELECT ")
+        sb.AppendLine("    '" & PSP_NoPB & "' AS fmndoc, ")
+        sb.AppendLine("    NULL AS fmnbtc, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD('" & PSP_NoPB & "', 9, ' ') ")
+        sb.AppendLine("      || SUBSTR(GRR_GROUPRAK, 1, 5) ")
+        sb.AppendLine("      || LPAD(grr_nourut::text, 2, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeRak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeSubRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_TipeRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_ShelvingRak, 2, ' ') ")
+        sb.AppendLine("      || obi_prdcd, ")
+        sb.AppendLine("      1, 36 ")
+        sb.AppendLine("    ) AS trnrak, ")
+        sb.AppendLine("    NULL AS fmntrn, ")
+        sb.AppendLine("    obi_prdcd AS prdcd, ")
+        sb.AppendLine("    NULL AS bark, ")
+        sb.AppendLine("    grr_grouprak AS grak, ")
+        sb.AppendLine("    grr_nourut AS nour, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD(lks_koderak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(lks_kodesubrak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(lks_tiperak, 3, ' ')  ")
+        sb.AppendLine("      || RPAD(lks_shelvingrak, 2, ' ') ")
+        sb.AppendLine("      || LPAD( ")
+        sb.AppendLine("           CASE WHEN SUBSTR(lks_koderak, 1, 1) = 'D' ")
+        sb.AppendLine("             THEN '0' ")
+        sb.AppendLine("             ELSE lks_nourut::text ")
+        sb.AppendLine("           END, 3, ' ' ")
+        sb.AppendLine("         ),  ")
+        sb.AppendLine("      1, 18 ")
+        sb.AppendLine("    ) AS koderak, ")
+        sb.AppendLine("    lks_noid AS noid, ")
+        sb.AppendLine("    prd_unit||'/'||prd_frac AS satuan, ")
+        sb.AppendLine("    '" & FMKSBU & "' AS fmksbu, ")
+        sb.AppendLine("    '" & KodeToko & "' AS fmkcab, ")
+        sb.AppendLine("    prd_deskripsipendek AS ""desc"", ")
+        sb.AppendLine("    prd_deskripsipanjang AS desc2, ")
+        sb.AppendLine("    d.obi_qtyorder/prd_frac AS qtyo, ")
+        sb.AppendLine("    st_saldoakhir AS stok, ")
+        sb.AppendLine("    d.obi_qtyrealisasi/prd_frac AS qtyr, ")
+        sb.AppendLine("    NULL AS fmsts, ")
+        sb.AppendLine("    NULL AS ""time"" ")
+        sb.AppendLine("  FROM tbtr_obi_h h ")
+        sb.AppendLine("  JOIN tbtr_obi_d d ")
+        sb.AppendLine("       ON h.obi_tgltrans = d.obi_tgltrans ")
+        sb.AppendLine("       AND h.obi_notrans = d.obi_notrans ")
+        sb.AppendLine("  JOIN tbmaster_prodmast  ")
+        sb.AppendLine("       ON prd_prdcd = d.obi_prdcd ")
+        sb.AppendLine("  JOIN tbmaster_lokasi  ")
+        sb.AppendLine("       ON lks_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  JOIN tbmaster_grouprak ")
+        sb.AppendLine("       ON grr_koderak = lks_koderak ")
+        sb.AppendLine("       AND grr_subrak = lks_kodesubrak ")
+        sb.AppendLine("  JOIN tbmaster_stock ")
+        sb.AppendLine("       ON st_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  WHERE h.obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+        sb.AppendLine("  AND h.obi_notrans = '" & noTrans & "' ")
+        sb.AppendLine("  AND h.obi_nopb = '" & noPB & "' ")
+        sb.AppendLine("  AND MOD(d.obi_qtyorder, prd_frac) = 0 ")
+        sb.AppendLine("  AND d.obi_recid IS NULL ")
+        sb.AppendLine("  AND st_lokasi = '01' ")
+        sb.AppendLine("  AND lks_noid LIKE '%B' ")
+        sb.AppendLine("  AND lks_tiperak NOT LIKE 'S%' ")
+        sb.AppendLine("  AND COALESCE(grr_flagcetakan,'X') <> 'Y' ")
+        sb.AppendLine("  AND grr_grouprak NOT LIKE 'H%' ")
+        sb.AppendLine(") A  ")
+        sb.AppendLine("LEFT JOIN tbmaster_barcode ")
+        sb.AppendLine("ON brc_prdcd = prdcd ")
+        sb.AppendLine("GROUP BY ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr, ")
+        sb.AppendLine("  fmsts, ")
+        sb.AppendLine("  ""time"" ")
+        sb.AppendLine("ORDER BY koderak, nour ")
+
+        //! INSERT INTO DPD_IDM_NOBARCODE - BULKY
+        sb.AppendLine("INSERT INTO DPD_IDM_NOBARCODE ( ")
+        sb.AppendLine("  FMNDOC, ")
+        sb.AppendLine("  FMNBTC, ")
+        sb.AppendLine("  TRNRAK, ")
+        sb.AppendLine("  FMNTRN, ")
+        sb.AppendLine("  PRDCD, ")
+        sb.AppendLine("  BARC, ")
+        sb.AppendLine("  BAR2, ")
+        sb.AppendLine("  BARK, ")
+        sb.AppendLine("  GRAK, ")
+        sb.AppendLine("  NOUR, ")
+        sb.AppendLine("  KODERAK, ")
+        sb.AppendLine("  NOID, ")
+        sb.AppendLine("  SATUAN, ")
+        sb.AppendLine("  FMKSBU, ")
+        sb.AppendLine("  FMKCAB, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  DESC2, ")
+        sb.AppendLine("  QTYO, ")
+        sb.AppendLine("  STOK, ")
+        sb.AppendLine("  QTYR, ")
+        sb.AppendLine("  FMSTS, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  REQ_ID ")
+        sb.AppendLine(") ")
+        sb.AppendLine("SELECT ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  '' AS barc, ")
+        sb.AppendLine("  '' AS bar2, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr, ")
+        sb.AppendLine("  fmsts, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  '" & IP & "' ")
+        sb.AppendLine("FROM ( ")
+        sb.AppendLine("  SELECT ")
+        sb.AppendLine("    '" & PSP_NoPB & "' AS fmndoc, ")
+        sb.AppendLine("    NULL AS fmnbtc, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD('" & PSP_NoPB & "', 9, ' ') ")
+        sb.AppendLine("      || SUBSTR(GRR_GROUPRAK, 1, 5) ")
+        sb.AppendLine("      || LPAD(grr_nourut::text, 2, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeRak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeSubRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_TipeRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_ShelvingRak, 2, ' ') ")
+        sb.AppendLine("      || obi_prdcd, ")
+        sb.AppendLine("      1, 36 ")
+        sb.AppendLine("    ) AS trnrak, ")
+        sb.AppendLine("    NULL AS fmntrn, ")
+        sb.AppendLine("    obi_prdcd AS prdcd, ")
+        sb.AppendLine("    NULL AS bark, ")
+        sb.AppendLine("    grr_grouprak AS grak, ")
+        sb.AppendLine("    grr_nourut AS nour, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD(lks_koderak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(lks_kodesubrak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(lks_tiperak, 3, ' ')  ")
+        sb.AppendLine("      || RPAD(lks_shelvingrak, 2, ' ') ")
+        sb.AppendLine("      || LPAD( ")
+        sb.AppendLine("           CASE WHEN SUBSTR(lks_koderak, 1, 1) = 'D' ")
+        sb.AppendLine("             THEN '0' ")
+        sb.AppendLine("             ELSE lks_nourut::text ")
+        sb.AppendLine("           END, 3, ' ' ")
+        sb.AppendLine("         ),  ")
+        sb.AppendLine("      1, 18 ")
+        sb.AppendLine("    ) AS koderak, ")
+        sb.AppendLine("    lks_noid AS noid, ")
+        sb.AppendLine("    prd_unit||'/'||prd_frac AS satuan, ")
+        sb.AppendLine("    '" & FMKSBU & "' AS fmksbu, ")
+        sb.AppendLine("    '" & KodeToko & "' AS fmkcab, ")
+        sb.AppendLine("    prd_deskripsipendek AS ""desc"", ")
+        sb.AppendLine("    prd_deskripsipanjang AS desc2, ")
+        sb.AppendLine("    d.obi_qtyorder/prd_frac AS qtyo, ")
+        sb.AppendLine("    st_saldoakhir AS stok, ")
+        sb.AppendLine("    d.obi_qtyrealisasi/prd_frac AS qtyr, ")
+        sb.AppendLine("    NULL AS fmsts, ")
+        sb.AppendLine("    NULL AS ""time"" ")
+        sb.AppendLine("  FROM tbtr_obi_h h ")
+        sb.AppendLine("  JOIN tbtr_obi_d d ")
+        sb.AppendLine("       ON h.obi_tgltrans = d.obi_tgltrans ")
+        sb.AppendLine("       AND h.obi_notrans = d.obi_notrans ")
+        sb.AppendLine("  JOIN tbmaster_prodmast  ")
+        sb.AppendLine("       ON prd_prdcd = d.obi_prdcd ")
+        sb.AppendLine("  JOIN tbmaster_lokasi  ")
+        sb.AppendLine("       ON lks_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  JOIN tbmaster_grouprak ")
+        sb.AppendLine("       ON grr_koderak = lks_koderak ")
+        sb.AppendLine("       AND grr_subrak = lks_kodesubrak ")
+        sb.AppendLine("  JOIN tbmaster_stock ")
+        sb.AppendLine("       ON st_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  WHERE h.obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+        sb.AppendLine("  AND h.obi_notrans = '" & noTrans & "' ")
+        sb.AppendLine("  AND h.obi_nopb = '" & noPB & "' ")
+        sb.AppendLine("  AND MOD(d.obi_qtyorder, prd_frac) = 0 ")
+        sb.AppendLine("  AND d.obi_recid IS NULL ")
+        sb.AppendLine("  AND st_lokasi = '01' ")
+        sb.AppendLine("  AND lks_noid LIKE '%B' ")
+        sb.AppendLine("  AND lks_tiperak NOT LIKE 'S%' ")
+        sb.AppendLine("  AND COALESCE(grr_flagcetakan,'X') <> 'Y' ")
+        sb.AppendLine("  AND grr_grouprak NOT LIKE 'H%' ")
+        sb.AppendLine(") A  ")
+        sb.AppendLine("WHERE NOT EXISTS ( ")
+        sb.AppendLine("  SELECT brc_barcode ")
+        sb.AppendLine("  FROM tbmaster_barcode ")
+        sb.AppendLine("  WHERE brc_prdcd = prdcd ")
+        sb.AppendLine(") ")
+        sb.AppendLine("ORDER BY koderak, nour ")
+
+        //! INSERT INTO TEMP_DPD_IDM - PIECES
+        sb.AppendLine("INSERT INTO TEMP_DPD_IDM ( ")
+        sb.AppendLine("  FMNDOC, ")
+        sb.AppendLine("  FMNBTC, ")
+        sb.AppendLine("  TRNRAK, ")
+        sb.AppendLine("  FMNTRN, ")
+        sb.AppendLine("  PRDCD, ")
+        sb.AppendLine("  BARC, ")
+        sb.AppendLine("  BAR2, ")
+        sb.AppendLine("  BARK, ")
+        sb.AppendLine("  GRAK, ")
+        sb.AppendLine("  NOUR, ")
+        sb.AppendLine("  KODERAK, ")
+        sb.AppendLine("  NOID, ")
+        sb.AppendLine("  SATUAN, ")
+        sb.AppendLine("  FMKSBU, ")
+        sb.AppendLine("  FMKCAB, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  DESC2, ")
+        sb.AppendLine("  QTYO, ")
+        sb.AppendLine("  STOK, ")
+        sb.AppendLine("  QTYR, ")
+        sb.AppendLine("  FMSTS, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  REQ_ID ")
+        sb.AppendLine(") ")
+        sb.AppendLine("SELECT ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  MIN(brc_barcode) AS barc, ")
+        sb.AppendLine("  CASE WHEN MIN(brc_barcode) = MAX(brc_barcode) ")
+        sb.AppendLine("    THEN NULL ")
+        sb.AppendLine("    ELSE MAX(brc_barcode) ")
+        sb.AppendLine("  END AS bar2, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr, ")
+        sb.AppendLine("  fmsts, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  '" & IP & "' ")
+        sb.AppendLine("FROM ( ")
+        sb.AppendLine("  SELECT ")
+        sb.AppendLine("    '" & PSP_NoPB & "' AS fmndoc, ")
+        sb.AppendLine("    NULL AS fmnbtc, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD('" & PSP_NoPB & "', 9, ' ') ")
+        sb.AppendLine("      || SUBSTR(GRR_GROUPRAK, 1, 5) ")
+        sb.AppendLine("      || LPAD(grr_nourut::text, 2, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeRak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeSubRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_TipeRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_ShelvingRak, 2, ' ') ")
+        sb.AppendLine("      || obi_prdcd, ")
+        sb.AppendLine("      1, 36 ")
+        sb.AppendLine("    ) AS trnrak, ")
+        sb.AppendLine("    NULL AS fmntrn, ")
+        sb.AppendLine("    obi_prdcd AS prdcd, ")
+        sb.AppendLine("    NULL AS bark, ")
+        sb.AppendLine("    grr_grouprak AS grak, ")
+        sb.AppendLine("    grr_nourut AS nour, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD(lks_koderak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(lks_kodesubrak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(lks_tiperak, 3, ' ')  ")
+        sb.AppendLine("      || RPAD(lks_shelvingrak, 2, ' ') ")
+        sb.AppendLine("      || LPAD( ")
+        sb.AppendLine("           CASE WHEN SUBSTR(lks_koderak, 1, 1) = 'D' ")
+        sb.AppendLine("             THEN '0' ")
+        sb.AppendLine("             ELSE lks_nourut::text ")
+        sb.AppendLine("           END, 3, ' ' ")
+        sb.AppendLine("         ),  ")
+        sb.AppendLine("      1, 18 ")
+        sb.AppendLine("    ) AS koderak, ")
+        sb.AppendLine("    lks_noid AS noid, ")
+        sb.AppendLine("    prd_unit||'/'||prd_frac AS satuan, ")
+        sb.AppendLine("    '" & FMKSBU & "' AS fmksbu, ")
+        sb.AppendLine("    '" & KodeToko & "' AS fmkcab, ")
+        sb.AppendLine("    prd_deskripsipendek AS ""desc"", ")
+        sb.AppendLine("    prd_deskripsipanjang AS desc2, ")
+        sb.AppendLine("    d.obi_qtyorder / CASE WHEN prd_unit = 'KG' THEN prd_frac ELSE 1 END AS qtyo, ")
+        sb.AppendLine("    st_saldoakhir AS stok, ")
+        sb.AppendLine("    d.obi_qtyrealisasi / CASE WHEN prd_unit = 'KG' THEN prd_frac ELSE 1 END AS qtyr, ")
+        sb.AppendLine("    NULL AS fmsts, ")
+        sb.AppendLine("    NULL AS ""time"" ")
+        sb.AppendLine("  FROM tbtr_obi_h h ")
+        sb.AppendLine("  JOIN tbtr_obi_d d ")
+        sb.AppendLine("       ON h.obi_tgltrans = d.obi_tgltrans ")
+        sb.AppendLine("       AND h.obi_notrans = d.obi_notrans ")
+        sb.AppendLine("  JOIN tbmaster_prodmast  ")
+        sb.AppendLine("       ON prd_prdcd = d.obi_prdcd ")
+        sb.AppendLine("  JOIN tbmaster_lokasi  ")
+        sb.AppendLine("       ON lks_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  JOIN tbmaster_grouprak ")
+        sb.AppendLine("       ON grr_koderak = lks_koderak ")
+        sb.AppendLine("       AND grr_subrak = lks_kodesubrak ")
+        sb.AppendLine("  JOIN tbmaster_stock ")
+        sb.AppendLine("       ON st_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  WHERE h.obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+        sb.AppendLine("  AND h.obi_notrans = '" & noTrans & "' ")
+        sb.AppendLine("  AND h.obi_nopb = '" & noPB & "' ")
+        sb.AppendLine("  AND d.obi_recid IS NULL ")
+        sb.AppendLine("  AND st_lokasi = '01' ")
+        sb.AppendLine("  AND lks_noid LIKE '%P' ")
+        sb.AppendLine("  AND lks_tiperak NOT LIKE 'S%' ")
+        sb.AppendLine("  AND COALESCE(grr_flagcetakan,'X') <> 'Y' ")
+        sb.AppendLine("  AND grr_grouprak NOT LIKE 'H%' ")
+        sb.AppendLine(") A  ")
+        sb.AppendLine("LEFT JOIN tbmaster_barcode ")
+        sb.AppendLine("ON brc_prdcd = prdcd ")
+        sb.AppendLine("GROUP BY ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr, ")
+        sb.AppendLine("  fmsts, ")
+        sb.AppendLine("  ""time"" ")
+        sb.AppendLine("ORDER BY koderak, nour ")
+
+        //! INSERT INTO DPD_IDM_NOBARCODE - PIECES
+        sb.AppendLine("INSERT INTO DPD_IDM_NOBARCODE ( ")
+        sb.AppendLine("  FMNDOC, ")
+        sb.AppendLine("  FMNBTC, ")
+        sb.AppendLine("  TRNRAK, ")
+        sb.AppendLine("  FMNTRN, ")
+        sb.AppendLine("  PRDCD, ")
+        sb.AppendLine("  BARC, ")
+        sb.AppendLine("  BAR2, ")
+        sb.AppendLine("  BARK, ")
+        sb.AppendLine("  GRAK, ")
+        sb.AppendLine("  NOUR, ")
+        sb.AppendLine("  KODERAK, ")
+        sb.AppendLine("  NOID, ")
+        sb.AppendLine("  SATUAN, ")
+        sb.AppendLine("  FMKSBU, ")
+        sb.AppendLine("  FMKCAB, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  DESC2, ")
+        sb.AppendLine("  QTYO, ")
+        sb.AppendLine("  STOK, ")
+        sb.AppendLine("  QTYR, ")
+        sb.AppendLine("  FMSTS, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  REQ_ID ")
+        sb.AppendLine(") ")
+        sb.AppendLine("SELECT ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  '' AS barc, ")
+        sb.AppendLine("  '' AS bar2, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr, ")
+        sb.AppendLine("  fmsts, ")
+        sb.AppendLine("  ""time"", ")
+        sb.AppendLine("  '" & IP & "' ")
+        sb.AppendLine("FROM ( ")
+        sb.AppendLine("  SELECT ")
+        sb.AppendLine("    '" & PSP_NoPB & "' AS fmndoc, ")
+        sb.AppendLine("    NULL AS fmnbtc, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD('" & PSP_NoPB & "', 9, ' ') ")
+        sb.AppendLine("      || SUBSTR(GRR_GROUPRAK, 1, 5) ")
+        sb.AppendLine("      || LPAD(grr_nourut::text, 2, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeRak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_KodeSubRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_TipeRak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(LKS_ShelvingRak, 2, ' ') ")
+        sb.AppendLine("      || obi_prdcd, ")
+        sb.AppendLine("      1, 36 ")
+        sb.AppendLine("    ) AS trnrak, ")
+        sb.AppendLine("    NULL AS fmntrn, ")
+        sb.AppendLine("    obi_prdcd AS prdcd, ")
+        sb.AppendLine("    NULL AS bark, ")
+        sb.AppendLine("    grr_grouprak AS grak, ")
+        sb.AppendLine("    grr_nourut AS nour, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD(lks_koderak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(lks_kodesubrak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(lks_tiperak, 3, ' ')  ")
+        sb.AppendLine("      || RPAD(lks_shelvingrak, 2, ' ') ")
+        sb.AppendLine("      || LPAD( ")
+        sb.AppendLine("           CASE WHEN SUBSTR(lks_koderak, 1, 1) = 'D' ")
+        sb.AppendLine("             THEN '0' ")
+        sb.AppendLine("             ELSE lks_nourut::text ")
+        sb.AppendLine("           END, 3, ' ' ")
+        sb.AppendLine("         ),  ")
+        sb.AppendLine("      1, 18 ")
+        sb.AppendLine("    ) AS koderak, ")
+        sb.AppendLine("    lks_noid AS noid, ")
+        sb.AppendLine("    prd_unit||'/'||prd_frac AS satuan, ")
+        sb.AppendLine("    '" & FMKSBU & "' AS fmksbu, ")
+        sb.AppendLine("    '" & KodeToko & "' AS fmkcab, ")
+        sb.AppendLine("    prd_deskripsipendek AS ""desc"", ")
+        sb.AppendLine("    prd_deskripsipanjang AS desc2, ")
+        sb.AppendLine("    d.obi_qtyorder / CASE WHEN prd_unit = 'KG' THEN prd_frac ELSE 1 END AS qtyo, ")
+        sb.AppendLine("    st_saldoakhir AS stok, ")
+        sb.AppendLine("    d.obi_qtyrealisasi / CASE WHEN prd_unit = 'KG' THEN prd_frac ELSE 1 END AS qtyr, ")
+        sb.AppendLine("    NULL AS fmsts, ")
+        sb.AppendLine("    NULL AS ""time"" ")
+        sb.AppendLine("  FROM tbtr_obi_h h ")
+        sb.AppendLine("  JOIN tbtr_obi_d d ")
+        sb.AppendLine("       ON h.obi_tgltrans = d.obi_tgltrans ")
+        sb.AppendLine("       AND h.obi_notrans = d.obi_notrans ")
+        sb.AppendLine("  JOIN tbmaster_prodmast  ")
+        sb.AppendLine("       ON prd_prdcd = d.obi_prdcd ")
+        sb.AppendLine("  JOIN tbmaster_lokasi  ")
+        sb.AppendLine("       ON lks_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  JOIN tbmaster_grouprak ")
+        sb.AppendLine("       ON grr_koderak = lks_koderak ")
+        sb.AppendLine("       AND grr_subrak = lks_kodesubrak ")
+        sb.AppendLine("  JOIN tbmaster_stock ")
+        sb.AppendLine("       ON st_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  WHERE h.obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+        sb.AppendLine("  AND h.obi_notrans = '" & noTrans & "' ")
+        sb.AppendLine("  AND h.obi_nopb = '" & noPB & "' ")
+        sb.AppendLine("  AND d.obi_recid IS NULL ")
+        sb.AppendLine("  AND st_lokasi = '01' ")
+        sb.AppendLine("  AND (lks_noid like '%P' OR COALESCE(prd_frac,0) = 1) ")
+        sb.AppendLine("  AND lks_tiperak NOT LIKE 'S%' ")
+        sb.AppendLine("  AND COALESCE(grr_flagcetakan,'X') <> 'Y' ")
+        sb.AppendLine("  AND grr_grouprak NOT LIKE 'H%' ")
+        sb.AppendLine(") A  ")
+        sb.AppendLine("WHERE NOT EXISTS ( ")
+        sb.AppendLine("  SELECT brc_barcode ")
+        sb.AppendLine("  FROM tbmaster_barcode ")
+        sb.AppendLine("  WHERE brc_prdcd = prdcd ")
+        sb.AppendLine(") ")
+        sb.AppendLine("ORDER BY koderak, nour ")
+
+        //! INSERT INTO TEMP_HHELD_IDM
+        sb.AppendLine("INSERT INTO TEMP_HHELD_IDM ( ")
+        sb.AppendLine("  FMNDOC, ")
+        sb.AppendLine("  FMNBTC, ")
+        sb.AppendLine("  TRNRAK, ")
+        sb.AppendLine("  FMNTRN, ")
+        sb.AppendLine("  PRDCD, ")
+        sb.AppendLine("  BARC, ")
+        sb.AppendLine("  BAR2, ")
+        sb.AppendLine("  BARK, ")
+        sb.AppendLine("  GRAK, ")
+        sb.AppendLine("  NOUR, ")
+        sb.AppendLine("  KODERAK, ")
+        sb.AppendLine("  NOID, ")
+        sb.AppendLine("  SATUAN, ")
+        sb.AppendLine("  FMKSBU, ")
+        sb.AppendLine("  FMKCAB, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  DESC2, ")
+        sb.AppendLine("  QTYO, ")
+        sb.AppendLine("  STOK, ")
+        sb.AppendLine("  QTYR, ")
+        sb.AppendLine("  REQ_ID ")
+        sb.AppendLine(") ")
+        sb.AppendLine("SELECT ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  MIN(brc_barcode) AS barc, ")
+        sb.AppendLine("  CASE WHEN MIN(brc_barcode) = MAX(brc_barcode) ")
+        sb.AppendLine("    THEN NULL ")
+        sb.AppendLine("    ELSE MAX(brc_barcode) ")
+        sb.AppendLine("  END AS bar2, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr, ")
+        sb.AppendLine("  '" & IP & "' ")
+        sb.AppendLine("FROM ( ")
+        sb.AppendLine("  SELECT ")
+        sb.AppendLine("    '" & PSP_NoPB & "' AS fmndoc, ")
+        sb.AppendLine("    NULL AS fmnbtc, ")
+        sb.AppendLine("    NULL AS trnrak, ")
+        sb.AppendLine("    NULL AS fmntrn, ")
+        sb.AppendLine("    obi_prdcd AS prdcd, ")
+        sb.AppendLine("    NULL AS bark, ")
+        sb.AppendLine("    grr_grouprak AS grak, ")
+        sb.AppendLine("    grr_nourut AS nour, ")
+        sb.AppendLine("    SUBSTR( ")
+        sb.AppendLine("      RPAD(lks_koderak, 7, ' ') ")
+        sb.AppendLine("      || RPAD(lks_kodesubrak, 3, ' ') ")
+        sb.AppendLine("      || RPAD(lks_tiperak, 3, ' ')  ")
+        sb.AppendLine("      || RPAD(lks_shelvingrak, 2, ' ') ")
+        sb.AppendLine("      || LPAD( ")
+        sb.AppendLine("           CASE WHEN SUBSTR(lks_koderak, 1, 1) = 'D' ")
+        sb.AppendLine("             THEN '0' ")
+        sb.AppendLine("             ELSE lks_nourut::text ")
+        sb.AppendLine("           END, 3, ' ' ")
+        sb.AppendLine("         ),  ")
+        sb.AppendLine("      1, 18 ")
+        sb.AppendLine("    ) AS koderak, ")
+        sb.AppendLine("    lks_noid AS noid, ")
+        sb.AppendLine("    prd_unit||'/'||prd_frac AS satuan, ")
+        sb.AppendLine("    '" & FMKSBU & "' AS fmksbu, ")
+        sb.AppendLine("    '" & KodeToko & "' AS fmkcab, ")
+        sb.AppendLine("    prd_deskripsipendek AS ""desc"", ")
+        sb.AppendLine("    prd_deskripsipanjang AS desc2, ")
+        sb.AppendLine("    d.obi_qtyorder AS qtyo, ")
+        sb.AppendLine("    st_saldoakhir AS stok, ")
+        sb.AppendLine("    d.obi_qtyrealisasi AS qtyr ")
+        sb.AppendLine("  FROM tbtr_obi_h h ")
+        sb.AppendLine("  JOIN tbtr_obi_d d ")
+        sb.AppendLine("       ON h.obi_tgltrans = d.obi_tgltrans ")
+        sb.AppendLine("       AND h.obi_notrans = d.obi_notrans ")
+        sb.AppendLine("  JOIN tbmaster_prodmast  ")
+        sb.AppendLine("       ON prd_prdcd = d.obi_prdcd ")
+        sb.AppendLine("  JOIN tbmaster_lokasi  ")
+        sb.AppendLine("       ON lks_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  JOIN tbmaster_grouprak ")
+        sb.AppendLine("       ON grr_koderak = lks_koderak ")
+        sb.AppendLine("       AND grr_subrak = lks_kodesubrak ")
+        sb.AppendLine("  JOIN tbmaster_stock ")
+        sb.AppendLine("       ON st_prdcd = SUBSTR(d.obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("  WHERE h.obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+        sb.AppendLine("  AND h.obi_notrans = '" & noTrans & "' ")
+        sb.AppendLine("  AND h.obi_nopb = '" & noPB & "' ")
+        sb.AppendLine("  AND d.obi_recid IS NULL ")
+        sb.AppendLine("  AND st_lokasi = '01' ")
+        sb.AppendLine("  AND lks_noid IS NULL ")
+        sb.AppendLine("  AND lks_tiperak NOT LIKE 'S%' ")
+        sb.AppendLine("  AND COALESCE(grr_flagcetakan,'X') <> 'Y' ")
+        sb.AppendLine("  AND grr_grouprak LIKE 'H%' ")
+        sb.AppendLine(") A  ")
+        sb.AppendLine("LEFT JOIN tbmaster_barcode ")
+        sb.AppendLine("ON brc_prdcd = prdcd ")
+        sb.AppendLine("GROUP BY ")
+        sb.AppendLine("  fmndoc, ")
+        sb.AppendLine("  fmnbtc, ")
+        sb.AppendLine("  trnrak, ")
+        sb.AppendLine("  fmntrn, ")
+        sb.AppendLine("  prdcd, ")
+        sb.AppendLine("  bark, ")
+        sb.AppendLine("  grak, ")
+        sb.AppendLine("  nour, ")
+        sb.AppendLine("  koderak, ")
+        sb.AppendLine("  noid, ")
+        sb.AppendLine("  satuan, ")
+        sb.AppendLine("  fmksbu, ")
+        sb.AppendLine("  fmkcab, ")
+        sb.AppendLine("  ""desc"", ")
+        sb.AppendLine("  desc2, ")
+        sb.AppendLine("  qtyo, ")
+        sb.AppendLine("  stok, ")
+        sb.AppendLine("  qtyr ")
+        sb.AppendLine("ORDER BY koderak, nour ")
+
+        //! HHELD_IDM_ORA
+        $cek = DB::table('hheld_idm_ora')
+            ->where('req_id', $this->getIP())
+            ->whereNull('fmrcid')
+            ->whereDate('tglupd', Carbon::now())
+            ->where([
+                'fmkcab' => $KodeToko,
+                'fmndoc' => $PSP_NoPB,
+            ])->count();
+
+        if($cek == 0){
+            sb.AppendLine("INSERT INTO HHELD_IDM_ORA ( ")
+            sb.AppendLine("  FMRCID, ")
+            sb.AppendLine("  FMNDOC, ")
+            sb.AppendLine("  FMNBTC, ")
+            sb.AppendLine("  TRNRAK, ")
+            sb.AppendLine("  FMNTRN, ")
+            sb.AppendLine("  PRDCD, ")
+            sb.AppendLine("  BARC, ")
+            sb.AppendLine("  BAR2, ")
+            sb.AppendLine("  BARK, ")
+            sb.AppendLine("  GRAK, ")
+            sb.AppendLine("  NOUR, ")
+            sb.AppendLine("  KODERAK, ")
+            sb.AppendLine("  NOID, ")
+            sb.AppendLine("  SATUAN, ")
+            sb.AppendLine("  FMKSBU, ")
+            sb.AppendLine("  FMKCAB, ")
+            sb.AppendLine("  ""desc"", ")
+            sb.AppendLine("  DESC2, ")
+            sb.AppendLine("  QTYO, ")
+            sb.AppendLine("  STOK, ")
+            sb.AppendLine("  QTYR, ")
+            sb.AppendLine("  REQ_ID, ")
+            sb.AppendLine("  TGLUPD, ")
+            sb.AppendLine("  JAM_UPLOAD, ")
+            sb.AppendLine("  JAM_PICKING, ")
+            sb.AppendLine("  USERID  ")
+            sb.AppendLine(") ")
+            sb.AppendLine("SELECT  ")
+            sb.AppendLine("  NULL, ")
+            sb.AppendLine("  FMNDOC, ")
+            sb.AppendLine("  FMNBTC, ")
+            sb.AppendLine("  TRNRAK, ")
+            sb.AppendLine("  FMNTRN, ")
+            sb.AppendLine("  PRDCD, ")
+            sb.AppendLine("  BARC, ")
+            sb.AppendLine("  BAR2, ")
+            sb.AppendLine("  BARK, ")
+            sb.AppendLine("  GRAK, ")
+            sb.AppendLine("  NOUR, ")
+            sb.AppendLine("  KODERAK, ")
+            sb.AppendLine("  NOID, ")
+            sb.AppendLine("  SATUAN, ")
+            sb.AppendLine("  FMKSBU, ")
+            sb.AppendLine("  FMKCAB, ")
+            sb.AppendLine("  ""desc"", ")
+            sb.AppendLine("  DESC2, ")
+            sb.AppendLine("  QTYO, ")
+            sb.AppendLine("  STOK, ")
+            sb.AppendLine("  QTYR, ")
+            sb.AppendLine("  REQ_ID, ")
+            sb.AppendLine("  TO_CHAR(CURRENT_DATE,'YYYYMMDD'), ")
+            sb.AppendLine("  TO_CHAR(current_timestamp,'HH24:MI:SS'), ")
+            sb.AppendLine("  NULL, ")
+            sb.AppendLine("  NULL ")
+            sb.AppendLine("FROM TEMP_HHELD_IDM ")
+            sb.AppendLine("WHERE REQ_ID = '" & IP & "' ")
+            sb.AppendLine("ORDER BY KODERAK ")
+        }
+
+        //! DPD_IDM_ORA
+        $cek = DB::table('dpd_idm_ora')
+            ->where('req_id', $this->getIP())
+            ->whereNull('fmrcid')
+            ->whereDate('tglupd', Carbon::now())
+            ->where([
+                'fmkcab' => $KodeToko,
+                'fmndoc' => $PSP_NoPB,
+            ])->count();
+
+        if($cek > 0){
+            sb.AppendLine("INSERT INTO DPD_IDM_ORA ( ")
+            sb.AppendLine("  FMRCID, ")
+            sb.AppendLine("  FMNDOC, ")
+            sb.AppendLine("  TGLPB, ")
+            sb.AppendLine("  FMNBTC, ")
+            sb.AppendLine("  TRNRAK, ")
+            sb.AppendLine("  FMNTRN, ")
+            sb.AppendLine("  PRDCD, ")
+            sb.AppendLine("  BARC, ")
+            sb.AppendLine("  BAR2, ")
+            sb.AppendLine("  BARK, ")
+            sb.AppendLine("  GRAK, ")
+            sb.AppendLine("  NOUR, ")
+            sb.AppendLine("  KODERAK, ")
+            sb.AppendLine("  NOID, ")
+            sb.AppendLine("  SATUAN, ")
+            sb.AppendLine("  FMKSBU, ")
+            sb.AppendLine("  FMKCAB, ")
+            sb.AppendLine("  ""desc"", ")
+            sb.AppendLine("  DESC2, ")
+            sb.AppendLine("  QTYO, ")
+            sb.AppendLine("  STOK, ")
+            sb.AppendLine("  QTYR, ")
+            sb.AppendLine("  REQ_ID, ")
+            sb.AppendLine("  TGLUPD, ")
+            sb.AppendLine("  JAM_UPLOAD, ")
+            sb.AppendLine("  JAM_PICKING, ")
+            sb.AppendLine("  USERID, ")
+            sb.AppendLine("  NOPICKING, ")
+            sb.AppendLine("  NOSURATJALAN, ")
+            sb.AppendLine("  PANJANG, ")
+            sb.AppendLine("  LEBAR, ")
+            sb.AppendLine("  TINGGI, ")
+            sb.AppendLine("  KUBIKPICKING, ")
+            sb.AppendLine("  KODEZONA ")
+            sb.AppendLine(") ")
+            sb.AppendLine("SELECT ")
+            sb.AppendLine("  NULL, ")
+            sb.AppendLine("  FMNDOC, ")
+            sb.AppendLine("  TO_CHAR(TO_DATE('" & tglTrans & "','DD-MM-YYYY'), 'YYYYMMDD') TGLPB, ")
+            sb.AppendLine("  FMNBTC, ")
+            sb.AppendLine("  TRNRAK, ")
+            sb.AppendLine("  FMNTRN, ")
+            sb.AppendLine("  PRDCD, ")
+            sb.AppendLine("  BARC, ")
+            sb.AppendLine("  BAR2, ")
+            sb.AppendLine("  BARK, ")
+            sb.AppendLine("  GRAK, ")
+            sb.AppendLine("  NOUR, ")
+            sb.AppendLine("  KODERAK, ")
+            sb.AppendLine("  NOID, ")
+            sb.AppendLine("  SATUAN, ")
+            sb.AppendLine("  FMKSBU, ")
+            sb.AppendLine("  FMKCAB, ")
+            sb.AppendLine("  ""desc"", ")
+            sb.AppendLine("  DESC2, ")
+            sb.AppendLine("  QTYO, ")
+            sb.AppendLine("  STOK, ")
+            sb.AppendLine("  QTYR, ")
+            sb.AppendLine("  REQ_ID, ")
+            sb.AppendLine("  TO_CHAR(CURRENT_DATE,'YYYYMMDD'), ")
+            sb.AppendLine("  TO_CHAR(current_timestamp,'HH24:MI:SS'), ")
+            sb.AppendLine("  NULL, ")
+            sb.AppendLine("  NULL, ")
+            sb.AppendLine("  '" & PSP_NoPick & "' NOPICKING, ")
+            sb.AppendLine("  '" & PSP_NoSJ & "' NOSURATJALAN, ")
+            sb.AppendLine("  COALESCE(OBI_PANJANG,PRD_DIMENSIPANJANG,1) PANJANG, ")
+            sb.AppendLine("  COALESCE(OBI_LEBAR,PRD_DIMENSILEBAR,1) LEBAR, ")
+            sb.AppendLine("  COALESCE(OBI_TINGGI,PRD_DIMENSITINGGI,1) TINGGI, ")
+            sb.AppendLine("  NULL, ")
+            sb.AppendLine("  ZON_KODE ")
+            sb.AppendLine("FROM TEMP_DPD_IDM, TBMASTER_PRODMAST, ZONA_IDM, TBTR_OBI_D ")
+            sb.AppendLine("WHERE REQ_ID = '" & IP & "'  ")
+            sb.AppendLine("AND OBI_TGLTRANS = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+            sb.AppendLine("AND OBI_NOTRANS = '" & noTrans & "' ")
+            sb.AppendLine("AND OBI_PRDCD = PRD_PRDCD ")
+            sb.AppendLine("AND PRD_PRDCD = CASE WHEN SUBSTR(NOID,-1,1) = 'B' THEN SUBSTR(PRDCD,1,6)||'0' ELSE PRDCD END ")
+            sb.AppendLine("AND ZON_RAK = SUBSTR(KODERAK,1,POSITION(' ' IN KODERAK)-1) ")
+        }
+
+        //! CETAKIN LABEL CONTAINER / BRONJONG UNTUK TOKO YANG PERTAMA HARI ITU
+        $noContainer = 1;
+        $noBronjong = 1;
+
+        //! CEK PICKING_ANTRIAN
+        sb.AppendLine("SELECT COALESCE(COUNT(PIA_KODETOKO),0)  ")
+        sb.AppendLine("FROM PICKING_ANTRIAN ")
+        sb.AppendLine("WHERE PIA_TGLPICK >= CURRENT_DATE - 7 ")
+        sb.AppendLine("AND PIA_NOPICK = '" & PSP_NoPick & "' ")
+        sb.AppendLine("AND PIA_NOSJ = '" & PSP_NoSJ & "' ")
+        sb.AppendLine("AND PIA_KODETOKO = '" & KodeToko & "' ")
+
+        $jum = 0;
+
+        if($jum == 0){
+            $query = '';
+            $query .= "SELECT  ";
+            $query .= "  zon_kode, ";
+            $query .= "  CASE WHEN UPPER(jeniscontainer) <> 'BRONJONG'  ";
+            $query .= "    THEN SUM(CEIL(kubikasi_order/((con_panjang * con_lebar * con_tinggi * allowance) / 100))) ";
+            $query .= "	  ELSE 0 ";
+            $query .= "	END AS JumlahContainer,  ";
+            $query .= "  CASE WHEN UPPER(jeniscontainer) = 'BRONJONG'  ";
+            $query .= "    THEN SUM(CEIL(kubikasi_order/((con_panjang * con_lebar * con_tinggi * allowance) / 100))) ";
+            $query .= "    ELSE 0 ";
+            $query .= "  END AS JumlahBronjong, ";
+            $query .= "  zon_printer ";
+            $query .= "FROM (         ";
+            $query .= "	SELECT  ";
+            $query .= "    zon_kode, ";
+            $query .= "   	SUM(COALESCE(obi_lebar,prd_dimensilebar,1) * COALESCE(obi_panjang,prd_dimensipanjang,1) * COALESCE(obi_tinggi,prd_dimensitinggi,1) * obi_qtyorder  ";
+            $query .= "        / CASE WHEN PRD_UNIT = 'KG' THEN PRD_FRAC ELSE 1 END ";
+            $query .= "    ) AS kubikasi_order, ";
+            $query .= "    zon_container AS jeniscontainer, ";
+            $query .= "    zon_allowance AS allowance, ";
+            $query .= "    zon_Printer ";
+            $query .= "  FROM tbtr_obi_h h ";
+            $query .= "  JOIN tbtr_obi_d d ";
+            $query .= "       ON h.obi_tgltrans = d.obi_tgltrans ";
+            $query .= "       AND h.obi_notrans = d.obi_notrans ";
+            $query .= "  LEFT JOIN tbmaster_prodmast ";
+            $query .= "       ON prd_prdcd = d.obi_prdcd ";
+            $query .= "  LEFT JOIN tbmaster_lokasi ";
+            $query .= "       ON SUBSTR(d.obi_prdcd, 1, 6) || '0' = lks_prdcd ";
+            $query .= "       AND lks_noid IS NOT NULL ";
+            $query .= "  LEFT JOIN zona_idm ";
+            $query .= "       ON zon_rak = lks_koderak ";
+            $query .= "  WHERE h.obi_nopb = '" & noPB & "' ";
+            $query .= "  AND h.obi_notrans = '" & noTrans & "' ";
+            $query .= "  AND h.obi_tgltrans = TO_DATE('" & tglTrans & "', 'DD-MM-YYYY') ";
+            $query .= "  AND d.obi_recid IS NULL ";
+            $query .= "  AND zon_container IS NOT NULL  ";
+            $query .= "  GROUP BY zon_kode, zon_container, zon_allowance, zon_printer ";
+            $query .= ") AS OBI ";
+            $query .= "LEFT JOIN container_idm ";
+            $query .= "ON con_jenis = jeniscontainer  ";
+            $query .= "GROUP BY zon_kode, jeniscontainer, zon_printer ";
+            $query .= "ORDER BY zon_kode ";
+            $dt = DB::select($query);
+
+            $SudahAdaCetakBarcodeHariIni = false;
+
+            $query = '';
+            $query .= "SELECT COALESCE(COUNT(PIA_KODETOKO),0)  ";
+            $query .= "FROM PICKING_ANTRIAN ";
+            $query .= "WHERE DATE_TRUNC('DAY',PIA_TGLPICK) = DATE_TRUNC('DAY',CURRENT_DATE) ";
+            $cek = DB::select($query)[0]->count;
+
+            if($cek > 0){
+                $SudahAdaCetakBarcodeHariIni = true;
+            }
+
+            foreach($dt as $item){
+                //! JIKA ADA CONTAINER
+                if($item->JumlahContainer > 0){
+
+                    // BarcodeContainer = "01" & Strings.Right("0000000" & PSP_NoPick, 7) & Strings.Right("000" & noContainer.ToString, 3)
+
+                    //! INSERT INTO PICKING CONTAINER - Container
+                    sb.AppendLine("INSERT INTO PICKING_CONTAINER ( ")
+                    sb.AppendLine("  PICO_PrinterName, ")
+                    sb.AppendLine("  PICO_NoPick, ")
+                    sb.AppendLine("  PICO_TglPick, ")
+                    sb.AppendLine("  PICO_ContainerZona, ")
+                    sb.AppendLine("  PICO_Gate, ")
+                    sb.AppendLine("  PICO_KodeToko, ")
+                    sb.AppendLine("  PICO_NamaToko, ")
+                    sb.AppendLine("  PICO_BarcodeKoli, ")
+                    sb.AppendLine("  PICO_NoUrutToko, ")
+                    sb.AppendLine("  PICO_JumlahToko, ")
+                    sb.AppendLine("  PICO_NoSJ ")
+                    sb.AppendLine(") ")
+                    sb.AppendLine("VALUES ( ")
+                    sb.AppendLine("  '" & row.Item(3) & "', ")
+                    sb.AppendLine("  '" & PSP_NoPick & "', ")
+                    sb.AppendLine("  '" & Strings.Format(Now, "dd-MM-yyyy") & "', ")
+                    sb.AppendLine("  '" & Strings.Right("000" & noContainer.ToString, 3) & "-" & row.Item(0) & "', ")
+                    sb.AppendLine("  '" & PSP_GATE & "', ")
+                    sb.AppendLine("  '" & KodeToko & "', ")
+                    sb.AppendLine("  '" & PSP_NamaToko & "', ")
+                    sb.AppendLine("  '" & BarcodeContainer & "', ")
+                    sb.AppendLine("  '" & (PSP_KodeToko.Length - i).ToString & "', ")
+                    sb.AppendLine("  '" & PSP_KodeToko.Length.ToString & "', ")
+                    sb.AppendLine("  '" & PSP_NoSJ & "' ")
+                    sb.AppendLine(") ")
+
+                    if($SudahAdaCetakBarcodeHariIni == false){
+                        // CetakContainerPSP(row.Item(3), _
+                        //                           PSP_NoPick, _
+                        //                           Strings.Format(Now, "dd-MM-yyyy"), _
+                        //                           Strings.Right("000" & noContainer.ToString, 3) & "-" & row.Item(0), _
+                        //                           PSP_GATE, _
+                        //                           PSP_NamaToko, _
+                        //                           PSP_NoPB, _
+                        //                           BarcodeContainer, _
+                        //                           (PSP_KodeToko.Length - i).ToString, _
+                        //                           PSP_KodeToko.Length.ToString, _
+                        //                           Errmsg)
+
+                        //! UPDATE PICKING CONTAINER RECID 1 MENANDAKAN SUDAH DI PRINT
+                        sb.AppendLine("UPDATE Picking_Container ")
+                        sb.AppendLine("SET Pico_RecordID = '1' ")
+                        sb.AppendLine("WHERE PICO_NoPICK = '" & PSP_NoPick & "' ")
+                        sb.AppendLine("AND TO_DATE(PICO_TglPick,'DD-MM-YYYY') >= CURRENT_DATE - 7 ")
+                        sb.AppendLine("AND PICO_BarcodeKoli = '" & BarcodeContainer & "' ")
+                    }
+
+                    $noContainer += 1;
+                }
+
+                //! JIKA ADA BROJONG
+                if($item->JumlahBronjong > 0){
+                    // BarcodeContainer = "02" & Strings.Right("0000000" & PSP_NoPick, 7) & Strings.Right("000" & noBronjong.ToString, 3)
+
+                    sb.AppendLine("INSERT INTO PICKING_CONTAINER ( ")
+                    sb.AppendLine("  PICO_PrinterName, ")
+                    sb.AppendLine("  PICO_NoPick, ")
+                    sb.AppendLine("  PICO_TglPick, ")
+                    sb.AppendLine("  PICO_ContainerZona, ")
+                    sb.AppendLine("  PICO_Gate, ")
+                    sb.AppendLine("  PICO_KodeToko, ")
+                    sb.AppendLine("  PICO_NamaToko, ")
+                    sb.AppendLine("  PICO_BarcodeKoli, ")
+                    sb.AppendLine("  PICO_NoUrutToko, ")
+                    sb.AppendLine("  PICO_JumlahToko, ")
+                    sb.AppendLine("  PICO_NoSJ ")
+                    sb.AppendLine(") ")
+                    sb.AppendLine("VALUES ( ")
+                    sb.AppendLine("  '" & row.Item(3) & "', ")
+                    sb.AppendLine("  '" & PSP_NoPick & "', ")
+                    sb.AppendLine("  '" & Strings.Format(Now, "dd-MM-yyyy") & "', ")
+                    sb.AppendLine("  '" & Strings.Right("000" & noBronjong.ToString, 3) & "-" & row.Item(0) & "', ")
+                    sb.AppendLine("  '" & PSP_GATE & "', ")
+                    sb.AppendLine("  '" & PSP_KodeToko(i) & "', ")
+                    sb.AppendLine("  '" & PSP_NamaToko & "', ")
+                    sb.AppendLine("  '" & BarcodeContainer & "', ")
+                    sb.AppendLine("  '" & (PSP_KodeToko.Length - i).ToString & "', ")
+                    sb.AppendLine("  '" & PSP_KodeToko.Length.ToString & "', ")
+                    sb.AppendLine("  '" & PSP_NoSJ & "' ")
+                    sb.AppendLine(") ")
+
+                    if($SudahAdaCetakBarcodeHariIni == false){
+                        // CetakBronjongPSP(row.Item(3), _
+                        //                          PSP_NoPick, _
+                        //                          Strings.Format(Now, "dd-MM-yyyy"), _
+                        //                          Strings.Right("000" & noBronjong.ToString, 3) & "-" & row.Item(0), _
+                        //                          PSP_GATE, _
+                        //                          PSP_NamaToko, _
+                        //                          PSP_NoPB, _
+                        //                          BarcodeContainer, _
+                        //                          (PSP_KodeToko.Length - i).ToString, _
+                        //                          PSP_KodeToko.Length.ToString, _
+                        //                          Errmsg)
+
+                        //! UPDATE PICKING CONTAINER RECID 1 MENANDAKAN SUDAH DI PRINT
+                        sb.AppendLine("UPDATE Picking_Container ")
+                        sb.AppendLine("SET Pico_RecordID = '1' ")
+                        sb.AppendLine("WHERE PICO_NoPICK = '" & PSP_NoPick & "' ")
+                        sb.AppendLine("AND TO_DATE(PICO_TglPick,'DD-MM-YYYY') >= CURRENT_DATE - 7  ")
+                        sb.AppendLine("AND PICO_BarcodeKoli = '" & BarcodeContainer & "' ")
+                    }
+
+                    $noBronjong += 1;
+                }
+            }
+        }
+
+        //! ISI PICKING_ANTRIAN
+        $NoUrutPaket = 1;
+        $NoUrutTotal = 1;
+
+        sb.AppendLine("INSERT INTO PICKING_ANTRIAN ( ")
+        sb.AppendLine("  PIA_NoPick, ")
+        sb.AppendLine("  PIA_TglPick, ")
+        sb.AppendLine("  PIA_NoSJ, ")
+        sb.AppendLine("  PIA_KodeToko, ")
+        sb.AppendLine("  PIA_KodeZona, ")
+        sb.AppendLine("  PIA_GroupRak, ")
+        sb.AppendLine("  PIA_NoUrutPaket, ")
+        sb.AppendLine("  PIA_NoUrutTotal ")
+        sb.AppendLine(") ")
+        sb.AppendLine("SELECT DISTINCT ")
+        sb.AppendLine("  '" & PSP_NoPick & "' AS NoPick, ")
+        sb.AppendLine("  TO_DATE('" & PSP_TglPick & "', 'YYYYMMDD;HH24:MI:SS;') AS TglPick, ")
+        sb.AppendLine("  '" & PSP_NoSJ & "' AS NoSJ, ")
+        sb.AppendLine("  '" & KodeToko & "' AS KodeToko, ")
+        sb.AppendLine("  ZON_Kode AS KodeZona,  ")
+        sb.AppendLine("  grr_GroupRak AS GroupRak, ")
+        sb.AppendLine("  " & NoUrutPaket & " AS NoUrutPaket, ")
+        sb.AppendLine("  " & NoUrutTotal & " AS NoUrutTotal   ")
+        sb.AppendLine("FROM tbtr_obi_h h ")
+        sb.AppendLine("JOIN tbtr_obi_d d ")
+        sb.AppendLine("     ON h.obi_tgltrans = d.obi_tgltrans ")
+        sb.AppendLine("     AND h.obi_notrans = d.obi_notrans ")
+        sb.AppendLine("JOIN tbmaster_lokasi ")
+        sb.AppendLine("     ON lks_prdcd = SUBSTR(d.obi_prdcd, 1, 6) || '0' ")
+        sb.AppendLine("     AND lks_noid IS NOT NULL ")
+        sb.AppendLine("JOIN tbmaster_grouprak ")
+        sb.AppendLine("     ON grr_koderak = lks_koderak ")
+        sb.AppendLine("     AND grr_subrak = lks_kodesubrak ")
+        sb.AppendLine("JOIN zona_idm ")
+        sb.AppendLine("     ON zon_rak = lks_koderak ")
+        sb.AppendLine("     AND zon_rak = grr_koderak ")
+        sb.AppendLine("WHERE h.obi_nopb = '" & noPB & "' ")
+        sb.AppendLine("AND h.obi_notrans = '" & noTrans & "' ")
+        sb.AppendLine("AND h.obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+        sb.AppendLine("AND d.obi_recid IS NULL ")
+        sb.AppendLine("AND COALESCE(grr_flagcetakan,'?') <> 'Y' ")
+    }
+
+    private function konversi_SPI($noTrans, $tglTrans){
+
+        try {
+
+            //! DELETE TBTR_KONVERSI_SPI
+            sb.AppendLine("DELETE FROM tbtr_konversi_spi ")
+            sb.AppendLine("WHERE kvi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+            sb.AppendLine("AND kvi_notrans = '" & noTrans & "' ")
+
+            //! INSERT INTO TBTR_KONVERSI_SPI
+            sb.AppendLine("INSERT INTO tbtr_konversi_spi ( ")
+            sb.AppendLine("  kvi_tgltrans, ")
+            sb.AppendLine("  kvi_notrans, ")
+            sb.AppendLine("  kvi_prdcd, ")
+            sb.AppendLine("  kvi_hargasatuan, ")
+            sb.AppendLine("  kvi_qtyorder, ")
+            sb.AppendLine("  kvi_qtyrealisasi, ")
+            sb.AppendLine("  kvi_ppn, ")
+            sb.AppendLine("  kvi_diskon, ")
+            sb.AppendLine("  kvi_hpp, ")
+            sb.AppendLine("  kvi_kodealamat, ")
+            sb.AppendLine("  kvi_hargaweb, ")
+            sb.AppendLine("  kvi_create_by, ")
+            sb.AppendLine("  kvi_create_dt ")
+            sb.AppendLine(") ")
+            sb.AppendLine(" ")
+            sb.AppendLine("SELECT  ")
+            sb.AppendLine("  obi_tgltrans,  ")
+            sb.AppendLine("  obi_notrans,  ")
+            sb.AppendLine("  obi_prdcd,  ")
+            sb.AppendLine("  obi_hargasatuan,  ")
+            sb.AppendLine("  obi_qtyorder,  ")
+            sb.AppendLine("  0 obi_qtyrealisasi,  ")
+            sb.AppendLine("  obi_ppn,  ")
+            sb.AppendLine("  obi_diskon,  ")
+            sb.AppendLine("  obi_hpp,  ")
+            sb.AppendLine("  000 obi_kodealamat, ")
+            sb.AppendLine("  obi_hargaweb, ")
+            sb.AppendLine("  '" & UserMODUL & "' create_by, ")
+            sb.AppendLine("  NOW() create_dt ")
+            sb.AppendLine("FROM tbtr_obi_d ")
+            sb.AppendLine("WHERE obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+            sb.AppendLine("AND obi_notrans = '" & noTrans & "' ")
+            sb.AppendLine("AND obi_recid IS NULL ")
+
+            //! DELETE TBTR_OBI_D
+            sb.AppendLine("DELETE FROM tbtr_obi_d ")
+            sb.AppendLine("WHERE obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+            sb.AppendLine("AND obi_notrans = '" & noTrans & "' ")
+            sb.AppendLine("AND obi_recid IS NULL ")
+
+            //! INSERT INTO TBTR_OBI_D - NEW KONVERSI
+            sb.AppendLine("INSERT INTO tbtr_obi_d ( ")
+            sb.AppendLine("  obi_tgltrans, ")
+            sb.AppendLine("  obi_notrans, ")
+            sb.AppendLine("  obi_prdcd, ")
+            sb.AppendLine("  obi_hargasatuan, ")
+            sb.AppendLine("  obi_qtyorder, ")
+            sb.AppendLine("  obi_qtyrealisasi, ")
+            sb.AppendLine("  obi_ppn, ")
+            sb.AppendLine("  obi_diskon, ")
+            sb.AppendLine("  obi_hpp, ")
+            sb.AppendLine("  obi_kodealamat, ")
+            sb.AppendLine("  obi_hargaweb ")
+            sb.AppendLine(") ")
+            sb.AppendLine("SELECT ")
+            sb.AppendLine("    kvi_tgltrans, ")
+            sb.AppendLine("    kvi_notrans, ")
+            sb.AppendLine("	   CASE SUBSTR(kvi_prdcd, LENGTH(kvi_prdcd), 1) WHEN '0' THEN  ")
+            sb.AppendLine("        CASE COALESCE(lks_noidctn, 'XXX') WHEN 'XXX' THEN plu ELSE kvi_prdcd END ")
+            sb.AppendLine("    ELSE plu END kvi_prdcd, ")
+            sb.AppendLine("    MIN(kvi_hargasatuan) kvi_hargasatuan, ")
+            sb.AppendLine("    SUM(kvi_qtyorder) kvi_qtyorder, ")
+            sb.AppendLine("    0 kvi_qtyrealisasi, ")
+            sb.AppendLine("    MIN(kvi_ppn) obi_ppn, ")
+            sb.AppendLine("    ROUND(SUM(ROUND(kvi_diskon * kvi_qtyorder)) / SUM(kvi_qtyorder),2) kvi_diskon, ")
+            sb.AppendLine("    0 kvi_hpp, ")
+            sb.AppendLine("    '000' kvi_kodealamat, ")
+            sb.AppendLine("    MIN(kvi_hargasatuan + kvi_ppn) kvi_hargaweb ")
+            sb.AppendLine("FROM tbtr_konversi_spi ")
+            sb.AppendLine("JOIN tbmaster_prodmast ")
+            sb.AppendLine("ON prd_prdcd = kvi_prdcd ")
+            sb.AppendLine("JOIN ( ")
+            sb.AppendLine("  SELECT plu, frac ")
+            sb.AppendLine("  FROM ( ")
+            sb.AppendLine("    SELECT prd_prdcd plu, prd_frac frac, ")
+            sb.AppendLine("           substr(prd_prdcd,-1,1), ")
+            sb.AppendLine("           ROW_NUMBER() OVER( ")
+            sb.AppendLine("             PARTITION BY substr(prd_prdcd,1,6)  ")
+            sb.AppendLine("             ORDER BY substr(prd_prdcd,-1,1) ASC ")
+            sb.AppendLine("           ) AS rn ")
+            sb.AppendLine("    FROM tbmaster_prodmast ")
+            sb.AppendLine("  ) datas ")
+            sb.AppendLine("  WHERE rn = 2 ")
+            sb.AppendLine(") plu_kecil ")
+            sb.AppendLine("ON SUBSTR(plu,1,6) = SUBSTR(kvi_prdcd,1,6) ")
+            sb.AppendLine("WHERE kvi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY')  ")
+            sb.AppendLine("AND kvi_notrans = '" & noTrans & "' ")
+            sb.AppendLine("GROUP BY kvi_tgltrans, kvi_notrans, plu ")
+            sb.AppendLine("ORDER BY plu ")
+
+            //! UPDATE TBTR_OBI_H - OBI_ITEMORDER
+            $query = '';
+            $query .= "SELECT * FROM tbtr_obi_d ";
+            $query .= "WHERE obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ";
+            $query .= "AND obi_notrans = '" & noTrans & "' ";
+            $query .= "AND obi_recid IS NULL ";
+            $cek = DB::select($query);
+
+            if(count($cek)){
+                sb.AppendLine("UPDATE tbtr_obi_h ")
+                sb.AppendLine("SET obi_itemorder = " & dt.Rows.Count & " ")
+                sb.AppendLine("WHERE obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+                sb.AppendLine("AND obi_notrans = '" & noTrans & "' ")
+            }
+
+            sb.AppendLine(" UPDATE TBTR_OBI_D ")
+            sb.AppendLine(" SET obi_hargaweb = (obi_hargasatuan+obi_ppn) * ( ")
+            sb.AppendLine("                      SELECT COALESCE(prd_frac,1)  ")
+            sb.AppendLine("                      FROM tbmaster_prodmast  ")
+            sb.AppendLine("                      WHERE prd_prdcd = obi_prdcd ")
+            sb.AppendLine("                      LIMIT 1) ")
+            sb.AppendLine("WHERE obi_tgltrans = TO_DATE('" & tglTrans & "','DD-MM-YYYY') ")
+            sb.AppendLine("AND obi_notrans = '" & noTrans & "' ")
+            sb.AppendLine("AND obi_recid IS NULL ")
+
+            return true;
+
+        } catch(\Exception $e){
+
+            return false;
         }
     }
 }

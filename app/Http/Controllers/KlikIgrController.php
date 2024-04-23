@@ -439,6 +439,515 @@ class KlikIgrController extends Controller
         }
     }
 
+    public function actionSendHandHelt($dgv_notrans, $dgv_status, $statusSiapPicking, $pilihan){
+        //* Send Jalur No Trans = " & dgv_notrans & " Ini?
+        //! dgv_notrans tidak boleh null atau '';
+
+        if($dgv_notrans != $statusSiapPicking){
+            return ApiFormatter::error(400, 'Bukan Data Yang Siap Send Jalur!');
+        }
+
+        if(session('flagSPI') == true AND session('flagIGR') == false){
+            if (str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D') ) {
+                //? kalo susah form ini tampil diawal aja karena cuma buat dapet variable $pilihan
+                //! open form -> frmOpsiPickSPI
+
+                if($pilihan == 1){
+                    $this->sendSPI();
+                }elseif($pilihan == 2){
+                    $this->sendHH();
+                }else{
+                    return ApiFormatter::error(400, 'Send Jalur dibatalkan!');
+                }
+            }elseif(str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
+                $this->sendHH();
+            }else{
+                $this->sendSPI();
+            }
+        }else{
+            $this->sendHH();
+        }
+    }
+
+    private function sendSPI($dgv_nopb, $dgv_notrans, $dgv_memberigr, $dtTrans){
+        $nopb = $dgv_nopb;
+        $notrans = $dgv_notrans;
+        $tgltrans = $dtTrans;
+        $memberigr = $dgv_memberigr;
+
+        //! TOLAKAN ZONA, JALUR, LOKASI, NOID
+        $query = '';
+        $query .= "SELECT obi_prdcd  ";
+        $query .= "FROM tbtr_obi_d  ";
+        $query .= "WHERE DATE_TRUNC('DAY',obi_tgltrans) = ".Carbon::parse($tglTrans)->format('Y-m-d H:i:s')."  ";
+        $query .= "AND obi_notrans = '" . $notrans . "' ";
+        $query .= "AND obi_recid IS NULL ";
+        $query .= "AND NOT EXISTS ( ";
+        $query .= "  SELECT lks_noid ";
+        $query .= "    FROM tbmaster_lokasi ";
+        $query .= "    JOIN tbmaster_grouprak ";
+        $query .= "      ON grr_koderak = lks_koderak ";
+        $query .= "     AND grr_subrak = lks_kodesubrak ";
+        $query .= "    JOIN tbmaster_stock ";
+        $query .= "      ON st_prdcd = lks_prdcd ";
+        $query .= "   WHERE st_lokasi = '01' ";
+        $query .= "     AND lks_tiperak NOT LIKE 'S%' ";
+        $query .= "     AND lks_noid IS NOT NULL ";
+        $query .= "     AND COALESCE(grr_flagcetakan,'X') <> 'Y' ";
+        $query .= "     AND grr_grouprak NOT LIKE 'H%' ";
+        $query .= "     AND lks_prdcd = SUBSTR(obi_prdcd,1,6) || '0' ";
+        $query .= ") ";
+        $dtCek = DB::select($query);
+
+        $txtPlu = '';
+        foreach($dtCek as $item){
+            $txtPlu .= $item->plu . ',';
+        }
+
+        if($txtPlu != ''){
+            //! Terdapat PLU yang tidak memiliki lokasi DPD :
+        }
+
+        //! TOLAKAN STOCK
+        sb.AppendLine("SELECT obi_prdcd ")
+        sb.AppendLine("FROM tbtr_obi_d ")
+        sb.AppendLine("LEFT JOIN tbmaster_stock ")
+        sb.AppendLine("ON st_prdcd = SUBSTR(obi_prdcd,1,6) || '0' ")
+        sb.AppendLine("WHERE DATE_TRUNC('DAY',obi_tgltrans) = ".Carbon::parse($tglTrans)->format('Y-m-d H:i:s')." ")
+        sb.AppendLine("AND obi_notrans = '" . $notrans . "' ")
+        sb.AppendLine("AND obi_recid IS NULL ")
+        sb.AppendLine("AND st_lokasi = '01' ")
+        sb.AppendLine("AND COALESCE(st_saldoakhir,0) < obi_qtyorder ")
+        sb.AppendLine("ORDER BY obi_prdcd ASC ")
+        $dtCek = DB::select($query);
+
+        $txtPlu = '';
+        foreach($dtCek as $item){
+            $txtPlu .= $item->plu . ',';
+        }
+
+        if($txtPlu != ''){
+            //! Stock Item berikut tidak mencukupi :
+        }
+
+        //! TOLAKAN QTY PLANO
+        sb.AppendLine("SELECT plu ")
+        sb.AppendLine("FROM ( ")
+        sb.AppendLine("    SELECT SUBSTR(obi_prdcd, 1, 6) || '0' plu, ")
+        sb.AppendLine("        SUM(obi_qtyorder) qtyorder ")
+        sb.AppendLine("    FROM tbtr_obi_d ")
+        sb.AppendLine("    WHERE DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ")
+        sb.AppendLine("        AND obi_notrans = '" & notrans & "' ")
+        sb.AppendLine("        AND obi_recid IS NULL ")
+        sb.AppendLine("    GROUP BY SUBSTR(obi_prdcd, 1, 6) ")
+        sb.AppendLine(") ")
+        sb.AppendLine("LEFT JOIN ( ")
+        sb.AppendLine("    SELECT lks_prdcd, ")
+        sb.AppendLine("        SUM(lks_qty) qtyLPP ")
+        sb.AppendLine("    FROM tbmaster_lokasi ")
+        sb.AppendLine("    JOIN tbtr_obi_d ON lks_prdcd = obi_prdcd ")
+        sb.AppendLine("    WHERE DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ")
+        sb.AppendLine("        AND obi_notrans = '" & notrans & "' ")
+        sb.AppendLine("        AND obi_recid IS NULL     ")
+        sb.AppendLine("    GROUP BY lks_prdcd ")
+        sb.AppendLine(") ON lks_prdcd = plu ")
+        sb.AppendLine("WHERE qtyLPP < qtyorder ")
+        sb.AppendLine("ORDER BY plu ASC ")
+        $dtCek = DB::select($query);
+
+        $txtPlu = '';
+        foreach($dtCek as $item){
+            $txtPlu .= $item->plu . ',';
+        }
+
+        if($txtPlu != ''){
+            //! Item berikut Qty Plano tidak memenuhi Qty PB :
+        }
+
+        DB::beginTransaction();
+        try {
+
+            $sukses = $this->sendJalur_SPI($memberigr, $nopb, $notrans, $tgltrans, $noPick, $noSJ);
+
+            if($sukses == true){
+                Sql += "UPDATE TBTR_OBI_H SET OBI_RECID = '1', OBI_SENDPICK = NOW(), "
+                Sql += " OBI_NOPICK = '" & noPick & "', OBI_NOSJ = '" & noSJ & "', OBI_FLAGSENDHH = '1' "
+                Sql += "WHERE DATE_TRUNC('DAY',OBI_TGLTRANS) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') "
+                Sql += "AND OBI_NOPB = '" & nopb & "' "
+                Sql += "AND OBI_KDMEMBER = '" & memberigr & "' "
+                Sql += "AND OBI_NOTRANS = '" & notrans & "' "
+                Sql += "AND OBI_RECID IS NULL "
+
+                $this->rptPickingList999($tgltrans, $notrans, $nopb, $memberigr, True);
+
+                $this->logUpdateStatus($notrans, $tgltrans, $nopb, "1", "2");
+            }
+
+        } catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            return ApiFormatter::error(400, $message);
+        }
+    }
+
+    private function sendHH($dgv_nopb, $dgv_notrans, $dgv_memberigr, $dtTrans, $cbPickRakToko){
+        $nopb = $dgv_nopb;
+        $notrans = $dgv_notrans;
+        $tgltrans = $dtTrans;
+        $memberigr = $dgv_memberigr;
+        $listPLUMasalah = [];
+
+        //! TOLAKAN TAG TIDAK BOLEH JUAL
+        $query = '';
+        $query .= "SELECT obi_prdcd  ";
+        $query .= "FROM tbtr_obi_d  ";
+        $query .= "WHERE DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy')  ";
+        $query .= "AND obi_notrans = '" & notrans & "' ";
+        $query .= "AND obi_recid IS NULL ";
+        $query .= "AND EXISTS ( ";
+        $query .= "  SELECT tag_kodetag ";
+        $query .= "  FROM tbmaster_prodmast ";
+        $query .= "  JOIN tbmaster_tag  ";
+        $query .= "  ON tag_kodetag = prd_kodetag ";
+        $query .= "  AND COALESCE(tag_tidakbolehjual,'N') = 'Y' ";
+        $query .= "  WHERE prd_prdcd = obi_prdcd ";
+        $query .= ") ";
+        $dtCek = DB::select($query);
+
+        $txtPlu = '';
+        foreach($dtCek as $item){
+
+            $listPLUMasalah[] = $item->obi_prdcd;
+
+            $txtPlu .= $item->obi_prdcd . ',';
+        }
+
+        if($txtPlu != ''){
+            //! Terdapat PLU dengan Tag Tidak Boleh Jual:
+        }
+
+        //! CEK ITEM UNIT KG
+        $query = '';
+        $query .= "SELECT obi_prdcd  ";
+        $query .= "FROM tbtr_obi_d  ";
+        $query .= "JOIN tbmaster_prodmast ";
+        $query .= "ON prd_prdcd = obi_prdcd ";
+        $query .= "WHERE DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ";
+        $query .= "AND obi_notrans = '" & notrans & "' ";
+        $query .= "AND obi_recid IS NULL ";
+        $query .= "AND COALESCE(prd_unit,'PCS') = 'KG' ";
+        $dt = DB::select($query);
+
+        $flagKG = True;
+        foreach($dt as $item){
+
+            //! CEK DATA KONVERSI ITEM UNIT KG
+            sb.AppendLine("SELECT obi_prdcd  ")
+            sb.AppendLine("FROM tbtr_obi_d  ")
+            sb.AppendLine("JOIN tbmaster_prodmast ")
+            sb.AppendLine("ON prd_prdcd = obi_prdcd ")
+            sb.AppendLine("WHERE DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ")
+            sb.AppendLine("AND obi_notrans = '" & notrans & "' ")
+            sb.AppendLine("AND obi_recid IS NULL ")
+            sb.AppendLine("AND COALESCE(prd_unit,'PCS') = 'KG' ")
+            sb.AppendLine("AND NOT EXISTS ( ")
+            sb.AppendLine("  SELECT 1 ")
+            sb.AppendLine("  FROM konversi_item_klikigr ")
+            sb.AppendLine("  WHERE substr(obi_prdcd, 1, 6) || '0' = substr(pluigr, 1, 6) || '0' ")
+            sb.AppendLine(") ")
+
+            $txtPlu = '';
+            foreach($dtCek as $item){
+
+                $listPLUMasalah[] = $item->obi_prdcd;
+
+                $txtPlu .= $item->obi_prdcd . ',';
+            }
+
+            if($txtPlu != ''){
+                //! Terdapat PLU yang tidak ada data Konversi-nya: " & plu & " pada nomor pb " & nopb
+            }
+
+            //! KASIH FLAG OBI_ITEMKG DI TBTR_OBI_D
+            sb.AppendLine("UPDATE tbtr_obi_d ")
+            sb.AppendLine("SET obi_itemkg = 1, ")
+            sb.AppendLine("obi_qtyrealisasi = obi_qtyorder, ")
+            sb.AppendLine("obi_pick_dt = NOW(), ")
+            sb.AppendLine("obi_close_dt = NOW(), ")
+            sb.AppendLine("obi_urut_pick = 1, ")
+            sb.AppendLine("obi_picker = 'PER' ")
+            sb.AppendLine("WHERE DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ")
+            sb.AppendLine("AND obi_notrans = '" & notrans & "' ")
+            sb.AppendLine("AND obi_recid IS NULL ")
+            sb.AppendLine("AND EXISTS ( ")
+            sb.AppendLine(" SELECT prd_unit ")
+            sb.AppendLine(" FROM tbmaster_prodmast ")
+            sb.AppendLine(" WHERE prd_prdcd = obi_prdcd ")
+            sb.AppendLine(" AND COALESCE(prd_unit,'PCS') = 'KG' ")
+            sb.AppendLine(") ")
+
+        }else{
+            $flagKG = false;
+        }
+
+        //! GROUP PICKING
+        $query = '';
+        $query .= "SELECT pk_group ";
+        $query .= "FROM ( ";
+        $query .= "  SELECT pk_group, count(1) jml ";
+        $query .= "  FROM picker_klik ";
+        $query .= "  WHERE pk_group IS NOT NULL ";
+        $query .= "  GROUP BY pk_group ";
+        $query .= "  ORDER BY jml DESC ";
+        $query .= ") AS dt ";
+        $query .= "limit 1 ";
+        $groupPickingTerbanyak = DB::select($query)[0]->pk_group;
+
+        if($groupPickingTerbanyak == ''){
+            throw new HttpResponseException(ApiFormatter::error(400, 'Master Group Picking Belum Disetting'));
+        }
+
+        $query = '';
+        $query .= "SELECT DISTINCT rak ";
+        $query .= "FROM ( ";
+        $query .= "    SELECT DISTINCT MIN(lks_koderak || '.' || lks_kodesubrak) rak, lks_prdcd ";
+        $query .= "    FROM tbmaster_lokasi ";
+
+        if($cbPickRakToko){
+            $query .= "    WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+        }else{
+            $query .= "    WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+        }
+
+        $query .= "    AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+        $query .= "    AND COALESCE(lks_noid,'99999') NOT LIKE ( ";
+        $query .= "        CASE WHEN ( ";
+        $query .= "            SELECT COUNT(1) ";
+        $query .= "            FROM tbmaster_lokasi ";
+
+        if($cbPickRakToko){
+            $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+        }else{
+            $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+        }
+
+        $query .= "            AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+        $query .= "            AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
+        $query .= "            AND EXISTS ( ";
+        $query .= "                SELECT obi_prdcd ";
+        $query .= "                FROM tbtr_obi_d ";
+        $query .= "                WHERE obi_recid IS NULL AND coalesce(obi_itemkg,0) = 0 ";
+        $query .= "                    AND DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ";
+        $query .= "                    AND obi_notrans = '" & notrans & "' ";
+        $query .= "                    AND substr(obi_prdcd,1,6) || '0' = lks_prdcd ";
+        $query .= "            ) ";
+        $query .= "        ) != '0' THEN '%B' ELSE '99999' END ";
+        $query .= "    ) ";
+        $query .= "    AND EXISTS ( ";
+        $query .= "        SELECT obi_prdcd ";
+        $query .= "        FROM tbtr_obi_d ";
+        $query .= "        WHERE obi_recid IS NULL AND coalesce(obi_itemkg,0) = 0 ";
+        $query .= "            AND DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ";
+        $query .= "            AND obi_notrans = '" & notrans & "' ";
+        $query .= "            AND substr(obi_prdcd,1,6) || '0' = lks_prdcd ";
+        $query .= "    ) ";
+        $query .= "    GROUP BY lks_prdcd ";
+        $query .= ") list_rak ";
+        $query .= "WHERE NOT EXISTS ( ";
+        $query .= "	   SELECT pk_userid ";
+        $query .= "	   FROM picker_klik ";
+        $query .= "	   WHERE pk_koderak || '.' || pk_kodesubrak  = rak ";
+        $query .= "		   AND pk_group = '" & groupPickingTerbanyak & "' ";
+        $query .= ") ORDER BY 1 ";
+        $dt = DB::select($query);
+
+        $lok = '';
+        foreach($dt as $item){
+            $lok += $item->rak . ',';
+
+            //* Master Picking Belum Disetting Untuk: " & lok & " pada nomor pb " & nopb
+        }
+
+        $query = '';
+        $query .= "SELECT COUNT(1) FROM ( ";
+        $query .= "    SELECT D.*, COALESCE( ";
+        $query .= "        ( ";
+        $query .= "            SELECT COUNT(1) ";
+        $query .= "            FROM tbmaster_lokasi ";
+
+        if($cbPickRakToko){
+            $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+        }else{
+            $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+        }
+
+        $query .= "                AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+        $query .= "                AND COALESCE(lks_noid,'99999') NOT LIKE ( ";
+        $query .= "                    CASE WHEN ( ";
+        $query .= "                        SELECT COUNT(1) ";
+        $query .= "                        FROM tbmaster_lokasi ";
+
+        if($cbPickRakToko){
+            $query .= "                        WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+        }else{
+            $query .= "                        WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+        }
+
+        $query .= "                            AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+        $query .= "                            AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
+        $query .= "                            AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+        $query .= "                    ) != '0' THEN '%B' ELSE '99999' END ";
+        $query .= "                ) ";
+        $query .= "                AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+        $query .= "        ),0 ";
+        $query .= "    ) LOKASI FROM TBTR_OBI_D D ";
+        $query .= "    WHERE OBI_TGLTRANS = :OBI_TGLTRANS ";
+        $query .= "		   AND OBI_NOTRANS = :OBI_NOTRANS ";
+        $query .= "		   AND OBI_RECID IS NULL ";
+        $query .= "		   AND COALESCE(OBI_ITEMKG,0) = 0 ";
+        $query .= ") WHERE LOKASI = 0 ";
+        $pluDouble = DB::select($query);
+
+        if(count($pluDouble) > 0){
+            $query .= "SELECT obi_prdcd FROM ( ";
+            $query .= "    SELECT D.*, COALESCE( ";
+            $query .= "        ( ";
+            $query .= "            SELECT COUNT(1) ";
+            $query .= "            FROM tbmaster_lokasi ";
+
+            if($cbPickRakToko){
+                $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+            }else{
+                $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+            }
+
+            $query .= "                AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+            $query .= "                AND COALESCE(lks_noid,'99999') NOT LIKE ( ";
+            $query .= "                    CASE WHEN ( ";
+            $query .= "                        SELECT COUNT(1) ";
+            $query .= "                        FROM tbmaster_lokasi ";
+
+            if($cbPickRakToko){
+                $query .= "                        WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+            }else{
+                $query .= "                        WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+            }
+
+            $query .= "                            AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+            $query .= "                            AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
+            $query .= "                            AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+            $query .= "                    ) != '0' THEN '%B' ELSE '99999' END ";
+            $query .= "                ) ";
+            $query .= "                AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+            $query .= "        ),0 ";
+            $query .= "    ) LOKASI FROM TBTR_OBI_D D ";
+            $query .= "    WHERE OBI_TGLTRANS = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ";
+            $query .= "		   AND OBI_NOTRANS = '" & notrans & "' ";
+            $query .= "		   AND OBI_RECID IS NULL ";
+            $query .= "		   AND COALESCE(OBI_ITEMKG,0) = 0 ";
+            $query .= ") WHERE LOKASI = 0 ";
+            $dt = DB::select($query);
+
+            // logPLUtanpaLokasi(nopb, dtprdcd)
+
+            foreach($dt as $item2){
+                $listPLUMasalah[] = $item2->obi_prdcd;
+            }
+
+            //* Ada " & pluDouble & " Plu: " & plu & " Yang Tidak Punya Lokasi!
+
+        }else{
+
+            $query = '';
+            $query .= "SELECT obi_prdcd, obi_itemkg ";
+            $query .= "FROM tbtr_obi_d ";
+            $query .= "WHERE OBI_TGLTRANS = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ";
+            $query .= "AND OBI_NOTRANS = '" & notrans & "' ";
+            $query .= "AND OBI_RECID IS NULL ";
+            $query .= "AND OBI_ITEMKG IS NULL ";
+            $query .= "AND NOT EXISTS ( ";
+            $query .= "  SELECT pluigr ";
+            $query .= "  FROM konversi_item_klikigr ";
+            $query .= "  WHERE SUBSTR(PLUIGR,1,6) || '0' = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+            $query .= "  AND SAT_JUAL = 'KG' ";
+            $query .= ")";
+            $dtNonPerishable = DB::select($query);
+
+            $query .= "SELECT obi_prdcd, obi_itemkg, sat_jual ";
+            $query .= "FROM tbtr_obi_d ";
+            $query .= "JOIN konversi_item_klikigr ";
+            $query .= "ON SUBSTR(PLUIGR,1,6) || '0' = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+            $query .= "WHERE OBI_TGLTRANS = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ";
+            $query .= "AND OBI_NOTRANS = '" & notrans & "' ";
+            $query .= "AND OBI_RECID IS NULL ";
+            $query .= "AND OBI_ITEMKG = 1 ";
+            $query .= "AND SAT_JUAL = 'KG' ";
+            $dtPerishable = DB::select($query);
+
+            $query .= "UPDATE TBTR_OBI_H ";
+            if(count($dtNonPerishable) == 0 AND count($dtPerishable) > 0){
+                $query .= "SET OBI_RECID = '2', ";
+            }else{
+                $query .= "SET OBI_RECID = '1', ";
+            }
+
+            $query .= "    OBI_SENDPICK = NOW(), ";
+            $query .= "    OBI_FLAGSENDHH = '2' ";
+            if(count($dtNonPerishable) == 0 AND count($dtPerishable) > 0){
+                $query .= ", obi_selesaipick = NOW() ";
+            }
+            $query .= "WHERE OBI_TGLTRANS = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ";
+            $query .= "AND OBI_NOPB ='" & nopb & "' ";
+            $query .= "AND OBI_KDMEMBER ='" & memberigr & "' ";
+            $query .= "AND OBI_NOTRANS ='" & notrans & "'";
+            $query .= "AND OBI_RECID IS NULL ";
+
+            if(count($dtNonPerishable) == 0 AND count($dtPerishable) > 0){
+                sb.AppendLine("UPDATE tbtr_obi_d ")
+                sb.AppendLine("   SET obi_close_dt = Current_date ")
+                sb.AppendLine("WHERE DATE_TRUNC('DAY',OBI_TGLTRANS) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ")
+                sb.AppendLine("AND OBI_NOTRANS = '" & notrans & "' ")
+                sb.AppendLine("AND OBI_RECID IS NULL ")
+            }
+
+            //! Update lokasi picking rak biasa
+            sb.AppendLine("UPDATE tbtr_obi_d ")
+            sb.AppendLine("SET (obi_koderak, obi_kodesubrak, obi_tiperak, obi_shelvingrak, obi_nourut) ")
+            sb.AppendLine("  = ( ")
+            sb.AppendLine("	SELECT lks_koderak, lks_kodesubrak, lks_tiperak, lks_shelvingrak, lks_nourut ")
+            sb.AppendLine("	FROM ( ")
+            sb.AppendLine("		SELECT lks_koderak, lks_kodesubrak, lks_tiperak, lks_shelvingrak, lks_nourut, lks_prdcd ")
+            sb.AppendLine("		FROM tbmaster_lokasi ")
+            sb.AppendLine("		JOIN picker_klik ")
+            sb.AppendLine("		ON pk_koderak = lks_koderak ")
+            sb.AppendLine("			AND pk_kodesubrak = lks_kodesubrak ")
+            sb.AppendLine("			AND pk_group = '" & groupPickingTerbanyak & "' ")
+            sb.AppendLine("		WHERE ( ")
+
+            if($cbPickRakToko){
+                sb.AppendLine("		lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%' ")
+            }else{
+                sb.AppendLine("		lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%' ")
+            }
+
+            sb.AppendLine("		) ")
+            sb.AppendLine("			AND ( ")
+            sb.AppendLine("			lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%' ")
+            sb.AppendLine("			) ")
+            sb.AppendLine("			AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ")
+            sb.AppendLine("		ORDER BY coalesce(lks_noid,'99999') ASC, SUBSTR(lks_koderak,0,1) ASC, pk_urutan ASC ")
+            sb.AppendLine("		) AS datas")
+            sb.AppendLine("	WHERE lks_prdcd = SUBSTR(obi_prdcd, 1, 6) || '0' ")
+            sb.AppendLine("	LIMIT 1 ")
+            sb.AppendLine("  ) ")
+            sb.AppendLine("WHERE OBI_RECID IS NULL AND COALESCE(OBI_ITEMKG,0) = 0 ")
+            sb.AppendLine("AND DATE_TRUNC('DAY',OBI_TGLTRANS) = TO_DATE('" & tgltrans & "','dd-MM-yyyy') ")
+            sb.AppendLine("AND OBI_NOTRANS = '" & notrans & "' ")
+        }
+    }
+
     private function ulangPicking($dgv_notrans, $dgv_nopb){
 
         DB::table('tbtr_obi_h')->where([
