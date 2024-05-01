@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
 
-class DspbRotiExport implements FromCollection, WithHeadings
+class GeneralExcelExport implements FromCollection, WithHeadings
 {
     /**
     * @return \Illuminate\Support\Collection

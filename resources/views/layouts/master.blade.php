@@ -143,6 +143,12 @@
             $(element).val(today).trigger('change');
         }
 
+        function setTimeNow(element) {
+            var currentTime = moment().format('HH:mm');
+            $(element).val(currentTime).trigger('change');
+        }
+
+
         function fungsiRupiah(angka){
             var number_string = angka.toString().replace(/[^,\d]/g, '').toString(),
             split   		= number_string.split('.'),

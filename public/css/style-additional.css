@@ -118,22 +118,44 @@ select:hover{
     color: white;
 }
 
+.brightness-blur {
+    filter: brightness(0.5) blur(2px) !important;
+    -webkit-filter: brightness(0.5) blur(2px) !important;
+}
+
 .btn-cust-success:not([disabled]):hover{
     background-color: #33944a;
     border-color: #33944a;
     color: white;
 }
 
+.group-inline > * {
+    display: inline-block!important;
+}
+
+.group-inline > label{
+    width: 150px;
+    margin-right: 15px;
+}
+
+.table td, .table th{
+    vertical-align: middle!important;
+}
+
+.btn:hover{
+    transition: .3s;
+}
+
 .btn-royal{
     background-color: #6E214A;
     border-color: #6E214A;
-    color: white;
+    color: white!important;
 }
 
 .btn-royal:not([disabled]):hover{
     background-color: #42142c;
     border-color: #42142c;
-    color: white;
+    color: white!important;
 }
 
 .select-r td {
@@ -206,4 +228,8 @@ select:hover{
 
 table thead th, table tbody td{
     vertical-align: middle!important;
+}
+
+.bg-teal{
+    background-color: #008080!important;
 }

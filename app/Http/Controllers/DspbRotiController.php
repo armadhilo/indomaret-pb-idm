@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 ini_set('max_execution_time', '0');
 
-use App\Exports\DspbRotiExport;
+use App\Exports\GeneralExcelExport;
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
 use App\Http\Requests\CetakDspbRequest;
@@ -634,7 +634,7 @@ class DspbRotiController extends Controller
     }
 
     private function writeCSV($tempDir, $nameFile, $check){
-        $fileContent = Excel::raw(new DspbRotiExport($check), \Maatwebsite\Excel\Excel::CSV);
+        $fileContent = Excel::raw(new GeneralExcelExport($check), \Maatwebsite\Excel\Excel::CSV);
         file_put_contents($tempDir . '/zip/' . $nameFile . ".csv", $fileContent);
     }
 

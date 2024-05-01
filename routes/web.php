@@ -50,9 +50,19 @@ Route::get('/logout', [LoginController::class, 'logout']);
     
     Route::group(['prefix' => 'klik-igr'], function(){
         Route::get('/', [KlikIgrController::class, 'index']);
-        Route::get('/datatables', [KlikIgrController::class, 'datatables']);
-
+        Route::get('/datatables/{tanggal_trans}/{statusSiapPicking}/{statusSiapPacking}', [KlikIgrController::class, 'datatables']);
+        Route::post('/password-manager', [KlikIgrController::class, 'passwordManager']);
+        
         Route::group(['prefix' => 'action'], function(){
+            Route::get("/f1-download-excel", [KlikIgrController::class, 'actionF1DownloadCSV']);
+            Route::post("/f4-validasi-rak", [KlikIgrController::class, 'actionF4ValidasiRak']);
+            Route::post("/f4-item-batal", [KlikIgrController::class, 'actionF4ItemBatal']);
+            Route::post("/f4-cetak-item-batal", [KlikIgrController::class, 'actionF4PrintItemBatal']);
+            $functionKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12'];
+
+            foreach ($functionKeys as $key) {
+                Route::post("/$key", [KlikIgrController::class, "action$key"]);
+            }
         });
     });
 
