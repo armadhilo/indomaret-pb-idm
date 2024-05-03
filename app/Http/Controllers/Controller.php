@@ -75,25 +75,70 @@ class Controller extends BaseController
         }
     }
 
-    private function ConToWebServiceNew($endpoint, $apiName, $apiKey, $postData = []){
+    private function ORADataFound($table, $where){
+        $cek = DB::table($table)
+            ->whereRaw($where)
+            ->count();
+
+        if($cek == 0){
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    private function ConToWebService($endpoint, $postData = []){
+
+        //! INFO DARI PIHAK IDM PROSES DI COMMENT AJA
+        //! LANGSUNG RETURN TRUE
+        //! FR KEVIN (INFO PAK EVAN 02/05/2024)
+
         $headers = [
-            'Authorization' => 'Bearer your_access_token',
-            $apiName => $apiKey,
+            'X-Authorization' => '4b8bf8518b027f7adbf0e6c367ccb204b397566e',
         ];
 
         $body = $postData;
 
-        // Make the HTTP request
+        //* Make the HTTP request
         $response = Http::withHeaders($headers)
             ->post($endpoint, $body);
 
-        //get data
+        //* get data
         if($response->status() == 200){
             return true;
         }else{
             $message = "Proses update status gagal, terjadi kesalahan pada Web Service ($response)";
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
+
+        return true;
+    }
+
+    private function ConToWebServiceNew($endpoint, $apiName, $apiKey, $postData = []){
+
+        //! INFO DARI PIHAK IDM PROSES DI COMMENT AJA
+        //! LANGSUNG RETURN TRUE
+        //! FR KEVIN (INFO PAK EVAN 02/05/2024)
+        // $headers = [
+        //     'Authorization' => 'Bearer your_access_token',
+        //     $apiName => $apiKey,
+        // ];
+
+        // $body = $postData;
+
+        // // Make the HTTP request
+        // $response = Http::withHeaders($headers)
+        //     ->post($endpoint, $body);
+
+        // //get data
+        // if($response->status() == 200){
+        //     return true;
+        // }else{
+        //     $message = "Proses update status gagal, terjadi kesalahan pada Web Service ($response)";
+        //     throw new HttpResponseException(ApiFormatter::error(400, $message));
+        // }
+
+        return true;
     }
 
     public function logUpdateStatus($notrans, $tgltrans, $nopb, $statusBaru, $statusKlik){

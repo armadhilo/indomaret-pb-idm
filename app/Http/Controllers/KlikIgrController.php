@@ -18,6 +18,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class KlikIgrController extends Controller
 {
 
+    protected $kodeDGV = 0;
+
     public function __construct(Request $request){
         DatabaseConnection::setConnection(session('KODECABANG'), "PRODUCTION");
     }
@@ -221,7 +223,7 @@ class KlikIgrController extends Controller
 
     public function passwordManager(Request $request){
         if($request->mode === "isOTP"){
-            $now = now(); 
+            $now = now();
             $passOTP = ($now->day + $now->hour + 10) * 12345;
             $strPassOTP = strval($passOTP);
             if($request->input('password_manager') == $strPassOTP){
@@ -401,7 +403,7 @@ class KlikIgrController extends Controller
                 $query .= "WHERE obi_notrans = '" . $request->no_trans . "' ";
                 $query .= "AND obi_prdcd = '" . $item["plu"] . "' ";
                 $query .= "AND obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_nopb = '" . $request->nopb . "') ";
-        
+
                 DB::update($query);
             }
 
@@ -409,9 +411,9 @@ class KlikIgrController extends Controller
             return ApiFormatter::success(200, 'Berhasil Validasi Rak');
 
         } catch(\Exception $e){
-            
+
             DB::rollBack();
-            
+
             $message = "Oops! Something wrong ( $e )";
             return ApiFormatter::error(400, $message);
         }
@@ -419,7 +421,7 @@ class KlikIgrController extends Controller
 
     public function actionF4ItemBatal(Request $request){
         DB::beginTransaction();
-	    try{    
+	    try{
             foreach ($request->datatables as $item){
                 $query = "";
                 $query .= "INSERT INTO tbhistory_obi_batal ( ";
@@ -444,7 +446,7 @@ class KlikIgrController extends Controller
                 $query .= "    AND obi_prdcd = '" . $item["plu"] . "' ";
                 $query .= "    AND obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_nopb = '" . $request->nopb . "') ";
                 DB::insert($query);
-    
+
                 $query = "";
                 if ($item["qty_realisasi"] === 0) {
                     $query .= "UPDATE tbtr_obi_d SET obi_recid = '2', ";
@@ -455,7 +457,7 @@ class KlikIgrController extends Controller
                 $query .= "WHERE obi_notrans = '" . $request->no_trans . "' AND obi_prdcd = '" . $item["plu"] . "' ";
                 $query .= "AND obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_nopb = '" . $request->nopb . "') ";
                 DB::update($query);
-    
+
                 $query = "";
                 $query .= "UPDATE TBTR_PACKING_OBI ";
                 $query .= "SET POBI_QTY = 0, ";
@@ -469,11 +471,11 @@ class KlikIgrController extends Controller
 
             DB::commit();
             return $this->actionF4PrintItemBatal($request);
-    
+
         } catch(\Exception $e){
-            
+
             DB::rollBack();
-            
+
             $message = "Oops! Something wrong ( $e )";
             return ApiFormatter::error(400, $message);
         }
@@ -555,7 +557,7 @@ class KlikIgrController extends Controller
         }
 
         DB::beginTransaction();
-	    try{  
+	    try{
             $query = "";
             $query .= "SELECT obi_nopb ";
             $query .= "FROM tbtr_obi_h ";
@@ -617,9 +619,9 @@ class KlikIgrController extends Controller
 
 
         } catch(\Exception $e){
-            
+
             DB::rollBack();
-            
+
             $message = "Gagal Update Data Struk";
             return ApiFormatter::error(400, $message);
         }
@@ -637,7 +639,7 @@ class KlikIgrController extends Controller
             if($data["status"] === false){
                 return ApiFormatter::error(400, $data["message"]);
             }
-            $pdf = PDF::loadView('pdf.rpt-jalur-kertas', $data['data']);    
+            $pdf = PDF::loadView('pdf.rpt-jalur-kertas', $data['data']);
             return response($pdf->output())
                 ->header('Content-Type', 'application/pdf')
                 ->header('Content-Disposition', 'attachment; filename="RPT-JALUR-KERTAS.pdf"');
@@ -808,6 +810,8 @@ class KlikIgrController extends Controller
             //     Sql = "SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'WS_KLIK'"
             // End If
 
+            // Dim urlCODVA = dtWebService.Rows(0).Item("WS_URL").ToString
+
             // urlMasterPayment = urlCODVA & "/getmasterpayment"
             // urlCreatePaymentChange = urlCODVA & "/createpaymentchange"
             // urlCekPaymentChangeStatus = urlCODVA & "/cekpaymentchangestatus"
@@ -835,7 +839,7 @@ class KlikIgrController extends Controller
     }
 
     //* btnSales_Click
-    public function actionSales($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_tipebayar, $dgv_tglpb, $dgv_kodeweb, $dgv_memberigr, $dgv_tipe_kredit, $dtTrans){
+    public function actionSales($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_tipebayar, $dgv_tglpb, $dgv_kodeweb, $dgv_memberigr, $dgv_tipe_kredit, $dtTrans, $urlUpdateRealisasiKlik){
         $trxid = substr($dgv_nopb, 0, 6);
 
         if(!isset($dgv_notrans)){
@@ -857,7 +861,7 @@ class KlikIgrController extends Controller
             }else{
                 PrintStruk:
 
-                $this->InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar);
+                $this->InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar, $urlUpdateRealisasiKlik);
             }
 
         }else{
@@ -869,7 +873,1042 @@ class KlikIgrController extends Controller
         }
     }
 
-    private function InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar){
+    //! btnCetakSJ_Click
+    public function actionCetakSuratJalan($dgv_notrans, $dgv_status, $dtTrans, $dgv_freeongkir, $dgv_nopb, $dgv_memberigr, $dgv_kodeWeb, $dgv_flagBayar){
+        if(!isset($dgv_notrans)){
+            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+        }
+
+        if(!$dgv_status != 'Siap Struk' AND $dgv_status != 'Selesai Struk'){
+            return ApiFormatter::error(400, 'Bukan Data yang Sudah Selesai Struk!');
+        }
+
+        if(session('flagSPI') == true){
+            if($dgv_freeongkir == 'T'){
+                if(session('flagIGR')){
+                    return ApiFormatter::error(400, 'Pesanan diambil di Toko IGR!');
+                }else{
+                    return ApiFormatter::error(400, 'Pesanan diambil di Toko SPI!');
+                }
+            }
+        }
+
+        $koliFound = DB::table('TBTR_PACKING_OBI')
+            ->whereRaw("POBI_NOTRANSAKSI='" & $dgv_notrans & "' and DATE_TRUNC('DAY',pobi_tgltransaksi) = ".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')." ")
+            ->first();
+
+        if(!empty($koliFound)){
+            if(session('flagSPI')){
+                $this->rptSuratJalanSPI($dgv_nopb, $dgv_notrans, $dgv_memberigr, $dtTrans, $dgv_flagBayar);
+            }else{
+                $this->rptSuratJalan($dgv_notrans, $dgv_kodeWeb, $dgv_nopb, $dgv_memberigr, $dgv_freeongkir, $dgv_flagBayar, $dtTrans);
+            }
+        }
+    }
+
+    //! btnCetakIIK_Click
+    public function actionCetakIKK($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_kodeWeb, $dgv_tglpb){
+
+        //* Cetak Informasi Koli " & vbCrLf & "No Trans = " & dgv_notrans & " Ini?
+
+        if($this->kodeDGV != 1){
+            return ApiFormatter::error(400, 'Kembali ke list utama!');
+        }
+
+        if(!isset($dgv_notrans)){
+            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+        }
+
+        if(!$dgv_status != 'Siap Struk' AND $dgv_status != 'Selesai Struk' AND $dgv_status != 'Konfirmasi Pembayaran'){
+            return ApiFormatter::error(400, 'Bukan Data Yang Siap Struk atau Selesai Struk!');
+        }
+
+        $dtBarc = DB::select("SELECT DISTINCT pobi_nocontainer from tbtr_packing_obi join tbtr_obi_h on pobi_notransaksi = obi_notrans and pobi_tgltransaksi = obi_tgltrans WHERE pobi_notransaksi = '" . $dgv_notrans . "' AND obi_nopb = '" . $dgv_nopb . "'");
+        if(count($dtBarc) == 0){
+            return ApiFormatter::error(400, 'Tidak ada Data!');
+        }
+
+        //! DOWNLOAD DALAM BENTUK ZIP
+        foreach($dtBarc as $item){
+            $this->PrintNotaIIK($dgv_notrans, $item->pobi_nocontainer, $dgv_kodeWeb, $dgv_nopb, $dgv_tglpb);
+        }
+    }
+
+    //! btnPBBatal_Click
+    public function actionListItemPBBatal(){
+        if(session('flagSPI') == true){
+            $this->cekPBAkanBatal();
+        }else{
+            $this->cekItemBatal(true);
+        }
+    }
+
+    //! btnIntransit_Click
+    public function actionItemPickingBelumTransit(){
+        $query = '';
+        $query .= "WITH tbtr_obi AS ( ";
+        $query .= "  SELECT substr(obi_prdcd, 1,6) || '0' obi_prdcd,  ";
+        $query .= "         SUM(COALESCE(obi_qtyrealisasi,0)) obi_qtyrealisasi ";
+        $query .= "  FROM tbtr_obi_d d ";
+        $query .= "  JOIN tbtr_obi_h h ";
+        $query .= "  ON h.obi_notrans = d.obi_notrans ";
+        $query .= "  AND DATE_TRUNC('DAY',h.obi_tgltrans) = DATE_TRUNC('DAY',d.obi_tgltrans) ";
+        $query .= "  WHERE DATE_TRUNC('DAY',h.obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE - 30)  ";
+
+        if(session('flagSPI') == true){
+            $query .= "  AND UPPER(obi_nopb) LIKE '%SPI%' ";
+        }else{
+            $query .= "  AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+        }
+
+        $query .= "  AND (    ";
+        $query .= "        (COALESCE(h.obi_recid,'0') IN ('2','3','7') AND upper(h.obi_attribute2) IN ('KLIKIGR','CORP','SPI')) ";
+        $query .= "        OR (COALESCE(h.obi_recid,'0') IN ('2','3','7','4','5') AND upper(h.obi_attribute2) IN ('TMI')) ";
+        $query .= "      ) ";
+        $query .= "  AND d.obi_recid IS NULL ";
+        $query .= "  AND COALESCE(d.obi_qtyrealisasi,0) > 0  ";
+        $query .= "  GROUP BY substr(obi_prdcd, 1,6) || '0' ";
+        $query .= "  ORDER BY substr(obi_prdcd, 1,6) || '0' ";
+        $query .= ") ";
+        $query .= "SELECT ROWNUM NO, ";
+        $query .= "       prd_kodedivisi DIV, ";
+        $query .= "       prd_kodedepartement DEPT, ";
+        $query .= "       prd_kodekategoribarang KAT, ";
+        $query .= "       obi_prdcd PLU, ";
+        $query .= "       prd_deskripsipanjang DESKRIPSI, ";
+        $query .= "       (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) frac, ";
+        $query .= "       obi_qtyrealisasi total ";
+        $query .= "FROM tbtr_obi ";
+        $query .= "JOIN tbmaster_prodmast ";
+        $query .= "ON prd_prdcd = obi_prdcd ";
+        $query .= "WHERE prd_unit <> 'KG' ";
+        $dtItem = DB::select($query);
+
+        if(count($dtItem) == 0){
+            return ApiFormatter::error(400, 'Tidak ada data item belum DSP!');
+        }
+
+        //* buka form -> rptItemBelumDSP
+    }
+
+    //! btnLOPP_Click
+    public function actionLoppCod($kolomSortBy){
+
+        //* sebelum itu buka form -> frmSortingLOPP untuk mendapatkan value $kolomSortBy
+
+        $query = '';
+        $query .= "SELECT  ";
+        $query .= "  obi_kdmember kode_member, ";
+        $query .= "  obi_nopb kode_pesanan, ";
+        $query .= "  TO_CHAR(obi_draftstruk,'DD-MM-YYYY') tgl_dsp, ";
+        $query .= "  dsp_totalbayar nilai_dsp ";
+        $query .= "FROM tbtr_obi_h ";
+        $query .= "LEFT JOIN tbtr_dsp_spi ";
+        $query .= " ON dsp_nopb = obi_nopb ";
+        $query .= " AND dsp_notrans = obi_notrans ";
+        $query .= " AND DATE_TRUNC('DAY', dsp_tglpb) = DATE_TRUNC('DAY', obi_tglpb) ";
+        $query .= " AND dsp_kodemember = obi_kdmember ";
+        $query .= "WHERE obi_tipebayar = 'COD' ";
+        $query .= " AND COALESCE(obi_recid,'0') = '5' ";
+        if(session('flagSPI') == true){
+            $query .= " AND UPPER(obi_nopb) LIKE '%SPI%' ";
+        }else{
+            $query .= " AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+        }
+
+        switch ($kolomSortBy) {
+            case "Kode Member":
+                $query .= " ORDER BY obi_kdmember ";
+                break;
+            case "No PB":
+                $query .= " ORDER BY obi_nopb ";
+                break;
+            case "Tanggal DSP":
+                $query .= " ORDER BY obi_draftstruk ";
+                break;
+            case "Nilai DSP":
+                $query .= " ORDER BY dsp_totalbayar ";
+                break;
+            default:
+                $query .= " ORDER BY obi_draftstruk ASC, kode_pesanan ASC, kode_member ASC ";
+                break;
+        }
+
+        $myDa = DB::select($query);
+
+        if(count($myDa) == 0){
+            return ApiFormatter::error(400, 'Tidak ada data LOPP - COD!');
+        }
+
+        //* form reportnya -> rptOutsCODSPI
+    }
+
+    //! btnMaxSertim_Click
+    public function actionListPBLebihDariMaxSerahTerima(){
+        $this->cekNotifMaxSerahTerima(true);
+    }
+
+    //! btnPicker_Click
+    public function actionMasterPickerHH(){
+        //* show form -> frmPickerKlik
+    }
+
+    //! btnDelivery_Click_New
+    public function actionListingDelivery($dgv_notrans, $dgv_status, $dgv_freeongkir){
+        //* Cetak Listing Delivery NoPB " & dgv_nopb & " ?
+
+        if(!isset($dgv_notrans)){
+            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+        }
+
+        if($dgv_status == 'Siap Struk' AND $dgv_status == 'Selesai Struk'){
+            return ApiFormatter::error(400, 'Bukan Data yang Sudah Selesai Struk!');
+        }
+
+        if($dgv_freeongkir == 'T'){
+            if(session('flagIGR')){
+                return ApiFormatter::error(400, 'Pesanan diambil di Toko IGR!');
+            }else{
+                return ApiFormatter::error(400, 'Pesanan diambil di Toko SPI!');
+            }
+        }
+
+        //* open form -> frmDeliverySPI_New
+
+        // nopol = fDelivery.noPol
+        // driver = fDelivery.driver
+        // deliveryman = fDelivery.deliveryman
+
+        //* jika ada data $noListing dan $tglListing pada frmDeliverySPI_New
+        // noListing = fDelivery.NoListingHistory
+        // tglListing = fDelivery.TglListingHistory
+
+        // If fDelivery.isHistory Then
+        //     noListing = fDelivery.NoListingHistory
+        //     tglListing = fDelivery.TglListingHistory
+        // Else
+
+
+            $noListing = DB::select("SELECT TO_CHAR(CURRENT_DATE, 'YYMMDD') || LPAD(nextval('seq_list_delivery_spi')::text, 5, '0') as noListing")[0]->noListing;
+            $tglListing = Carbon::now();
+
+            $query = '';
+            $query .= "INSERT INTO tbtr_delivery_spi ( ";
+            $query .= "  del_nolisting, ";
+            $query .= "  del_tglkirim, ";
+            $query .= "  del_tipebayar, ";
+            $query .= "  del_kodemember, ";
+            $query .= "  del_namamember, ";
+            $query .= "  del_alamat, ";
+            $query .= "  del_nopb, ";
+            $query .= "  del_tglpb, ";
+            $query .= "  del_nosp, ";
+            $query .= "  del_nilaisp, ";
+            $query .= "  del_nilaicod, ";
+            $query .= "  del_nopol, ";
+            $query .= "  del_driver, ";
+            $query .= "  del_deliveryman, ";
+            $query .= "  del_pincod, ";
+            $query .= "  del_create_by, ";
+            $query .= "  del_create_dt ";
+            $query .= ") ";
+            $query .= "SELECT  ";
+            $query .= "  '" . $noListing . "' no_kirim, ";
+            $query .= "  DATE_TRUNC('DAY', CURRENT_DATE) tgl_kirim, ";
+            $query .= "  CASE WHEN tipe_bayar = 'COD-POIN' THEN 'POIN' ";
+            $query .= "       WHEN tipe_bayar = 'COD-SALDO' THEN 'SALDO' ";
+            $query .= "  ELSE ";
+            $query .= "        ( ";
+            $query .= "            SELECT tipe_bayar2 ";
+            $query .= "            FROM ( ";
+            $query .= "                SELECT no_pb, tgl_trans, LISTAGG(tipe_bayar, ' . ') WITHIN GROUP (ORDER BY tipe_bayar) tipe_bayar2 ";
+            $query .= "                FROM payment_klikigr ";
+            $query .= "                GROUP BY no_pb, tgl_trans ";
+            $query .= "                ORDER BY tgl_trans DESC ";
+            $query .= "            ) ";
+            $query .= "            WHERE no_pb = obi_nopb ";
+            $query .= "                AND TO_CHAR(tgl_trans, 'dd-MM-YYYY') = TO_CHAR(obi_tglpb, 'dd-MM-YYYY') ";
+            $query .= "        ) ";
+            $query .= "  End tipe_bayar, ";
+            $query .= "  obi_kdmember kode_member, ";
+            $query .= "  amm_namapenerima nama_member, ";
+            $query .= "  amm_namaalamat alamat, ";
+            $query .= "  obi_nopb no_pb, ";
+            $query .= "  obi_tglpb tgl_pb, ";
+            $query .= "  COALESCE(obi_nostruk,'-') no_sp, ";
+            $query .= "  dsp_totaldsp nilai_sp, ";
+            $query .= "  CASE WHEN tipe_bayar <> 'COD' THEN 0 ELSE dsp_totalbayar END nilai_cod, ";
+            $query .= "  '" . $nopol . "' nopol, ";
+            $query .= "  '" . $driver . "' driver, ";
+            $query .= "  '" . $deliveryman . "' deliveryman, ";
+            $query .= "  CASE WHEN obi_tipebayar = 'COD' THEN obi_cod_pincode ELSE '-' END pincod, ";
+            $query .= "  '" . session('userid') . "' create_by, ";
+            $query .= "  NOW() create_dt ";
+            $query .= "FROM temp_delivery_spi ";
+            $query .= "JOIN tbtr_obi_h ";
+            $query .= " ON obi_nopb = no_pb ";
+            $query .= " AND obi_tglpb = TO_DATE(tgl_pb,'DD-MM-YYYY') ";
+            $query .= " AND obi_kdmember = kode_member ";
+            $query .= "JOIN tbtr_alamat_mm ";
+            $query .= " ON amm_nopb = no_pb ";
+            $query .= " AND amm_tglpb = TO_DATE(tgl_pb,'DD-MM-YYYY') ";
+            $query .= " AND amm_kodemember = kode_member ";
+            $query .= "LEFT JOIN tbtr_dsp_spi ";
+            $query .= " ON dsp_nopb = no_pb ";
+            $query .= " AND DATE_TRUNC('DAY',dsp_tglpb) = TO_DATE(tgl_pb,'DD-MM-YYYY') ";
+            $query .= " AND dsp_kodemember = kode_member ";
+            $query .= "WHERE ip = '" . $this->getIP() . "' ";
+            DB::insert($query);
+
+            //* UPDATE TBTR_DSP_SPI
+            $query = '';
+            $query .= " MERGE INTO tbtr_dsp_spi t ";
+            $query .= " USING ( ";
+            $query .= "  SELECT DISTINCT  ";
+            $query .= "    del_nolisting, ";
+            $query .= "    del_nopb, ";
+            $query .= "    del_tglpb, ";
+            $query .= "    del_kodemember ";
+            $query .= "  FROM tbtr_delivery_spi ";
+            $query .= "  WHERE del_nolisting = '" . $noListing . "' ";
+            $query .= "  AND DATE_TRUNC('DAY',del_tglkirim) = '" . Carbon::parse($tglListing)->format('Y-m-d H:i:s') . "' ";
+            $query .= " ) s ";
+            $query .= " ON ( ";
+            $query .= "       t.dsp_nopb = s.del_nopb ";
+            $query .= "   AND DATE_TRUNC('DAY',t.dsp_tglpb) = DATE_TRUNC('DAY',s.del_tglpb) ";
+            $query .= "   AND t.dsp_kodemember = s.del_kodemember ";
+            $query .= " ) ";
+            $query .= " WHEN MATCHED THEN ";
+            $query .= "   UPDATE SET t.dsp_nolisting = s.del_nolisting, ";
+            $query .= "              t.dsp_modify_by = '" . session('userid') . "', ";
+            $query .= "              t.dsp_modify_dt = CURRENT_DATE ";
+            DB::insert($query);
+        // End If
+
+        $query = '';
+        $query .= " SELECT DISTINCT ";
+        $query .= "   del_tipebayar tipebayar, ";
+        $query .= "   del_kodemember kode_member, ";
+        $query .= "   del_namamember nama_member, ";
+        $query .= "   del_nopb kode_pesanan, ";
+        $query .= "   del_alamat alamat, ";
+        $query .= "   del_nopb kode_pesanan, ";
+        $query .= "   del_nosp no_sp, ";
+        $query .= "   del_nilaisp nilai_sp, ";
+        $query .= "   del_nilaicod nilai_cod, ";
+        $query .= "   del_pincod pin_cod ";
+        $query .= " FROM tbtr_delivery_spi ";
+        $query .= " WHERE del_nolisting = '" . $noListing . "' ";
+        $query .= " AND DATE_TRUNC('DAY',del_tglkirim) = '" . Carbon::parse($tglListing)->format('Y-m-d H:i:s') . "' ";
+        $dtItem = DB::select($query);
+
+        if(count($dtItem) == 0){
+            return ApiFormatter::error(400, 'List Delivery tidak ditemukan.');
+        }
+
+        // rptDelivery.SetParameterValue("cabang", IIf(flagIGR, "INDOGROSIR", "STOCK POINT INDOGROSIR"))
+        // rptDelivery.SetParameterValue("kdIGR", KodeIGR & " - " & NamaIGR)
+        // rptDelivery.SetParameterValue("user_id", UserMODUL)
+        // rptDelivery.SetParameterValue("nopol", nopol)
+        // rptDelivery.SetParameterValue("driver", driver)
+        // rptDelivery.SetParameterValue("deliveryman", deliveryman)
+        // rptDelivery.SetParameterValue("noListing", noListing)
+        // rptDelivery.SetParameterValue("tglListing", tglListing)
+
+        //* form report -> rptListDeliverySPI
+    }
+
+    //! btnReCreateAWB_Click
+    public function actionReCreateAWB(){
+
+        $FrmReCreateAWB = [];
+
+        $query = '';
+        $query .= " SELECT  ";
+        $query .= "   obi_nopb nopb, ";
+        $query .= "   obi_notrans notrans, ";
+        $query .= "   TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgltrans, ";
+        $query .= "   obi_kdmember kdmember, ";
+        $query .= "   obi_tgltrans ";
+        $query .= " FROM tbtr_obi_h  ";
+        $query .= " WHERE COALESCE(obi_recid,'0') IN ('5','6') ";
+        $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE-30) ";
+        $query .= " AND obi_trxidnew IS NULL ";
+        $query .= " AND EXISTS ( ";
+        $query .= "   SELECT sti_pin ";
+        $query .= "   FROM tbtr_serahterima_ipp ";
+        $query .= "   WHERE sti_noorder = obi_trxid ";
+        $query .= "   AND UPPER(sti_tipeproses) = 'TITIP' ";
+        $query .= " ) ";
+        $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC";
+        $dtPB = DB::select($query);
+
+        if(count($dtPB) == 0){
+            return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
+        }
+
+        //! BELUM SELESAI
+
+    }
+
+
+    private function cekNotifMaxSerahTerima($flagManual = false){
+
+        $query = '';
+        $query .= " SELECT ";
+        $query .= "   TO_CHAR(obi_mindeliverytime,'DD-MM-YYYY HH24:MI:SS') TGL_PB, ";
+        $query .= "   obi_kdmember MEMBER, ";
+        $query .= "   obi_nopb NO_PB, ";
+        $query .= "   obi_notrans NO_TRANS, ";
+        $query .= "   TO_CHAR(obi_maxdeliverytime,'DD-MM-YYYY HH24:MI:SS') MAX_SERAHTERIMA, ";
+        $query .= "   obi_kdekspedisi EKSPEDISI ";
+        $query .= " FROM tbtr_obi_h ";
+        $query .= " JOIN tbmaster_customer ";
+        $query .= "   ON cus_kodemember = obi_kdmember ";
+        $query .= " LEFT JOIN tbtr_serahterima_ipp ";
+        $query .= "   ON sti_codpaymentcode = obi_nopb ";
+        $query .= "  AND sti_tipeproses = 'PICKUP' ";
+        $query .= " WHERE SUBSTR(COALESCE(obi_recid,'0'),1,1) IN ('0','1','2','3') ";
+        $query .= "   AND obi_freeongkir <> 'T' ";
+        $query .= "   AND obi_kdekspedisi IS NOT NULL ";
+        $query .= "   AND UPPER(obi_kdekspedisi) LIKE '%INDOPAKET%' ";
+        $query .= "   AND obi_maxdeliverytime IS NOT NULL ";
+        // '$query .= "   AND TO_DATE( ";
+        // '$query .= "         TO_CHAR(obi_maxdeliverytime,'DD-MM-YYYY') || ' 12:30:00',  ";
+        // '$query .= "         'DD-MM-YYYY HH24:MI:SS' ";
+        // '$query .= "       ) <= NOW() ";
+        $query .= "   AND (obi_maxdeliverytime - interval '90' minute) <= NOW() ";
+        $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) >= TO_DATE('01-07-2023','DD-MM-YYYY') ";
+        $query .= "   AND sti_tglserahterima IS NULL ";
+
+        if(session('flagSPI') == true){
+            $query .= "   AND UPPER(obi_nopb) LIKE '%SPI%' ";
+        }else{
+            $query .= "   AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+        }
+
+        $query .= " ORDER BY DATE_TRUNC('DAY',obi_mindeliverytime) DESC, no_trans ASC ";
+
+        $mydt = DB::select($query);
+
+        if(count($mydt) == 0 AND $flagManual == true){
+            $message = 'Tidak ada data PB yang lebih dari Tgl Max Serah Terima.';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        if(count($mydt) > 0){
+            //* form -> LstNotifMaxSerahTerima
+        }
+    }
+
+    private function cekPBAkanBatal(){
+        $query = '';
+        $query .= " SELECT obi_kdmember KodeMember, obi_nopb NoPB, obi_tgltrans TglPB ";
+        $query .= " FROM tbtr_obi_h ";
+        $query .= " WHERE obi_tgltrans <= DATE_TRUNC('DAY',CURRENT_DATE) - INTERVAL '1 day' ";
+        $query .= "     AND COALESCE(obi_recid,'0') IN ('0') "; //('0','1','2','3','7'
+
+        if(session('flagSPI') == true){
+            $query .= "     AND UPPER(obi_nopb) LIKE '%SPI%' ";
+        }else{
+            $query .= "     AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+        }
+
+        $query .= " ORDER BY obi_tgltrans DESC, obi_nopb ASC ";
+
+        $mydt = DB::select($query);
+
+        if(count($mydt) > 0){
+            //* buka form -> LstPBAkanBatal
+        }
+    }
+
+    private function cekItemBatal($showFrm){
+        $query = '';
+        $query .= "select distinct d.obi_notrans NO_TRANSAKSI, d.obi_tgltrans TGL_TRANSAKSI";
+        $query .= "from tbtr_obi_d d, tbhistory_obi_batal b ";
+        $query .= "where d.obi_recid = '1'";
+        $query .= "and b.obi_qtyrealisasi > 0";
+        $query .= "and d.obi_notrans = b.obi_notrans";
+        $query .= "and d.obi_tgltrans = b.obi_tgltrans";
+        $query .= "group by d.obi_notrans, d.obi_tgltrans";
+        $mydt = DB::select($query);
+
+        if($showFrm == true){
+            if(count($mydt) > 0){
+                //* form -> LstNonValidasi
+
+                // labelItemBatal.Visible = True
+                // btnPBBatal.Visible = True
+            }else{
+                // labelItemBatal.Visible = False
+                // btnPBBatal.Visible = False
+            }
+
+        }else{
+            if(count($mydt) > 0){
+                // labelItemBatal.Visible = True
+                // btnPBBatal.Visible = True
+            }else{
+                // labelItemBatal.Visible = False
+                // btnPBBatal.Visible = False
+            }
+        }
+    }
+
+    private function PrintNotaIIK($NoTrans, $noContainer, $kodeWeb, $nopb, $tglpb){
+        $query = '';
+        $query .= "SELECT pr.prd_prdcd plu, pr.prd_deskripsipendek desk, pr.prd_unit unit, ";
+        $query .= "     (po.pobi_qty / (CASE WHEN pr.prd_unit = 'KG' THEN 1 ELSE pr.prd_frac END)) as qty ";
+        $query .= "FROM TBTR_PACKING_OBI po, TBTR_OBI_D d, TBMASTER_PRODMAST pr, tbtr_obi_h h ";
+        $query .= "WHERE pobi_prdcd = obi_prdcd ";
+        $query .= "    AND d.obi_notrans = h.obi_notrans ";
+        $query .= "    AND d.obi_tgltrans = h.obi_tgltrans ";
+        $query .= "    AND pr.prd_prdcd = po.pobi_prdcd ";
+        $query .= "    AND pobi_notransaksi = d.obi_notrans ";
+        $query .= "    AND pobi_nocontainer = '" . $noContainer . "' ";
+        $query .= "    AND pobi_notransaksi = '" . $NoTrans . "' ";
+        $query .= "    AND h.obi_nopb = '" . $nopb . "' ";
+        $query .= "    AND pobi_qty > 0 ";
+        $dtDetailBrg = DB::select($query);
+
+        $query = '';
+        $query .= "SELECT amm_kodemember kdmember, ";
+        $query .= "       CASE WHEN LENGTH(COALESCE(amm_namapenerima, cus_namamember)) > 30 THEN SUBSTR(COALESCE(amm_namapenerima, cus_namamember),0,27) || '...' ELSE COALESCE(amm_namapenerima, cus_namamember) END nama, ";
+        $query .= "       COALESCE(amm_hp, COALESCE(cus_tlpmember, cus_hpmember)) telp, ";
+        $query .= "       amm_namaalamat alamat, ";
+        $query .= "       COALESCE(amm_noawb, 'SJ' || TO_CHAR(obi_tgltrans, 'YYMMDD') || COALESCE(obi_kdstation,'00') || COALESCE(obi_nostruk,'00000')) no_awb, ";
+
+        if(session('flagIGR') == true AND session('flagSPI') == false){
+            $query .= "       COALESCE(TO_CHAR(obi_notrans), '-') as nopik ";
+        }else{
+            $query .= "       COALESCE(TO_CHAR(obi_nopick), '-') as nopik ";
+        }
+        $query .= "FROM tbtr_obi_h ";
+        $query .= "JOIN tbtr_alamat_mm ";
+        $query .= "  ON obi_nopb = amm_nopb ";
+        $query .= "  AND DATE_TRUNC('DAY',obi_tglpb) = DATE_TRUNC('DAY',amm_tglpb) ";
+        $query .= "  AND obi_kdmember = amm_kodemember ";
+        $query .= "JOIN tbmaster_customer ";
+        $query .= "  ON amm_kodemember = cus_kodemember ";
+        $query .= "WHERE obi_notrans = '" . $NoTrans . "' ";
+        $query .= "  AND obi_nopb = '" . $nopb . "' ";
+        $dtAlamat = DB::select($query);
+
+        // str &= "           INFORMASI ISI KOLI           " & vbCrLf
+        // str &= "========================================" & vbCrLf
+        // str &= vbNewLine
+
+        // str &= "Member :" & _dtAlamat.Rows(0).Item("kdmember").ToString & vbCrLf
+        // str &= "        " & _dtAlamat.Rows(0).Item("nama").ToString & vbCrLf
+        // str &= "No.PB  :" & nopb & vbCrLf
+        // str &= "Tgl.PB :" & tglpb & vbCrLf
+        // str &= vbNewLine
+
+        // str &= "Ref. No SJ :" & _dtAlamat.Rows(0).Item("no_awb").ToString & vbCrLf
+        // str &= "No.Pick    :" & _dtAlamat.Rows(0).Item("nopik").ToString & vbCrLf
+        // str &= "No.Koli    :" & noContainer & vbCrLf
+        // str &= vbNewLine
+
+        // str &= "========================================" & vbCrLf
+        // str &= "No.   PLU   Nama Barang          SAT QTY" & vbCrLf
+        // str &= "________________________________________" & vbCrLf
+        // str &= vbNewLine
+
+        // Dim counter As Integer = 0
+        // For i As Integer = 0 To _dtDetailBrg.Rows.Count - 1
+        //     str &= "" & (counter + 1).ToString.PadLeft(3, " ").ToString & " "
+        //     str &= _dtDetailBrg.Rows(i).Item("plu").ToString & " "
+        //     str &= _dtDetailBrg.Rows(i).Item("desk").ToString.PadRight(20, " ") & " "
+        //     str &= _dtDetailBrg.Rows(i).Item("unit").ToString.PadLeft(3, " ")
+        //     str &= _dtDetailBrg.Rows(i).Item("qty").ToString.PadLeft(4, " ")
+        //     str &= vbNewLine
+
+        //     counter += 1
+        // Next
+
+        // str &= "________________________________________" & vbCrLf
+        // str &= vbNewLine
+        // str &= "Total : " & counter & " item " & vbCrLf
+
+        // Dim str3 As String = ""
+
+        // str3 &= "========================================" & vbCrLf
+        // str3 &= vbNewLine
+
+        //! ADA CETAK PRINTER CUMA BINGUNG (FR KEVIN) 03/05/2024
+    }
+
+    private function rptSuratJalan($dgv_notrans, $dgv_kodeWeb, $dgv_nopb, $dgv_memberigr, $dgv_freeongkir, $dgv_flagBayar, $dtTrans){
+        $notrans = $dgv_notrans;
+        $kodeWeb = $dgv_kodeWeb;
+        $nopb = $dgv_nopb;
+        $kodeMember = $dgv_memberigr;
+
+        $urlAWB = '';
+        $noContainer = '';
+        $flagAktif = 0;
+        $flagSkipIPP = false;
+
+        //* CHECK KURIR INDOGROSIR
+        $query = '';
+        $query .= " SELECT obi_kdekspedisi  ";
+        $query .= " FROM tbtr_obi_h ";
+        $query .= " WHERE obi_nopb = '" . $nopb . "' ";
+        $query .= " AND obi_notrans = '" . $notrans . "' ";
+        $query .= " AND obi_kdmember = '" . $kodeMember . "' ";
+        $dtCek = DB::select($query);
+
+        if(count($dtCek) == 0){
+            $message = 'Data PB Tidak Ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        if($kodeWeb == 'CORP' OR $kodeWeb == 'TMI' OR $dgv_freeongkir == 'T'){
+            $flagSkipIPP = true;
+        }
+
+        if($flagSkipIPP == false){
+            $dt = DB::select("SELECT ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'IPP_KLIK'");
+            if(count($dt) AND $dt[0]->ws_aktif != ''){
+                $flagAktif = $dt[0]->ws_aktif;
+            }
+
+            if ($flagAktif == 0 ||
+                strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "KURIR INDOGROSIR") !== false ||
+                strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "AMBIL DI") !== false ||
+                strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "EKSPEDISI LAINNYA") !== false ||
+                strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "MOBIL ENGKEL/DOUBLE") !== false)
+            {
+                //* CREATE AWB KALAU KURIR INDOGROSIR
+                if($dgv_flagBayar == 'Y' AND session('server') == 'PRODUCTION'){
+                    if($this->ORADataFound('tbtr_alamat_mm', "amm_nopb = '$nopb' AND amm_notrans = '$notrans' AND amm_noawb IS NULL") == false){
+                        $dtCek = DB::select("SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'KLIKIGR'");
+
+                        if(count($dtCek) > 0){
+                            $urlAWB = $dtCek[0]->ws_url;
+
+                            $splitTrans = explode("/", $dgv_nopb);
+                            $notrx = $splitTrans[0];
+
+                            $postData = [
+                                'trxid' => $notrx,
+                            ];
+
+                            $ret = $this->ConToWebService($urlAWB, $postData);
+
+                            //* LOG_CREATEAWB
+                            $query = '';
+                            $query .= "INSERT INTO log_createawb ( ";
+                            $query .= " nopb,  ";
+                            $query .= " notrans,  ";
+                            $query .= " url,  ";
+                            $query .= " param,  ";
+                            $query .= " response,  ";
+                            $query .= " create_dt ";
+                            $query .= ") ";
+                            $query .= "VALUES ( ";
+                            $query .= " '" . $dgv_nopb . "', ";
+                            $query .= " '" . $notrx . "', ";
+                            $query .= " '" . $urlAWB . "', ";
+                            $query .= " '" . "trxid=" . $notrx . "', ";
+                            $query .= " '" . $ret . " ', ";
+                            $query .= " NOW() ";
+                            $query .= ") ";
+                            DB::insert($query);
+
+                            $noAWB = null; //! berasal dari return ConToWebService
+
+                            $query = '';
+                            $query .= "UPDATE tbtr_alamat_mm ";
+                            $query .= "   SET amm_noawb = '" . $noAWB . "' ";
+                            $query .= " WHERE amm_nopb = '" . $dgv_nopb . "' ";
+                            $query .= "   AND amm_notrans = '" . $dgv_notrans . "' ";
+                            $query .= "   AND amm_noawb IS NULL ";
+                            DB::update($query);
+
+                            $query = '';
+                            $query .= " SELECT  ";
+                            $query .= "   obi_ekspedisi ongkir,  ";
+                            $query .= "   CASE WHEN COALESCE(cus_jenismember,'N') = 'T'  ";
+                            $query .= "     THEN 'TMI'  ";
+                            $query .= "     ELSE UPPER(obi_attribute2)  ";
+                            $query .= "   END tipe ";
+                            $query .= " FROM tbtr_obi_h ";
+                            $query .= " JOIN tbmaster_customer ON obi_kdmember = cus_kodemember ";
+                            $query .= " WHERE obi_nopb = '" . $nopb . "' ";
+                            $query .= " AND obi_notrans = '" . $notrans . "' ";
+                            $query .= " AND obi_kdmember = '" . $kodeMember . "' ";
+                            $dtCOST = DB::select($query);
+
+                            $cost = 0;
+                            $tipe = 'KLIK';
+                            if(count($dtCOST) > 0){
+                                $cost = $dtCOST[0]->ongkir;
+                                $tipe = $dtCOST[0]->tipe;
+                            }
+
+                            $this->insertAWBIPP($noAWB, $nopb, $notrx, $dtTrans, $kodeMember, "", $cost, "", "", "", $tipe);
+                        }
+                    }
+                }
+
+            }else{
+                //* CHECK NO AWB SPI x IPP
+                if($this->ORADataFound('tbtr_alamat_mm', "amm_nopb = '$nopb' AND amm_notrans = '$notrans' AND amm_noawb IS NOT NULL") == false){
+                    $message = 'Belum Ada No. AWB, Silahkan DSP ulang';
+                    throw new HttpResponseException(ApiFormatter::error(400, $message));
+                }
+            }
+
+        }
+
+        //* UPDATE STATUS GURIH - 6
+        if(str_contains($nopb, '/500/')){
+            $this->updateStatusGurih($nopb, '6');
+        }
+
+        $query = '';
+        $query .= "select DISTINCT pobi_nocontainer";
+        $query .= "from tbtr_packing_obi join tbtr_obi_h on pobi_notransaksi = obi_notrans and pobi_tgltransaksi = obi_tgltrans";
+        $query .= "WHERE obi_notrans = '" . $notrans . "'";
+        $query .= "AND obi_nopb = '" . $nopb . "'";
+        $query .= "ORDER BY pobi_nocontainer ASC ";
+        $data['dtKoli'] = DB::select($query);
+
+        $query = '';
+        $query .= "SELECT ROW_NUMBER() OVER() || '. ' || COALESCE(gh.gfh_namapromosi, h.kode_promo) || '=>' || h.gift_real GIFT ";
+        $query .= "FROM promo_klikigr h LEFT JOIN tbtr_gift_hdr gh ON h.kode_promo = gh.gfh_kodepromosi ";
+        $query .= "WHERE h.tipe_promo = 'GIFT' ";
+        $query .= "AND h.gift_real IS NOT NULL ";
+        $query .= "AND h.kode_member = '" . $kodeMember . "' ";
+        $query .= "AND h.no_trans = '" . $notrans . "' ";
+        $query .= "AND h.no_pb = '" . $nopb . "' ";
+        $query .= "ORDER BY row_NUMBER() OVER() ASC";
+        $data['dtHadiah'] = DB::select($query);
+
+        $query = '';
+        $query .= " SELECT ";
+        $query .= "   COALESCE(amm_namapenerima, cus_namamember) nama, ";
+        $query .= "   obi_nopb nopb, ";
+        $query .= "   amm_namaalamat alamat, ";
+        $query .= "   COALESCE(amm_nomorpenerima, amm_hp, cus_tlpmember, cus_hpmember) telp, ";
+        $query .= "   obi_nostruk nostruk, ";
+        $query .= "   obi_tgltrans tgltrans, ";
+        $query .= "   TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgl_pesan, ";
+        $query .= "   TO_CHAR( ";
+        $query .= "    DATE_TRUNC('DAY',COALESCE(obi_mindeliverytime, obi_tglstruk, obi_draftstruk)) +  ";
+        $query .= "    CASE  ";
+        $query .= "     WHEN COALESCE(obi_shippingservice,'X') = 'S'  ";
+        $query .= "      THEN CASE WHEN TO_NUMBER(TO_CHAR(obi_mindeliverytime, 'HH24')) < 12 THEN 0 ELSE 1 END ";
+        $query .= "     WHEN COALESCE(obi_shippingservice,'X') = 'N'  ";
+        $query .= "      THEN CASE WHEN TO_NUMBER(TO_CHAR(obi_mindeliverytime, 'HH24')) < 12 THEN 1 ELSE 2 END ";
+        $query .= "     ELSE 1 ";
+        $query .= "    END, ";
+        $query .= "   'DD-MM-YYYY') tgl_maks_kirim, ";
+        $query .= "   COALESCE(obi_nopo,'-') nopo, ";
+        $query .= "   COALESCE(amm_noawb, 'SJ' || TO_CHAR(obi_tgltrans, 'YYMMDD') || COALESCE(obi_kdstation,'00') || COALESCE(obi_nostruk,'00000')) no_awb, ";
+        $query .= "   CASE WHEN obi_freeongkir = 'T' ";
+        $query .= "    THEN 'AMBIL DI TOKO' ";
+        $query .= "    ELSE COALESCE(obi_kdekspedisi, '-') ";
+        $query .= "   END ekspedisi, ";
+        $query .= "   TRIM(TO_CHAR(COALESCE(obi_ekspedisi, 0),'999,999,999')) ongkir, ";
+        $query .= "   COALESCE(obi_shippingservice,'-') shippingservice ";
+        $query .= " FROM tbtr_obi_h ";
+        $query .= " JOIN tbtr_alamat_mm ";
+        $query .= "   ON obi_nopb = amm_nopb ";
+        $query .= "  AND DATE_TRUNC('DAY',obi_tglpb) = DATE_TRUNC('DAY',amm_tglpb) ";
+        $query .= "  AND obi_kdmember = amm_kodemember ";
+        $query .= " JOIN tbmaster_customer ";
+        $query .= "   ON amm_kodemember = cus_kodemember ";
+        $query .= " WHERE obi_notrans = '" . $notrans . "' ";
+        $query .= "   AND obi_nopb = '" . $nopb . "' ";
+        $data['dtDetailSJ'] = DB::select($query);
+
+        if(str_contains($nopb, '/500/')){
+            //* form -> frmSuratJalanGurih
+        }else{
+            //* form -> frmSuratJalan
+        }
+    }
+
+    private function updateStatusGurih($noPB, $statusID){
+        $dtGet = DB::select("SELECT url, api_key FROM web_status_gurih ORDER BY create_dt DESC");
+
+        $urlGurih = 'https://klikigrsim.mitraindogrosir.co.id/api/update_trx';
+        $apiKey = "123456789";
+        if(count($dtGet) > 0){
+            $urlGurih = $dtGet[0]->url;
+            $apiKey = $dtGet[0]->api_key;
+        }
+
+        $splitTrans = explode("/", $noPB);
+        $notrx = $splitTrans[0];
+
+        $postData = [
+            'trxid' => $notrx,
+            'status_id' => $statusID,
+            'key' => $apiKey,
+        ];
+
+        $response = $this->ConToWebService($urlGurih, $postData);
+
+        $query = '';
+        $query .= "INSERT INTO LOG_STATUS_GURIH ( ";
+        $query .= " nopb, ";
+        $query .= " notrans, ";
+        $query .= " status_id, ";
+        $query .= " url, ";
+        $query .= " post_data, ";
+        $query .= " response, ";
+        $query .= " create_dt ";
+        $query .= ") ";
+        $query .= "VALUES ( ";
+        $query .= " '" . $noPB . "', ";
+        $query .= " '" . $notrx . "', ";
+        $query .= " '" . $statusID . "', ";
+        $query .= " '" . $urlGurih . "', ";
+        $query .= " '" . $postData . "', "; //! dummy -> harusnya response dari ConToWebService
+        $query .= " '" . $response . " ', "; //! dummy -> harusnya response dari ConToWebService
+        $query .= " now() ";
+        $query .= ") ";
+    }
+
+    private function insertAWBIPP($noAWB, $noPB, $noOrder, $tglOrder, $kdMember, $kdToko, $cost, $pincode, $refNoOrder, $status, $tipe){
+        $UserMODUL = session('userid');
+
+        $query = '';
+        $query .= " SELECT awi_noawb ";
+        $query .= " FROM tbtr_awb_ipp ";
+        $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+        $query .= " AND awi_noorder = '" . $noOrder . "' ";
+        $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglOrder)->format('Y-m-d H:i:s') . "' ";
+        $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+        $dt = DB::select($query);
+
+        if(count($dt) == 0){
+
+            $query = '';
+            $query .= " INSERT INTO tbtr_awb_ipp ( ";
+            $query .= "   awi_noawb, ";
+            $query .= "   awi_nopb, ";
+            $query .= "   awi_noorder, ";
+            $query .= "   awi_tglorder, ";
+            $query .= "   awi_kodemember, ";
+            $query .= "   awi_kodetoko, ";
+            $query .= "   awi_cost, ";
+            $query .= "   awi_ref_noorder, ";
+            $query .= "   awi_pincode, ";
+            $query .= "   awi_tipetransaksi, ";
+            $query .= "   awi_create_by, ";
+            $query .= "   awi_create_dt ";
+            $query .= " ) ";
+            $query .= " VALUES ( ";
+            $query .= "   '" . $noAWB . "', ";
+            $query .= "   '" . $noPB . "', ";
+            $query .= "   '" . $noOrder . "', ";
+            $query .= "   TO_DATE('" . $tglOrder . "','DD-MM-YYYY'), ";
+            $query .= "   '" . $kdMember . "', ";
+            $query .= "   '" . $kdToko . "', ";
+            $query .= "   " . $cost . ", ";
+            $query .= "   '" . $refNoOrder . "', ";
+            $query .= "   '" . $pincode . "', ";
+            $query .= "   '" . $tipe . "', ";
+            $query .= "   '" . $UserMODUL . "', ";
+            $query .= "   NOW() ";
+            $query .= " ) ";
+        }else{
+            $query = '';
+            $query .= " UPDATE tbtr_awb_ipp ";
+            $query .= " SET awi_cost = " . $cost . ", ";
+            $query .= "     awi_pincode = '" . $pincode . "', ";
+            $query .= "     awi_modify_by = '" . $UserMODUL . "', ";
+            $query .= "     awi_modify_dt = NOW() ";
+            $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+            $query .= " AND awi_noorder = '" . $noOrder . "' ";
+            $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglOrder)->format('Y-m-d H:i:s') . "' ";
+            $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+        }
+
+        return true;
+    }
+
+    private function rptSuratJalanSPI($dgv_nopb, $dgv_notrans, $dgv_memberigr, $dtTrans, $dgv_flagBayar){
+
+        $query = '';
+        $query .= " SELECT obi_kdekspedisi  ";
+        $query .= " FROM tbtr_obi_h ";
+        $query .= " WHERE obi_nopb = '" . $dgv_nopb . "' ";
+        $query .= " AND obi_notrans = '" . $dgv_notrans . "' ";
+        $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($dtTrans)->format('Y-m-d H:i:s') . "' ";
+        $query .= " AND obi_kdmember = '" . $dgv_memberigr . "' ";
+        $dtCek = DB::select($query);
+
+        if(count($dtCek) == 0){
+            $message = 'Data PB Tidak Ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        if (strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "KURIR INDOGROSIR") !== false ||
+            strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "AMBIL DI STOCK POINT INDOGROSIR") !== false ||
+            strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "AMBIL DI TOKO INDOGROSIR") !== false ||
+            strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "EKSPEDISI LAINNYA") !== false ||
+            strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "MOBIL ENGKEL/DOUBLE") !== false)
+        {
+            if($dgv_flagBayar == 'Y' AND session('SERVER') == 'PRODUCTION'){
+                $cek = DB::table('tbtr_alamat_mm')
+                    ->where([
+                        'amm_nopb' => $dgv_nopb,
+                        'amm_notrans' => $dgv_notrans,
+                    ])
+                    ->whereNull('amm_noawb')
+                    ->count();
+
+                if($cek > 0){
+                    $dtCek = DB::select("SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'KLIKIGR'");
+
+                    if(count($dtCek) > 0){
+                        $urlAWB = $dtCek[0]->ws_url;
+
+                        $splitTrans = explode("/", $dgv_nopb);
+                        $notrx = $splitTrans[0];
+
+                        $postData = [
+                            'trxid' => $notrx,
+                        ];
+
+                        $ret = $this->ConToWebService($urlAWB, $postData);
+
+                        //* LOG_CREATEAWB
+                        $query = '';
+                        $query .= "INSERT INTO log_createawb ( ";
+                        $query .= " nopb,  ";
+                        $query .= " notrans,  ";
+                        $query .= " url,  ";
+                        $query .= " param,  ";
+                        $query .= " response,  ";
+                        $query .= " create_dt ";
+                        $query .= ") ";
+                        $query .= "VALUES ( ";
+                        $query .= " '" . $dgv_nopb . "', ";
+                        $query .= " '" . $notrx . "', ";
+                        $query .= " '" . $urlAWB . "', ";
+                        $query .= " '" . "trxid=" . $notrx . "', ";
+                        $query .= " '" . $ret . " ', ";
+                        $query .= " NOW() ";
+                        $query .= ") ";
+                        DB::insert($query);
+
+                        $noAWB = null; //! berasal dari return ConToWebService
+
+                        $query = '';
+                        $query .= "UPDATE tbtr_alamat_mm ";
+                        $query .= "   SET amm_noawb = '" . $noAWB . "' ";
+                        $query .= " WHERE amm_nopb = '" . $dgv_nopb . "' ";
+                        $query .= "   AND amm_notrans = '" . $dgv_notrans . "' ";
+                        $query .= "   AND amm_noawb IS NULL ";
+                        DB::update($query);
+                    }
+                }
+            }
+
+        }else{
+            $cek = DB::table('tbtr_alamat_mm')
+                ->where([
+                    'amm_nopb' => $dgv_nopb,
+                    'amm_notrans' => $dgv_notrans,
+                ])
+                ->whereNull('amm_noawb')
+                ->count();
+
+            if($cek == 0){
+                $message = 'Belum Ada No. AWB, Silahkan DSP ulang';
+                throw new HttpResponseException(ApiFormatter::error(400, $message));
+            }
+        }
+
+        $query = '';
+        $query .= "SELECT  ";
+        $query .= "  amm_kodemember kode_member,  ";
+        $query .= "  amm_namapenerima nama_member, ";
+        $query .= "  amm_namaalamat alamat, ";
+        $query .= "  amm_hp no_hp, ";
+        $query .= "  amm_nopb no_pb,  ";
+        $query .= "  amm_noawb no_awb ";
+        $query .= "FROM tbtr_alamat_mm ";
+        $query .= "WHERE amm_nopb = '" . $dgv_nopb . "' ";
+        $query .= " AND amm_notrans = '" . $dgv_notrans . "' ";
+        $query .= " AND amm_kodemember = '" . $dgv_memberigr . "' ";
+        $dtDetailSJ = DB::select($query);
+
+        $query = '';
+        $query .= "SELECT del_nopol nopol, del_driver driver, del_deliveryman deliveryman";
+        $query .= "FROM tbtr_delivery_spi ";
+        $query .= "WHERE del_nopb = '" . $dgv_nopb . "' ";
+        $query .= " AND del_kodemember = '" . $dgv_memberigr . "' ";
+        $query .= " AND del_flagbatal IS NULL ";
+        $_dtDetailSJ2 = DB::select($query);
+
+        $query = '';
+        $query .= " SELECT  ";
+        $query .= "   nama_barang, ";
+        $query .= "   satuan, ";
+        $query .= "   harga, ";
+        $query .= "   qty, ";
+        $query .= "   total, ";
+        $query .= "   frac ";
+        $query .= " FROM ( ";
+        $query .= "   SELECT  ";
+        $query .= "     prd_deskripsipanjang nama_barang, ";
+        $query .= "     prd_unit satuan, ";
+        $query .= "     d.obi_hargaweb harga, ";
+        $query .= "     SUM(COALESCE(pobi_qty,0)) / (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) qty, ";
+        $query .= "     SUM(COALESCE(pobi_qty,0)) / (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) * d.obi_hargaweb total, ";
+        $query .= "     ctn_frac frac ";
+        $query .= "   FROM tbtr_obi_h h ";
+        $query .= "   JOIN tbtr_obi_d d ";
+        $query .= "     ON h.obi_notrans = d.obi_notrans ";
+        $query .= "    AND h.obi_tgltrans = d.obi_tgltrans ";
+        $query .= "   JOIN tbmaster_prodmast ";
+        $query .= "     ON prd_prdcd = d.obi_prdcd ";
+        $query .= "   LEFT JOIN ( ";
+        $query .= "          SELECT prd_prdcd ctn_prdcd,  ";
+        $query .= "                 prd_frac ctn_frac, ";
+        $query .= "                 prd_unit ctn_unit ";
+        $query .= "            FROM tbmaster_prodmast ";
+        $query .= "           WHERE prd_prdcd LIKE '%0' ";
+        $query .= "        ) tbmaster_ctn ";
+        $query .= "     ON ctn_prdcd = SUBSTR(d.obi_prdcd,1, 6) || '0'    ";
+        $query .= "   LEFT JOIN tbtr_packing_obi ";
+        $query .= "     ON pobi_notransaksi = d.obi_notrans ";
+        $query .= "    AND pobi_tgltransaksi = d.obi_tgltrans ";
+        $query .= "    AND pobi_prdcd = d.obi_prdcd ";
+        $query .= "   WHERE d.obi_recid IS NULL ";
+        $query .= "    AND COALESCE(d.obi_qtyrealisasi,0) > 0 ";
+        $query .= "    AND COALESCE(pobi_qty,0) > 0 ";
+        $query .= "   AND h.obi_nopb = '" . $dgv_nopb . "' ";
+        $query .= "   AND h.obi_notrans = '" . $dgv_notrans . "' ";
+        $query .= "   AND DATE_TRUNC('DAY',h.obi_tgltrans) = '" . Carbon::parse($dtTrans)->format('Y-m-d H:i:s') . "' ";
+        $query .= "   AND h.obi_kdmember = '" . $dgv_memberigr . "' ";
+        $query .= "   GROUP BY prd_deskripsipanjang, prd_unit, d.obi_hargaweb, (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END), ctn_frac ";
+        $query .= "   ORDER BY prd_deskripsipanjang ";
+        $query .= " ) AS SURATJLANSPI ";
+        $data = DB::select($query);
+
+        //* form -> frmSuratJalanSPI_NEW
+
+        // rpt.SetParameterValue("kdIGR", KodeIGR & " - " & NamaIGR)
+        // _rpt.SetParameterValue("penerima", _dtDetailSJ.Rows(0).Item("kode_member").ToString & " - " &
+        //                                     _dtDetailSJ.Rows(0).Item("nama_member").ToString)
+        // _rpt.SetParameterValue("alamat", _dtDetailSJ.Rows.Item(0)("alamat").ToString)
+        // _rpt.SetParameterValue("nohp", _dtDetailSJ.Rows.Item(0)("no_hp").ToString)
+        // _rpt.SetParameterValue("noAWB", _dtDetailSJ.Rows.Item(0)("no_awb").ToString)
+        // _rpt.SetParameterValue("noPB", nopb)
+        // _rpt.SetParameterValue("tglPB", tgltrans)
+        // _rpt.SetParameterValue("barcodeAWB", code128(_dtDetailSJ.Rows.Item(0)("no_awb").ToString))
+    }
+
+    private function InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar, $urlUpdateRealisasiKlik){
 
         //* CHECK SUDAH PENAH SALES
         $query = '';
@@ -912,9 +1951,7 @@ class KlikIgrController extends Controller
             if (str_contains($procedure, 'Sukses')) {
 
                 if (!str_contains($dgv_nopb, 'TMI') AND session('flagSPI') == false) {
-
-                    //! BELUM SELESAI
-                    $this->updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr);
+                    $this->updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr, $urlUpdateRealisasiKlik);
                 }
 
                 if(session('flagSPI') == true){
@@ -940,8 +1977,122 @@ class KlikIgrController extends Controller
             $message = "Oops! Something wrong ( $e )";
             return ApiFormatter::error(400, $message);
         }
+    }
 
+    private function PrintNotaNew(){
 
+    }
+
+    private function PrintNotaNewSPI(){
+
+    }
+
+    private function updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr, $urlUpdateRealisasiKlik){
+        try{
+            $query = '';
+            $query .= "SELECT plu, ";
+            $query .= " ROUND(qty_real) qty_real, ";
+            $query .= " ROUND(CASE ";
+            $query .= "     WHEN qty_real > 0 ";
+            $query .= "     THEN harga - ROUND(hpp / prd_ppn,2) ";
+            $query .= "     ELSE 0 ";
+            $query .= " END, 2) margin, ";
+            $query .= " ROUND(harga / prd_ppn,2) dpp, ";
+            $query .= " ROUND(harga - ROUND(harga / prd_ppn,2),2) ppn ";
+            $query .= "FROM ";
+            $query .= "(SELECT obi_prdcd plu, ";
+            $query .= "(d.obi_qtyrealisasi / p.prd_frac) qty_real, ";
+            $query .= "CASE WHEN d.obi_qtyrealisasi = 0 THEN 0 ELSE ";
+            $query .= "d.obi_hargaweb - (ROUND(d.obi_qtyrealisasi * d.obi_diskon) / (d.obi_qtyrealisasi / p.prd_frac)) END harga, ";
+            $query .= "ROUND(COALESCE(jd.trjd_baseprice, d.obi_hpp, 0),2) hpp, ";
+            $query .= "CASE ";
+            $query .= " WHEN COALESCE(prd_flagbkp1,'N') = 'Y' AND COALESCE(prd_flagbkp2,'N')  = 'Y' ";
+            $query .= " THEN 1 + (COALESCE(prd_ppn,0) / 100) ";
+            $query .= " ELSE 1 ";
+            $query .= "END prd_ppn ";
+            $query .= "FROM tbtr_obi_h h ";
+            $query .= "JOIN tbtr_obi_d d ";
+            $query .= "ON h.obi_notrans = d.obi_notrans AND DATE_TRUNC('DAY',h.obi_tgltrans) = DATE_TRUNC('DAY',d.obi_tgltrans) ";
+            $query .= "JOIN tbmaster_prodmast p ";
+            $query .= "ON p.prd_prdcd = d.obi_prdcd ";
+            $query .= "LEFT JOIN tbtr_jualdetail jd ";
+            $query .= "ON h.obi_nostruk = jd.trjd_transactionno ";
+            $query .= "AND DATE_TRUNC('DAY',h.obi_tglstruk) = DATE_TRUNC('DAY',jd.trjd_transactiondate) ";
+            $query .= "AND h.obi_kdmember        = jd.trjd_cus_kodemember ";
+            $query .= "AND h.obi_kdstation       = jd.trjd_cashierstation ";
+            $query .= "AND d.obi_prdcd           = jd.trjd_prdcd ";
+            $query .= "AND h.obi_tipe            = jd.trjd_transactiontype ";
+            $query .= "WHERE h.obi_nopb LIKE '%" . $dgv_nopb . "%' ";
+            $query .= "AND h.obi_notrans = '" . $dgv_notrans . "' ";
+            $query .= "AND DATE_TRUNC('DAY',h.obi_tgltrans) = ".Carbon::parse($dgv_tglpb)->format('Y-m-d H:i:s')." ";
+            $query .= "AND h.obi_kdmember = '" . $dgv_memberigr . "' ";
+            //$query .= "AND d.obi_qtyrealisasi <> 0 ";
+            $query .= ") ";
+            $query .= "ORDER BY 1 ASC";
+            $dtDetailOrder = DB::select($query);
+
+            $query .= "SELECT id_tipe idpromo, ";
+            $query .= " kode_promo promo_code, ";
+            $query .= " tipe_promo promo_type, ";
+            $query .= " prdcd plupromo, ";
+            $query .= " COALESCE(cashback_real, 0) reward_realisasi ";
+            $query .= "FROM promo_klikigr ";
+            $query .= "WHERE id_tipe IN (0,1) ";
+            $query .= "AND prdcd IS NOT NULL ";
+            $query .= "AND no_pb = '" . $dgv_nopb . "' ";
+            $query .= "AND no_trans = '" . $dgv_notrans . "' ";
+            $query .= "AND DATE_TRUNC('DAY',tgl_trans) = ".Carbon::parse($dgv_tglpb)->format('Y-m-d H:i:s')." ";
+            $query .= "AND kode_member = '" . $dgv_memberigr . "'";
+            $dtPromotion = DB::select($query);
+
+            if(session('flagSPI') == true){
+                $cre = DB::select("SELECT CRE_NAME, CRE_KEY FROM TBMASTER_CREDENTIAL WHERE CRE_TYPE = 'WS_SPI'");
+            }else{
+                $cre = DB::select("SELECT CRE_NAME, CRE_KEY FROM TBMASTER_CREDENTIAL WHERE CRE_TYPE = 'WS_KLIK'");
+            }
+
+            $postData = [
+                'trxid' => substr($dgv_nopb, 0, 6),
+                'order_details' => $dtDetailOrder,
+                'promotions' => $dtPromotion,
+            ];
+
+            $apiName = $cre[0]->cre_name;
+            $apiKey = $cre[0]->cre_key;
+            $this->ConToWebServiceNew($urlUpdateRealisasiKlik, $apiName, $apiKey, $postData);
+
+            //! dummy harusnya return dari ConToWebServiceNew
+            $json = null;
+            $ret = null;
+
+            $query = '';
+            $query .= "INSERT INTO log_obi_realisasi ( ";
+            $query .= "  notrans, ";
+            $query .= "  tgltrans, ";
+            $query .= "  nopb, ";
+            $query .= "  create_by, ";
+            $query .= "  create_dt, ";
+            $query .= "  url, ";
+            $query .= "  parameter, ";
+            $query .= "  response ";
+            $query .= ") VALUES ( ";
+            $query .= "  '" . $dgv_notrans . "', ";
+            $query .= "  ".Carbon::parse($dgv_tglpb)->format('Y-m-d H:i:s').", ";
+            $query .= "  '" . $dgv_nopb . "', ";
+            $query .= "  '" . $dgv_memberigr . "', ";
+            $query .= "  NOW(), ";
+            $query .= "  '" . $urlUpdateRealisasiKlik . "', ";
+            $query .= "  '" . $json . "', ";
+            $query .= "  '" . $ret . "' ";
+            $query .= ") ";
+
+            return true;
+
+        }catch(\Exception $e){
+
+            $message = "Oops! Something wrong ( $e )";
+            return ApiFormatter::error(400, $message);
+        }
     }
 
     private function CheckTransaksiVALunas($trxid, $dgv_tglpb){
@@ -1350,6 +2501,7 @@ class KlikIgrController extends Controller
     }
 
     private function requestPromo($transKlik, $kdMember, $noTrans, $noPB){
+        //! BELUM SELESAI
         //! INI GAPAHAM SUSAH DIBACA
         //! TANYAKAN AKSES API UNTUK BODYNYA FORMAT DATANYA SEPERTI APA
 
@@ -2224,7 +3376,7 @@ class KlikIgrController extends Controller
         $query .= "  AND obi_notrans = '" . $no_trans . "' ";
         $query .= "  AND obi_recid IS NULL ";
         $query .= "  AND COALESCE(obi_itemkg, 0) = 1 ";
-        $query .= ") AS subquery_alias"; 
+        $query .= ") AS subquery_alias";
         $query .= " ORDER BY deskripsi ASC ";
 
         $data['perusahaan'] = DB::table('tbmaster_perusahaan')
@@ -2232,7 +3384,7 @@ class KlikIgrController extends Controller
 
         $data['data'] = DB::select($query);
 
-        
+
         if(!count($data['data'])){
             return [
                 "status" => false,
@@ -2240,7 +3392,7 @@ class KlikIgrController extends Controller
                 "data" => null
             ];
         }
-        
+
         return [
             "status" => true,
             "message" => "Success",
