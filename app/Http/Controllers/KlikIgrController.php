@@ -1221,8 +1221,6 @@ class KlikIgrController extends Controller
     //! btnReCreateAWB_Click
     public function actionReCreateAWB(){
 
-        $FrmReCreateAWB = [];
-
         $query = '';
         $query .= " SELECT  ";
         $query .= "   obi_nopb nopb, ";
@@ -1247,7 +1245,1262 @@ class KlikIgrController extends Controller
             return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
         }
 
-        //! BELUM SELESAI
+        //* ADD PILIHAN ALASAN BATAL KIRIM
+        $alasanBtl = DB::select("SELECT ROW_NUMBER() OVER () AS NO, ALASAN FROM (SELECT abk_alasan AS alasan FROM tbmaster_alasan_batal_kirim ORDER BY 1) AS alasan");
+        $alasanBatal = $alasanBtl[0]->alasan;
+
+        //! show form -> FrmReCreateAWB
+        //! nanti mungkin formnya milih dari $dtPB terus ditampung di variable $fRecreateAWB
+
+        $fRecreateAWB = [];
+
+        if(count($fRecreateAWB) == 0){
+            return ApiFormatter::error(400, 'Belum ada PB yang dipilih');
+        }
+
+        foreach($fRecreateAWB as $item){
+            if(session('flagSPI') == true){
+                $this->reCreateAWB_SPI($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
+            }else{
+                $this->reCreateAWB_KLIK($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
+            }
+        }
+
+        return ApiFormatter::success(200, 'Selesai Proses Re-Create AWB IPP');
+
+    }
+
+    //! btnAlasanBatalKirim_Click
+    public function actionMasterAlasanBatalKirim(){
+        // frmIns.Text = "Master Alasan Batal Kirim"
+        // frmIns.lblTitle.Text = "Master Alasan Batal Kirim"
+        // frmIns.flagMode = "AlasanBatalKirim"
+        // frmIns.ShowDialog()
+
+        //! open form -> frmMasterData
+    }
+
+    //! btnBASPI_Click
+    public function actionBAPengembalianDana(){
+        if(session('flagSPI') == false){
+            return ApiFormatter::error(400, 'Khusus SPI');
+        }
+
+        //! open form -> frmBARefundSPI
+
+        //* Query Tampilan Datagridview
+        $query = '';
+        $query .= " SELECT   ";
+        $query .= "   tipe_bayar tipe_bayar, ";
+        $query .= "   obi_nopb no_pb,  ";
+        $query .= "   TO_CHAR(obi_tglpb,'DD-MM-YYYY') tgl_pb,  ";
+        $query .= "   obi_kdmember kode_member,  ";
+        $query .= "   total, ";
+        $query .= "   0 ba ";
+        $query .= " FROM tbtr_obi_h  ";
+        $query .= " JOIN payment_klikigr ";
+        $query .= " ON kode_igr = obi_kodeigr ";
+        $query .= " AND kode_member = obi_kdmember ";
+        $query .= " AND no_pb = obi_nopb ";
+        $query .= " AND no_trans = obi_notrans ";
+        $query .= " AND DATE_TRUNC('DAY',tgl_trans) = DATE_TRUNC('DAY',obi_tgltrans) ";
+        $query .= " WHERE UPPER(COALESCE(obi_tipebayar, 'X')) <> 'COD'  ";
+        $query .= " AND UPPER(COALESCE(obi_tipebayar, 'X')) <> 'TOP'  ";
+        $query .= " AND COALESCE(obi_recid,'0') LIKE 'B%' ";
+
+        if(session('flagSPI') == true){
+            $query .= " AND UPPER(obi_nopb) LIKE '%SPI%' ";
+        }else{
+            $query .= " AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+        }
+
+        $query .= " AND NOT EXISTS (  ";
+        $query .= "  SELECT brs_nopb  ";
+        $query .= "  FROM tbtr_barefund_spi ";
+        $query .= "  WHERE brs_kodemember = obi_kdmember  ";
+        $query .= "  AND brs_nopb = obi_nopb  ";
+        $query .= "  AND brs_tglpb = obi_tglpb ";
+        $query .= " )  ";
+        $query .= " ORDER BY tipe_bayar, obi_tglpb, obi_nopb ";
+        $dt = DB::select($query);
+
+        if(count($dt) == 0){
+            return ApiFormatter::error(400, 'Tidak ada Transaksi yang batal..');
+        }
+
+        //! action yang ada di form frmBARefundSPI
+        //! dummy variable
+        $isHistory = true;
+        $NoBAHistory = '';
+        $tglBAHistory = '';
+
+        if($isHistory == true){
+            $seqBA = $NoBAHistory;
+            $tglBA = $tglBAHistory;
+        }else{
+            $seqBA = '';
+            $tglBA = DB::select("SELECT TO_CHAR(NOW(), 'YYMM') || LPAD(nextval('seq_ba_refund_spi')::text, 6, '0') as value")[0]->value;
+
+            $query = '';
+            $query .= "INSERT INTO tbtr_barefund_spi ( ";
+            $query .= "  brs_tglba, ";
+            $query .= "  brs_noba, ";
+            $query .= "  brs_tipebayar, ";
+            $query .= "  brs_nopb, ";
+            $query .= "  brs_tglpb, ";
+            $query .= "  brs_kodemember, ";
+            $query .= "  brs_nilairefund, ";
+            $query .= "  brs_create_by, ";
+            $query .= "  brs_create_dt ";
+            $query .= ") ";
+            $query .= "SELECT  ";
+            $query .= "  TO_DATE('" . $tglBA . "','DD-MM-YYYY') tglba, ";
+            $query .= "  '" . $seqBA . "' noba, ";
+            $query .= "  tipebayar, ";
+            $query .= "  nopb, ";
+            $query .= "  TO_DATE(tglpb,'DD-MM-YYYY') tglpb, ";
+            $query .= "  kodemember, ";
+            $query .= "  nilairefund, ";
+            $query .= "  '" . session('userid') . "' create_by, ";
+            $query .= "  NOW() create_dt ";
+            $query .= "FROM temp_barefund_spi ";
+            $query .= "JOIN tbtr_obi_h ";
+            $query .= "ON obi_nopb = nopb ";
+            $query .= "AND DATE_TRUNC('DAY',obi_tglpb) = TO_DATE(tglpb,'DD-MM-YYYY') ";
+            $query .= "AND obi_kdmember = kodemember ";
+            $query .= "WHERE IP = '" . $this->getIP() . "' ";
+            DB::insert($query);
+        }
+
+        $query = '';
+        $query .= " SELECT  ";
+        $query .= "   brs_tipebayar tipeBayar, ";
+        $query .= "   COUNT(DISTINCT brs_nopb) jmlTrans, ";
+        $query .= "   SUM(brs_nilairefund) jmlRefund ";
+        $query .= " FROM tbtr_barefund_spi ";
+        $query .= " WHERE brs_noba = '" . $seqBA . "' ";
+        $query .= " GROUP BY brs_tipebayar ";
+        $query .= " ORDER BY brs_tipebayar ";
+        $dt = DB::select($query);
+
+        if(count($dt) == 0){
+            return ApiFormatter::error(400, 'BA Pengembalian Dana SPI tidak ditemukan.');
+        }
+
+        //! open report -> rptBA
+
+        // rptBA.SetParameterValue("tglBA", tglBA)
+        // rptBA.SetParameterValue("noBA", seqBA)
+        // rptBA.SetParameterValue("namaSPI", NamaIGR)
+        // rptBA.SetParameterValue("namaInduk", "INDUK " & NamaIGR)
+    }
+
+    //! btnBARusakSPI_Click
+    public function actionBARusakKemasan($dgv_status, $dgv_tipebayar){
+        if(session('flagSPI') == true){
+            if((($dgv_status == 'Siap Struk' OR $dgv_status == 'Selesai Struk') AND $dgv_tipebayar == 'COD') OR ($dgv_status == 'Selesai Struk' AND $dgv_tipebayar <> "COD")){
+                //! open form -> frmBARusakSPI
+                //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
+
+            }else{
+                if(str_contains(strtoupper($dgv_status), 'BATAL')){
+                    return ApiFormatter::error(400, 'Transaksi sudah dibatalkan!');
+                }else{
+                    if($dgv_tipebayar == 'COD'){
+                        return ApiFormatter::error(400, 'Transaksi COD belum DSP, Belum dapat Input BA Rusak!');
+                    }else{
+                        return ApiFormatter::error(400, 'Transaksi belum distruk, Belum dapat Input BA Rusak!');
+                    }
+                }
+            }
+
+        }else{
+            if($dgv_status == 'Siap Struk' AND $dgv_tipebayar == 'COD'){
+                //! open form -> frmBARusakSPI
+                //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
+
+            }else{
+                if($dgv_tipebayar == 'COD'){
+                    $message = $dgv_status == 'Selesai Struk' ? 'Transaksi sudah distruk!' : 'Transaksi COD belum DSP, Belum dapat Input BA Rusak!';
+                    return ApiFormatter::error(400, $message);
+                }else{
+                    return ApiFormatter::error(400, 'Inputan BA RK Khusus Transaksi COD!');
+                }
+            }
+        }
+    }
+
+    //! btnFormPengembalianBarang_Click
+    public function actionCetakFormPengembalianBarang(){
+        $this->cetakFormPengembalianBarang('','','','');
+    }
+
+    //! btnLaporanPenyusutan_Click
+    public function actionLaporanPenyusutanHarian($dtTrans){
+
+        //? Cetak Laporan Penyusutan Harian?
+
+        if(session('flagSPI')){
+            return ApiFormatter::error(400, 'Khusus Cabang Indogrosir');
+        }
+
+        $this->rptPenyusutanHarianPerishable($dtTrans);
+    }
+
+    //! btnPesananExpired_Click
+    public function actionLaporanPesananExpired(){
+        //! open form -> frmPeriodePesanan
+
+        //! action dari frmPeriodePesanan
+        //! dummy variable
+        $isCetak = true;
+        $periodeAwal = '';
+        $periodeAkhir = '';
+        $namaPT = '';
+
+        $query = '';
+        $query .= " SELECT  ";
+        $query .= "   obi_kdmember kode_member, ";
+        $query .= "   cus_namamember nama_member, ";
+        $query .= "   TO_CHAR(obi_tglpb,'DD-MM-YYYY') tgl_pb, ";
+        $query .= "   obi_nopb no_pb, ";
+        $query .= "   total_pay nilai_pb ";
+        $query .= " FROM tbtr_obi_h  ";
+        $query .= " JOIN tbmaster_customer ";
+        $query .= "   ON cus_kodemember = obi_kdmember ";
+        $query .= " JOIN ( ";
+        $query .= "   SELECT kode_member, no_pb, no_trans, tgl_trans, SUM(total) total_pay ";
+        $query .= "   FROM payment_klikigr ";
+        $query .= "   GROUP BY kode_member, no_pb, no_trans, tgl_trans ";
+        $query .= " ) payment ";
+        $query .= "   ON no_pb = obi_nopb ";
+        $query .= "  AND no_trans = obi_notrans ";
+        $query .= "  AND tgl_trans = obi_tgltrans ";
+        $query .= "  AND kode_member = obi_kdmember ";
+        $query .= " WHERE obi_recid LIKE 'B%'  ";
+        $query .= "   AND UPPER(obi_alasanbtl) LIKE 'WAKTU PROSES LEBIH DARI % HARI' ";
+        $query .= "   AND DATE_TRUNC('DAY',obi_tglpb) BETWEEN TO_DATE('" & $periodeAwal & "','DD-MM-YYYY') ";
+        $query .= "                            AND TO_DATE('" & $periodeAkhir & "','DD-MM-YYYY') ";
+        $query .= " ORDER BY obi_nopb ASC ";
+        $data['dtItem'] = DB::select($query);
+
+        if(count($data['dtItem']) == 0){
+            return ApiFormatter::error(400, 'Pesanan Expired tidak ditemukan.');
+        }
+
+        if(session('flagSPI') == true){
+            $query = '';
+            $query .= " SELECT cab_kodecabang || ' - ' || cab_namacabang nama ";
+            $query .= " FROM tbmaster_cabang ";
+            $query .= " JOIN tbmaster_spi  ";
+            $query .= " ON spi_kodeigr = cab_kodecabang ";
+            $query .= " WHERE spi_kodespi = '" & session('KODECABANG') & "' ";
+            $query .= " LIMIT 1 ";
+            $data['namaInduk'] = DB::select($query);
+        }
+
+        // rptPE.SetParameterValue("cabang", namaPT)
+        // If flagIGR Then
+        //     rptPE.SetParameterValue("kdIGR", KodeIGR & " - " & NamaIGR)
+        // Else
+        //     rptPE.SetParameterValue("kdIGR", namaInduk & vbNewLine & KodeIGR & " - " & NamaIGR)
+        // End If
+        // rptPE.SetParameterValue("user_id", UserMODUL)
+        // rptPE.SetParameterValue("periode", periodeAwal & " s/d " & periodeAkhir)
+        // rptPE.SetParameterValue("jenisCabang", IIf(flagIGR, "Member KlikIgr", "MMS"))
+
+        //! open report -> rptPE
+    }
+
+    //! btnSTKardus_Click
+    public function actionBuktiSerahTerimaKardus(){
+        if(session('flagSPI')){
+            return ApiFormatter::error(400, 'Khusus Cabang Indogrosir');
+        }
+
+        //! open form -> frmSerahTerimaKardus
+
+        //! tampil di datatable frmSerahTerimaKardus
+        //* Query Tampilan Datagridview
+        $query = '';
+        $query .= "SELECT  ";
+        $query .= "  obi_nopb no_pb, ";
+        $query .= "  TO_CHAR(obi_tglpb,'DD-MM-YYYY') tgl_pb, ";
+        $query .= "  obi_kdmember kode_member, ";
+        $query .= "  0 cetak ";
+        $query .= "FROM tbtr_obi_h ";
+        $query .= "WHERE UPPER(obi_nopb) LIKE '%/500/%' ";
+        $query .= "AND UPPER(COALESCE(obi_tipebayar, 'X')) = 'TOP' ";
+        $query .= "AND COALESCE(obi_recid,'0') = '6' ";
+        $query .= "AND NOT EXISTS ( ";
+        $query .= " SELECT stk_nopb ";
+        $query .= " FROM tbtr_serah_terima_kardus ";
+        $query .= " WHERE stk_kodemember = obi_kdmember ";
+        $query .= " AND stk_nopb = obi_nopb ";
+        $query .= " AND stk_tglpb = obi_tglpb ";
+        $query .= ") ";
+        $query .= "ORDER BY obi_tglpb, obi_nopb ";
+        DB::select($query);
+
+        //! action dari frmPeriodePesanan
+        //! dummy variable
+        $isCetak = true;
+        $isHistory = true;
+        $NoSTKHistory = '';
+        $tglSTKHistory = '';
+
+        if($isHistory == true){
+            $seqSerahTerimaKardus = $NoSTKHistory;
+            $tglSTK = $tglSTKHistory;
+
+        }else{
+            $seqSerahTerimaKardus = '';
+            $tglSTK = DB::select("SELECT TO_CHAR(NOW(), 'YYMM') || LPAD(nextval('seq_serah_terima_kardus')::text, 6, '0') as value")[0]->value;
+
+            $query = '';
+            $query .= "INSERT INTO tbtr_serah_terima_kardus ( ";
+            $query .= "  stk_nopb, ";
+            $query .= "  stk_tglpb, ";
+            $query .= "  stk_kodemember, ";
+            $query .= "  stk_notrans, ";
+            $query .= "  stk_tgltrans, ";
+            $query .= "  stk_nostruk, ";
+            $query .= "  stk_noserahterima, ";
+            $query .= "  stk_tglserahterima, ";
+            $query .= "  stk_create_by, ";
+            $query .= "  stk_create_dt ";
+            $query .= ") ";
+            $query .= "SELECT  ";
+            $query .= "  obi_nopb, ";
+            $query .= "  obi_tglpb, ";
+            $query .= "  obi_kdmember, ";
+            $query .= "  obi_notrans, ";
+            $query .= "  obi_tgltrans, ";
+            $query .= "  obi_cashierid || '/' || obi_kdstation || '/' || obi_nostruk nostruk, ";
+            $query .= "  '" . $seqSerahTerimaKardus . "' noserahterima, ";
+            $query .= "  NOW() tglserahterima, ";
+            $query .= "  '" . session('userid') . "' create_by, ";
+            $query .= "  NOW() create_dt ";
+            $query .= "FROM temp_serah_terima_kardus ";
+            $query .= "JOIN tbtr_obi_h ";
+            $query .= "ON obi_nopb = no_pb ";
+            $query .= "AND obi_tglpb = TO_DATE(tgl_pb,'DD-MM-YYYY') ";
+            $query .= "AND obi_kdmember = kode_member ";
+            $query .= "WHERE IP = '" . $this->getIP() . "' ";
+        }
+
+        $query = '';
+        $query .= "SELECT  ";
+        $query .= "  stk_nopb no_pesanan, ";
+        $query .= "  pobi_nocontainer no_koli, ";
+        $query .= "  stk_nostruk no_struk, ";
+        $query .= "  COUNT(DISTINCT pobi_prdcd) jml_item ";
+        $query .= "FROM tbtr_serah_terima_kardus ";
+        $query .= "JOIN tbtr_obi_h h ";
+        $query .= "ON h.obi_nopb = stk_nopb ";
+        $query .= "AND h.obi_tglpb = stk_tglpb ";
+        $query .= "AND h.obi_kdmember = stk_kodemember ";
+        $query .= "JOIN tbtr_obi_d d ";
+        $query .= "ON d.obi_notrans = h.obi_notrans ";
+        $query .= "AND d.obi_tgltrans = h.obi_tgltrans ";
+        $query .= "JOIN tbtr_packing_obi ";
+        $query .= "ON pobi_notransaksi = d.obi_notrans ";
+        $query .= "AND pobi_tgltransaksi = d.obi_tgltrans ";
+        $query .= "AND pobi_prdcd = d.obi_prdcd ";
+        $query .= "WHERE stk_noserahterima = '" . $seqSerahTerimaKardus . "' ";
+        $query .= "AND d.obi_recid IS NULL ";
+        $query .= "AND d.obi_qtyrealisasi > 0 ";
+        $query .= "GROUP BY stk_nopb, pobi_nocontainer, stk_nostruk ";
+        $query .= "ORDER BY no_pesanan ASC, no_koli ASC ";
+        $dtItem = DB::select($query);
+
+        if(count($dtItem) == 0){
+            return ApiFormatter::error(400, 'List Delivery tidak ditemukan.');
+        }
+
+        //! open form -> rptSTKardus
+
+        // rptSTKardus.SetParameterValue("kdIGR", NamaIGR)
+        // rptSTKardus.SetParameterValue("user_id", UserMODUL)
+        // rptSTKardus.SetParameterValue("noSTKrat", seqSerahTerimaKardus)
+        // rptSTKardus.SetParameterValue("tglSTKrat", tglSTK)
+    }
+
+    private function cetakFormPengembalianBarang($nopb, $notrans, $kdmember, $tgltrans){
+        if(session('flagSPI') == true){
+            //! open form -> rptFPBSPI
+        }else{
+            //! open form -> rptFPBKlik
+        }
+
+        // rptFPB.SetParameterValue("noba", "")
+        // rptFPB.SetParameterValue("tglba", "")
+        // rptFPB.SetParameterValue("cabang", KodeIGR & " / " & NamaIGR)
+        // rptFPB.SetParameterValue("noAWB", "")
+        // rptFPB.SetParameterValue("alasanPengembalian", "")
+    }
+
+    private function reCreateAWB_SPI($kdMember, $noTrans, $tglTrans, $noPB, $alasanBatal){
+        //* GET API IPP x SPI
+        $dt = DB::select("SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'IPP_SPI'");
+        if(count($dt) == 0 || $dt[0]->ws_url == ''){
+            $message = 'API IPP SPI tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        //* GET CREDENTIAL API IPP x SPI
+        $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_SPI'");
+        if(count($dt) == 0){
+            $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $apiName = $dt[0]->cre_name;
+        $apiKey = $dt[0]->cre_key;
+
+        $splitTrans = explode("/", $noPB);
+        $trxid = $splitTrans[0];
+        $newTrxid = "A" . $trxid;
+
+        //* HIT API RE-CREATE AWB
+        $urlSPI = '/recreateawb';
+
+        $postData = [
+            'trxid' => $trxid,
+            'newTrxid' => $newTrxid,
+        ];
+
+        $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
+
+        $strPostData = null;
+        $strResponse = null;
+
+        $query = '';
+        $query .= "INSERT INTO log_createawb ( ";
+        $query .= " nopb,  ";
+        $query .= " notrans,  ";
+        $query .= " url,  ";
+        $query .= " param,  ";
+        $query .= " response,  ";
+        $query .= " create_dt ";
+        $query .= ") ";
+        $query .= "VALUES ( ";
+        $query .= " '" . $noPB . "', ";
+        $query .= " '" . $newTrxid . "', ";
+        $query .= " '" . $urlSPI . "', ";
+        $query .= " '" . $strPostData . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " '" . $strResponse . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " NOW() ";
+        $query .= ") ";
+        DB::insert($query);
+
+        try{
+
+            //! dummy result dari ConToWebServiceNew
+            $response_code = null;
+            $response_message = '';
+            $noAWB = null;
+            $cost = null;
+            $pincode = null;
+
+            $this->updateDeliveryInfo_SPI($kdMember, $noTrans, $tglTrans, $noPB, $newTrxid);
+
+            if($response_code == 200){
+                $query = '';
+                $query .= " SELECT awi_noawb ";
+                $query .= " FROM tbtr_awb_ipp ";
+                $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                $query .= " AND awi_noorder = '" . $newTrxid . "' ";
+                $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                $dt = DB::select($query);
+
+                $UserMODUL = session('userid');
+                if(count($dt) == 0){
+                    $query = '';
+                    $query .= " INSERT INTO tbtr_awb_ipp ( ";
+                    $query .= "   awi_noawb, ";
+                    $query .= "   awi_nopb, ";
+                    $query .= "   awi_noorder, ";
+                    $query .= "   awi_tglorder, ";
+                    $query .= "   awi_kodemember, ";
+                    $query .= "   awi_cost, ";
+                    $query .= "   awi_ref_noorder, ";
+                    $query .= "   awi_pincode, ";
+                    $query .= "   awi_tipetransaksi, ";
+                    $query .= "   awi_create_by, ";
+                    $query .= "   awi_create_dt ";
+                    $query .= " ) ";
+                    $query .= " VALUES ( ";
+                    $query .= "   '" . $noAWB . "', ";
+                    $query .= "   '" . $noPB . "', ";
+                    $query .= "   '" . $newTrxid . "', ";
+                    $query .= "   TO_DATE('" . $tglTrans . "','DD-MM-YYYY'), ";
+                    $query .= "   '" . $kdMember . "', ";
+                    $query .= "   " . $cost . ", ";
+                    $query .= "   '" . $trxid . "', ";
+                    $query .= "   '" . $pincode . "', ";
+                    $query .= "   '" . session('flagSPI') == true ? 'SPI': 'KLIK IGR' . "', ";
+                    $query .= "   '" . $UserMODUL . "', ";
+                    $query .= "   NOW() ";
+                    $query .= " ) ";
+                    DB::insert($query);
+
+                }else{
+                    $query = '';
+                    $query .= " UPDATE tbtr_awb_ipp ";
+                    $query .= " SET awi_cost = " . $cost . ", ";
+                    $query .= "     awi_pincode = '" . $pincode . "', ";
+                    $query .= "     awi_modify_by = '" . $UserMODUL . "', ";
+                    $query .= "     awi_modify_dt = NOW() ";
+                    $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                    $query .= " AND awi_noorder = '" . $newTrxid . "' ";
+                    $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                    DB::insert($query);
+                }
+
+                //* UPDATE TBTR_ALAMAT_MM
+                $query = '';
+                $query .= "UPDATE tbtr_alamat_mm ";
+                $query .= "   SET amm_noawb = '" & $noAWB & "' ";
+                $query .= " WHERE amm_nopb = '" & $noPB & "' ";
+                $query .= "   AND amm_notrans = '" & $noTrans & "' ";
+
+                //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                $query = '';
+                $query .= "UPDATE tbtr_obi_h ";
+                $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
+                $query .= " WHERE obi_nopb = '" & $noPB & "' ";
+                $query .= "   AND obi_notrans = '" & $noTrans & "' ";
+                $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
+                DB::update($query);
+
+                //UPDATE FLAG BATAL DELIVERY
+                $query = '';
+                $query .= " UPDATE TBTR_DELIVERY_SPI ";
+                $query .= " SET del_flagbatal = 'Y' ";
+                $query .= " WHERE del_nopb = '" & $noPB & "' ";
+                $query .= " AND del_kodemember = '" & $kdMember & "' ";
+                DB::update($query);
+
+                //UPDATE STATUS DSP SPI
+                $query = '';
+                $query .= " UPDATE TBTR_DSP_SPI ";
+                $query .= " SET dsp_status = 'DSP', ";
+                $query .= "     dsp_nolisting = 'NULL', ";
+                $query .= "     dsp_modify_by = '" & $UserMODUL & "', ";
+                $query .= "     dsp_modify_dt = NOW() ";
+                $query .= " WHERE dsp_nopb = '" & $noPB & "' ";
+                $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
+                DB::update($query);
+
+                //UPDATE TBTR_AWB_IPP - TRXID
+                $query = '';
+                $query .= "UPDATE tbtr_awb_ipp ";
+                $query .= "   SET awi_status = 'BATAL', ";
+                $query .= "       awi_alasanbatal = '" & $alasanBatal & "', ";
+                $query .= "       awi_modify_by = '" & $UserMODUL & "', ";
+                $query .= "       awi_modify_dt = NOW() ";
+                $query .= " WHERE awi_nopb = '" & $noPB & "' ";
+                $query .= "   AND awi_noorder = '" & $trxid & "' ";
+                $query .= "   AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= "   AND awi_kodemember = '" & $kdMember & "' ";
+                DB::update($query);
+
+            }elseif($response_code == 400 AND str_contains(strtoupper($response_message), 'BATAS MAKSIMAL PEMBUATAN AWB')){
+                $query = '';
+                $query .= " SELECT awi_noawb, awi_cost, awi_pincode ";
+                $query .= " FROM tbtr_awb_ipp ";
+                $query .= " WHERE awi_nopb = '" & $noPB & "' ";
+                $query .= " AND awi_noorder = '" & $newTrxid & "' ";
+                $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= " AND awi_kodemember = '" & $kdMember & "' ";
+                $dt = DB::select($query);
+
+                if(count($dt) > 0 ){
+
+                    //UPDATE TBTR_ALAMAT_MM
+                    $query = '';
+                    $query .= "UPDATE tbtr_alamat_mm ";
+                    $query .= "   SET amm_noawb = '" & $noAWB & "' ";
+                    $query .= " WHERE amm_nopb = '" & $noPB & "' ";
+                    $query .= "   AND amm_notrans = '" & $noTrans & "' ";
+                    DB::update($query);
+
+                    //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                    $query = '';
+                    $query .= "UPDATE tbtr_obi_h ";
+                    $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
+                    $query .= " WHERE obi_nopb = '" & $noPB & "' ";
+                    $query .= "   AND obi_notrans = '" & $noTrans & "' ";
+                    $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
+                    DB::update($query);
+
+                    //UPDATE FLAG BATAL DELIVERY
+                    $query = '';
+                    $query .= " UPDATE TBTR_DELIVERY_SPI ";
+                    $query .= " SET del_flagbatal = 'Y' ";
+                    $query .= " WHERE del_nopb = '" & $noPB & "' ";
+                    $query .= " AND del_kodemember = '" & $kdMember & "' ";
+                    DB::update($query);
+
+                    //UPDATE STATUS DSP SPI
+                    $query = '';
+                    $query .= " UPDATE TBTR_DSP_SPI ";
+                    $query .= " SET dsp_status = 'DSP', ";
+                    $query .= "     dsp_nolisting = 'NULL', ";
+                    $query .= "     dsp_modify_by = '" & session('userid') & "', ";
+                    $query .= "     dsp_modify_dt = NOW() ";
+                    $query .= " WHERE dsp_nopb = '" & $noPB & "' ";
+                    $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
+                    DB::update($query);
+
+                    //UPDATE TBTR_AWB_IPP - TRXID
+                    $query = '';
+                    $query .= "UPDATE tbtr_awb_ipp ";
+                    $query .= "   SET awi_status = 'BATAL', ";
+                    $query .= "       awi_alasanbatal = '" & $alasanBatal & "', ";
+                    $query .= "       awi_modify_by = '" & session('userid') & "', ";
+                    $query .= "       awi_modify_dt = NOW() ";
+                    $query .= " WHERE awi_nopb = '" & $noPB & "' ";
+                    $query .= "   AND awi_noorder = '" & $trxid & "' ";
+                    $query .= "   AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= "   AND awi_kodemember = '" & $kdMember & "' ";
+                    DB::update($query);
+                }
+            }
+
+        }catch(\Exception $e){
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+
+    }
+
+    private function reCreateAWB_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $alasanBatal){
+        //* GET API IPP x SPI
+        $dt = DB::select("SELECT ws_url FROM tbmaster_webservice WHERE ws_nama = 'IPP_KLIK'");
+        if(count($dt) == 0 || $dt[0]->ws_url == ''){
+            $message = 'API IPP SPI tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        //* GET CREDENTIAL API IPP x SPI
+        $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_KLIK'");
+        if(count($dt) == 0){
+            $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $apiName = $dt[0]->cre_name;
+        $apiKey = $dt[0]->cre_key;
+
+        $splitTrans = explode("/", $noPB);
+        $trxid = $splitTrans[0];
+        $newTrxid = "A" . $trxid;
+
+        //* HIT API RE-CREATE AWB
+        $urlKLIK = '/recreateawb';
+
+        $postData = [
+            'trxid' => $trxid,
+            'newTrxid' => $newTrxid,
+        ];
+
+        $strResponse = $this->ConToWebServiceNew($urlKLIK, $apiName, $apiKey, $postData);
+
+        $strPostData = null;
+        $strResponse = null;
+
+        $query = '';
+        $query .= "INSERT INTO log_createawb ( ";
+        $query .= " nopb,  ";
+        $query .= " notrans,  ";
+        $query .= " url,  ";
+        $query .= " param,  ";
+        $query .= " response,  ";
+        $query .= " create_dt ";
+        $query .= ") ";
+        $query .= "VALUES ( ";
+        $query .= " '" . $noPB . "', ";
+        $query .= " '" . $newTrxid . "', ";
+        $query .= " '" . $urlKLIK . "', ";
+        $query .= " '" . $strPostData . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " '" . $strResponse . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " NOW() ";
+        $query .= ") ";
+        DB::insert($query);
+
+        try{
+
+            //! dummy result dari ConToWebServiceNew
+            $response_code = null;
+            $response_message = '';
+            $noAWB = null;
+            $cost = null;
+            $pincode = null;
+
+            $this->updateDeliveryInfo_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $newTrxid);
+
+            if($response_code == 200){
+                $query = '';
+                $query .= " SELECT awi_noawb ";
+                $query .= " FROM tbtr_awb_ipp ";
+                $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                $query .= " AND awi_noorder = '" . $newTrxid . "' ";
+                $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                $dt = DB::select($query);
+
+                $UserMODUL = session('userid');
+                if(count($dt) == 0){
+                    $query = '';
+                    $query .= " INSERT INTO tbtr_awb_ipp ( ";
+                    $query .= "   awi_noawb, ";
+                    $query .= "   awi_nopb, ";
+                    $query .= "   awi_noorder, ";
+                    $query .= "   awi_tglorder, ";
+                    $query .= "   awi_kodemember, ";
+                    $query .= "   awi_cost, ";
+                    $query .= "   awi_ref_noorder, ";
+                    $query .= "   awi_pincode, ";
+                    $query .= "   awi_tipetransaksi, ";
+                    $query .= "   awi_create_by, ";
+                    $query .= "   awi_create_dt ";
+                    $query .= " ) ";
+                    $query .= " VALUES ( ";
+                    $query .= "   '" . $noAWB . "', ";
+                    $query .= "   '" . $noPB . "', ";
+                    $query .= "   '" . $newTrxid . "', ";
+                    $query .= "   TO_DATE('" . $tglTrans . "','DD-MM-YYYY'), ";
+                    $query .= "   '" . $kdMember . "', ";
+                    $query .= "   " . $cost . ", ";
+                    $query .= "   '" . $trxid . "', ";
+                    $query .= "   '" . $pincode . "', ";
+                    $query .= "   '" . session('flagSPI') == true ? 'SPI': 'KLIK IGR' . "', ";
+                    $query .= "   '" . $UserMODUL . "', ";
+                    $query .= "   NOW() ";
+                    $query .= " ) ";
+                    DB::insert($query);
+
+                }else{
+                    $query = '';
+                    $query .= " UPDATE tbtr_awb_ipp ";
+                    $query .= " SET awi_cost = " . $cost . ", ";
+                    $query .= "     awi_pincode = '" . $pincode . "', ";
+                    $query .= "     awi_modify_by = '" . $UserMODUL . "', ";
+                    $query .= "     awi_modify_dt = NOW() ";
+                    $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                    $query .= " AND awi_noorder = '" . $newTrxid . "' ";
+                    $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                    DB::insert($query);
+                }
+
+                //* UPDATE TBTR_ALAMAT_MM
+                $query = '';
+                $query .= "UPDATE tbtr_alamat_mm ";
+                $query .= "   SET amm_noawb = '" & $noAWB & "' ";
+                $query .= " WHERE amm_nopb = '" & $noPB & "' ";
+                $query .= "   AND amm_notrans = '" & $noTrans & "' ";
+
+                //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                $query = '';
+                $query .= "UPDATE tbtr_obi_h ";
+                $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
+                $query .= " WHERE obi_nopb = '" & $noPB & "' ";
+                $query .= "   AND obi_notrans = '" & $noTrans & "' ";
+                $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
+                DB::update($query);
+
+                //UPDATE FLAG BATAL DELIVERY
+                $query = '';
+                $query .= " UPDATE TBTR_DELIVERY_SPI ";
+                $query .= " SET del_flagbatal = 'Y' ";
+                $query .= " WHERE del_nopb = '" & $noPB & "' ";
+                $query .= " AND del_kodemember = '" & $kdMember & "' ";
+                DB::update($query);
+
+                //UPDATE STATUS DSP SPI
+                $query = '';
+                $query .= " UPDATE TBTR_DSP_SPI ";
+                $query .= " SET dsp_status = 'DSP', ";
+                $query .= "     dsp_nolisting = 'NULL', ";
+                $query .= "     dsp_modify_by = '" & $UserMODUL & "', ";
+                $query .= "     dsp_modify_dt = NOW() ";
+                $query .= " WHERE dsp_nopb = '" & $noPB & "' ";
+                $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
+                DB::update($query);
+
+                //UPDATE TBTR_AWB_IPP - TRXID
+                $query = '';
+                $query .= "UPDATE tbtr_awb_ipp ";
+                $query .= "   SET awi_status = 'BATAL', ";
+                $query .= "       awi_alasanbatal = '" & $alasanBatal & "', ";
+                $query .= "       awi_modify_by = '" & $UserMODUL & "', ";
+                $query .= "       awi_modify_dt = NOW() ";
+                $query .= " WHERE awi_nopb = '" & $noPB & "' ";
+                $query .= "   AND awi_noorder = '" & $trxid & "' ";
+                $query .= "   AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= "   AND awi_kodemember = '" & $kdMember & "' ";
+                DB::update($query);
+
+            }elseif($response_code == 400 AND str_contains(strtoupper($response_message), 'BATAS MAKSIMAL PEMBUATAN AWB')){
+                $query = '';
+                $query .= " SELECT awi_noawb, awi_cost, awi_pincode ";
+                $query .= " FROM tbtr_awb_ipp ";
+                $query .= " WHERE awi_nopb = '" & $noPB & "' ";
+                $query .= " AND awi_noorder = '" & $newTrxid & "' ";
+                $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= " AND awi_kodemember = '" & $kdMember & "' ";
+                $dt = DB::select($query);
+
+                if(count($dt) > 0 ){
+
+                    //UPDATE TBTR_ALAMAT_MM
+                    $query = '';
+                    $query .= "UPDATE tbtr_alamat_mm ";
+                    $query .= "   SET amm_noawb = '" & $noAWB & "' ";
+                    $query .= " WHERE amm_nopb = '" & $noPB & "' ";
+                    $query .= "   AND amm_notrans = '" & $noTrans & "' ";
+                    DB::update($query);
+
+                    //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                    $query = '';
+                    $query .= "UPDATE tbtr_obi_h ";
+                    $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
+                    $query .= " WHERE obi_nopb = '" & $noPB & "' ";
+                    $query .= "   AND obi_notrans = '" & $noTrans & "' ";
+                    $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
+                    DB::update($query);
+
+                    //UPDATE FLAG BATAL DELIVERY
+                    $query = '';
+                    $query .= " UPDATE TBTR_DELIVERY_SPI ";
+                    $query .= " SET del_flagbatal = 'Y' ";
+                    $query .= " WHERE del_nopb = '" & $noPB & "' ";
+                    $query .= " AND del_kodemember = '" & $kdMember & "' ";
+                    DB::update($query);
+
+                    //UPDATE STATUS DSP SPI
+                    $query = '';
+                    $query .= " UPDATE TBTR_DSP_SPI ";
+                    $query .= " SET dsp_status = 'DSP', ";
+                    $query .= "     dsp_nolisting = 'NULL', ";
+                    $query .= "     dsp_modify_by = '" & session('userid') & "', ";
+                    $query .= "     dsp_modify_dt = NOW() ";
+                    $query .= " WHERE dsp_nopb = '" & $noPB & "' ";
+                    $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
+                    DB::update($query);
+
+                    //UPDATE TBTR_AWB_IPP - TRXID
+                    $query = '';
+                    $query .= "UPDATE tbtr_awb_ipp ";
+                    $query .= "   SET awi_status = 'BATAL', ";
+                    $query .= "       awi_alasanbatal = '" & $alasanBatal & "', ";
+                    $query .= "       awi_modify_by = '" & session('userid') & "', ";
+                    $query .= "       awi_modify_dt = NOW() ";
+                    $query .= " WHERE awi_nopb = '" & $noPB & "' ";
+                    $query .= "   AND awi_noorder = '" & $trxid & "' ";
+                    $query .= "   AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= "   AND awi_kodemember = '" & $kdMember & "' ";
+                    DB::update($query);
+                }
+            }
+
+        }catch(\Exception $e){
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+
+    }
+
+    private function updateDeliveryInfo_SPI($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = ''){
+        //* GET API IPP x SPI
+        $dt = DB::select("SELECT ws_url, ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'IPP_SPI'");
+        if(count($dt) == 0 || $dt[0]->ws_url == ''){
+            $message = 'API IPP SPI tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $urlSPI = $dt[0]->ws_url;
+        $flagAktif = $dt[0]->ws_aktif;
+
+        if($flagAktif == 0){
+            return true;
+        }
+
+        //* GET CREDENTIAL API IPP x SPI
+        $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_SPI'");
+        if(count($dt) == 0){
+            $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $apiName = $dt[0]->cre_name;
+        $apiKey = $dt[0]->cre_key;
+
+        $splitTrans = explode("/", $noPB);
+        $trxid = $splitTrans[0];
+
+        $query = '';
+        $query .= " SELECT  ";
+        $query .= "   TRIM(obi_tipebayar) tipebayar,  ";
+        $query .= "   COALESCE(dsp_totalbayar,0) nilaidsp, ";
+        $query .= "   TO_CHAR(COALESCE(obi_draftstruk,current_timestamp),'YYYY-MM-DD HH24:MI:SS') tgldsp ";
+        $query .= " FROM tbtr_obi_h ";
+        $query .= " LEFT JOIN tbtr_dsp_spi ";
+        $query .= " ON dsp_nopb = obi_nopb ";
+        $query .= " AND dsp_tglpb = obi_tglpb ";
+        $query .= " AND dsp_notrans = obi_notrans ";
+        $query .= " AND dsp_kodemember = obi_kdmember ";
+        $query .= " WHERE obi_nopb = '" . $noPB . "' ";
+        $query .= " AND obi_notrans = '" . $noTrans . "' ";
+        $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+        $query .= " AND obi_kdmember = '" . $kdMember . "' ";
+        $dt = DB::select($query);
+
+        if(count($dt) == 0){
+            $message = "Data PB $noPB Tidak ditemukan.";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $codvalue = '';
+        $codpaymentcode = '';
+        $flagnonpaid = '0';
+        if(str_contains(strtoupper($dt[0]->tipebayar), 'COD')){
+            $codvalue = $dt[0]->nilaidsp;
+            $codpaymentcode = $noPB;
+
+            if($dt[0]->nilaidsp <= 0){
+                $flagnonpaid = '1';
+            }
+        }
+
+        $postData = [
+            'trxid' => $trxid,
+            'codvalue' => $codvalue,
+            'codpaymentcode' => $codpaymentcode,
+            'flagnonpaid' => $flagnonpaid,
+        ];
+
+        //* HIT API UPDATE DELIVERY INFO
+        $urlSPI = "/updatedeliveryinfo";
+
+        $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
+
+        //! dummy result dari ConToWebServiceNew
+        $strPostData = null;
+        $strResponse = '';
+
+        $query = '';
+        $query .= "INSERT INTO log_createawb ( ";
+        $query .= " nopb,  ";
+        $query .= " notrans,  ";
+        $query .= " url,  ";
+        $query .= " param,  ";
+        $query .= " response,  ";
+        $query .= " create_dt ";
+        $query .= ") ";
+        $query .= "VALUES ( ";
+        $query .= " '" . $noPB . "', ";
+        $query .= " '" . $trxid . "', ";
+        $query .= " '" . $urlSPI . "', ";
+        $query .= " '" . $strPostData . "', ";
+        $query .= " '" . substr(str_replace("'", "''", $strResponse), 0, 2000) . "', ";
+        $query .= " NOW() ";
+        $query .= ") ";
+        DB::insert($query);
+
+        try{
+
+             //! dummy result dari ConToWebServiceNew
+             $response_code = null;
+             $noAWB = null;
+             $cost = null;
+             $pincode = null;
+
+             if($response_code == 200){
+
+                //* UPDATE TBTR_ALAMAT_MM
+                $query = '';
+                $query .= "UPDATE tbtr_alamat_mm ";
+                $query .= "   SET amm_noawb = '" . $noAWB . "' ";
+                $query .= " WHERE amm_nopb = '" . $noPB . "' ";
+                $query .= "   AND amm_notrans = '" . $noTrans . "' ";
+                DB::update($query);
+
+                //* UPDATE TBTR_OBI_H - OBI_TRXID
+                $query = '';
+                $query .= "UPDATE tbtr_obi_h ";
+                if($trxidnew == ''){
+                    $query .= "   SET obi_trxid = '" . $trxid . "' ";
+                }else{
+                    $query .= "   SET obi_trxidnew = '" . $trxid . "' ";
+                }
+                $query .= " WHERE obi_nopb = '" . $noPB . "' ";
+                $query .= "   AND obi_notrans = '" . $noTrans . "' ";
+                $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= "   AND obi_kdmember = '" . $kdMember . "' ";
+                DB::update($query);
+
+                //* INSERT INTO TBTR_AWB_IPP
+                $query = '';
+                $query .= " SELECT awi_noawb ";
+                $query .= " FROM tbtr_awb_ipp ";
+                $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                $query .= " AND awi_noorder = '" . $trxid . "' ";
+                $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                $dt = DB::select($query);
+
+                if(count($dt) == 0){
+                    $query = '';
+                    $query .= " INSERT INTO tbtr_awb_ipp ( ";
+                    $query .= "   awi_noawb, ";
+                    $query .= "   awi_nopb, ";
+                    $query .= "   awi_noorder, ";
+                    $query .= "   awi_tglorder, ";
+                    $query .= "   awi_kodemember, ";
+                    $query .= "   awi_cost, ";
+                    $query .= "   awi_pincode, ";
+                    $query .= "   awi_tipetransaksi, ";
+                    $query .= "   awi_create_by, ";
+                    $query .= "   awi_create_dt ";
+                    $query .= " ) ";
+                    $query .= " VALUES ( ";
+                    $query .= "   '" . $noAWB . "', ";
+                    $query .= "   '" . $noPB . "', ";
+                    $query .= "   '" . $trxid . "', ";
+                    $query .= "   TO_DATE('" . $tglTrans . "','DD-MM-YYYY'), ";
+                    $query .= "   '" . $kdMember . "', ";
+                    $query .= "   " . $cost . ", ";
+                    $query .= "   '" . $pincode . "', ";
+                    $query .= "   '" . session('flagSPI') == true ? 'SPI' : 'KLIKIGR' . "', ";
+                    $query .= "   '" . session('userid') . "', ";
+                    $query .= "   NOW() ";
+                    $query .= " ) ";
+                    DB::insert($query);
+
+                }else{
+                    $query = '';
+                    $query .= " UPDATE tbtr_awb_ipp ";
+                    $query .= " SET awi_cost = " . $cost . ", ";
+                    $query .= "     awi_pincode = '" . $pincode . "', ";
+                    $query .= "     awi_modify_by = '" . session('userid') . "', ";
+                    $query .= "     awi_modify_dt = NOW() ";
+                    $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                    $query .= " AND awi_noorder = '" . $trxid . "' ";
+                    $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                    DB::update($query);
+                }
+             }
+
+        }catch(\Exception $e){
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+    }
+
+    private function updateDeliveryInfo_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = ''){
+        //* GET API IPP x SPI
+        $dt = DB::select("SELECT ws_url, ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'IPP_KLIK'");
+        if(count($dt) == 0 || $dt[0]->ws_url == ''){
+            $message = 'API IPP Klik tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $urlSPI = $dt[0]->ws_url;
+        $flagAktif = $dt[0]->ws_aktif;
+
+        if($flagAktif == 0){
+            return true;
+        }
+
+        //* GET CREDENTIAL API IPP x SPI
+        $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_KLIK'");
+        if(count($dt) == 0){
+            $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $apiName = $dt[0]->cre_name;
+        $apiKey = $dt[0]->cre_key;
+
+        $splitTrans = explode("/", $noPB);
+        $trxid = $splitTrans[0];
+
+        $query = '';
+        $query .= " SELECT  ";
+        $query .= "   TRIM(obi_tipebayar) tipebayar,  ";
+        $query .= "   COALESCE(dsp_totalbayar,0) nilaidsp, ";
+        $query .= "   TO_CHAR(COALESCE(obi_draftstruk,current_timestamp),'YYYY-MM-DD HH24:MI:SS') tgldsp ";
+        $query .= " FROM tbtr_obi_h ";
+        $query .= " LEFT JOIN tbtr_dsp_spi ";
+        $query .= " ON dsp_nopb = obi_nopb ";
+        $query .= " AND dsp_tglpb = obi_tglpb ";
+        $query .= " AND dsp_notrans = obi_notrans ";
+        $query .= " AND dsp_kodemember = obi_kdmember ";
+        $query .= " WHERE obi_nopb = '" . $noPB . "' ";
+        $query .= " AND obi_notrans = '" . $noTrans . "' ";
+        $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+        $query .= " AND obi_kdmember = '" . $kdMember . "' ";
+        $dt = DB::select($query);
+
+        if(count($dt) == 0){
+            $message = "Data PB $noPB Tidak ditemukan.";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $codvalue = '';
+        $codpaymentcode = '';
+        $flagnonpaid = '0';
+        if(str_contains(strtoupper($dt[0]->tipebayar), 'COD')){
+            $codvalue = $dt[0]->nilaidsp;
+            $codpaymentcode = $noPB;
+
+            if($dt[0]->nilaidsp <= 0){
+                $flagnonpaid = '1';
+            }
+        }
+
+        $postData = [
+            'trxid' => $trxid,
+            'codvalue' => $codvalue,
+            'codpaymentcode' => $codpaymentcode,
+            'flagnonpaid' => $flagnonpaid,
+        ];
+
+        //* HIT API UPDATE DELIVERY INFO
+        $urlKlik = "/updatedeliveryinfo";
+
+        $strResponse = $this->ConToWebServiceNew($urlKlik, $apiName, $apiKey, $postData);
+
+        //! dummy result dari ConToWebServiceNew
+        $strPostData = null;
+        $strResponse = '';
+
+        $query = '';
+        $query .= "INSERT INTO log_createawb ( ";
+        $query .= " nopb,  ";
+        $query .= " notrans,  ";
+        $query .= " url,  ";
+        $query .= " param,  ";
+        $query .= " response,  ";
+        $query .= " create_dt ";
+        $query .= ") ";
+        $query .= "VALUES ( ";
+        $query .= " '" . $noPB . "', ";
+        $query .= " '" . $trxid . "', ";
+        $query .= " '" . $urlKlik . "', ";
+        $query .= " '" . $strPostData . "', ";
+        $query .= " '" . substr(str_replace("'", "''", $strResponse), 0, 2000) . "', ";
+        $query .= " NOW() ";
+        $query .= ") ";
+        DB::insert($query);
+
+        try{
+
+             //! dummy result dari ConToWebServiceNew
+             $response_code = null;
+             $noAWB = null;
+             $cost = null;
+             $pincode = null;
+
+             if($response_code == 200){
+
+                //* UPDATE TBTR_ALAMAT_MM
+                $query = '';
+                $query .= "UPDATE tbtr_alamat_mm ";
+                $query .= "   SET amm_noawb = '" . $noAWB . "' ";
+                $query .= " WHERE amm_nopb = '" . $noPB . "' ";
+                $query .= "   AND amm_notrans = '" . $noTrans . "' ";
+                DB::update($query);
+
+                //* UPDATE TBTR_OBI_H - OBI_TRXID
+                $query = '';
+                $query .= "UPDATE tbtr_obi_h ";
+                if($trxidnew == ''){
+                    $query .= "   SET obi_trxid = '" . $trxid . "' ";
+                }else{
+                    $query .= "   SET obi_trxidnew = '" . $trxid . "' ";
+                }
+                $query .= " WHERE obi_nopb = '" . $noPB . "' ";
+                $query .= "   AND obi_notrans = '" . $noTrans . "' ";
+                $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= "   AND obi_kdmember = '" . $kdMember . "' ";
+                DB::update($query);
+
+                //* INSERT INTO TBTR_AWB_IPP
+                $query = '';
+                $query .= " SELECT awi_noawb ";
+                $query .= " FROM tbtr_awb_ipp ";
+                $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                $query .= " AND awi_noorder = '" . $trxid . "' ";
+                $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                $dt = DB::select($query);
+
+                if(count($dt) == 0){
+                    $query = '';
+                    $query .= " INSERT INTO tbtr_awb_ipp ( ";
+                    $query .= "   awi_noawb, ";
+                    $query .= "   awi_nopb, ";
+                    $query .= "   awi_noorder, ";
+                    $query .= "   awi_tglorder, ";
+                    $query .= "   awi_kodemember, ";
+                    $query .= "   awi_cost, ";
+                    $query .= "   awi_pincode, ";
+                    $query .= "   awi_tipetransaksi, ";
+                    $query .= "   awi_create_by, ";
+                    $query .= "   awi_create_dt ";
+                    $query .= " ) ";
+                    $query .= " VALUES ( ";
+                    $query .= "   '" . $noAWB . "', ";
+                    $query .= "   '" . $noPB . "', ";
+                    $query .= "   '" . $trxid . "', ";
+                    $query .= "   TO_DATE('" . $tglTrans . "','DD-MM-YYYY'), ";
+                    $query .= "   '" . $kdMember . "', ";
+                    $query .= "   " . $cost . ", ";
+                    $query .= "   '" . $pincode . "', ";
+                    $query .= "   '" . session('flagSPI') == true ? 'SPI' : 'KLIKIGR' . "', ";
+                    $query .= "   '" . session('userid') . "', ";
+                    $query .= "   NOW() ";
+                    $query .= " ) ";
+                    DB::insert($query);
+
+                }else{
+                    $query = '';
+                    $query .= " UPDATE tbtr_awb_ipp ";
+                    $query .= " SET awi_cost = " . $cost . ", ";
+                    $query .= "     awi_pincode = '" . $pincode . "', ";
+                    $query .= "     awi_modify_by = '" . session('userid') . "', ";
+                    $query .= "     awi_modify_dt = NOW() ";
+                    $query .= " WHERE awi_nopb = '" . $noPB . "' ";
+                    $query .= " AND awi_noorder = '" . $trxid . "' ";
+                    $query .= " AND DATE_TRUNC('DAY',awi_tglorder) = '" . Carbon::parse($tglTrans)->format('Y-m-d H:i:s') . "' ";
+                    $query .= " AND awi_kodemember = '" . $kdMember . "' ";
+                    DB::update($query);
+                }
+             }
+
+        }catch(\Exception $e){
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
 
     }
 
