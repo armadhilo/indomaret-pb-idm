@@ -64,7 +64,11 @@ Route::middleware(['mylogin'])->group(function () {
         /*  Voucher */
         Route::prefix('/voucher')->group(function () {
 
+            Route::post('/picking/save', [VoucherController::class, 'save_data_picker']);
             Route::get('/data', [VoucherController::class, 'voucher_load']);
+            Route::get('/picking', [VoucherController::class, 'picking_load']);
+            Route::get('/printqr', [VoucherController::class, 'print_qr']);
+            Route::get('/printreport', [VoucherController::class, 'print_report']);
         });
     });
 

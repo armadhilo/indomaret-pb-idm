@@ -10,6 +10,14 @@ let selectedTable,
     cabang = null;
 
 $(document).ready(function(){
+      $('#scrollContainer').on('scroll', function () {
+         var container = $(this);
+         if (container.scrollTop() + container.innerHeight() >= container[0].scrollHeight) {
+         // Load more data when scrolled to the bottom
+         // view();
+         }
+      });
+      
       /**
        * table_plu
        */
@@ -50,6 +58,45 @@ $(document).ready(function(){
 
       $(".monitoring-label").hide();
 });
+
+download_txt=()=>{
+   $('#downloadBtn').click(function(){
+      var textData = '';
+      textData += "ISI KOLI\n";
+      textData += "TOKO  : T7G5 - MODERN BOULEVARD\n";
+      textData += "NO PB : 901064 / 23-03-2024\n\n";
+      textData += "No PICK : 63437\n";
+      textData += "No KOLI : 020063437001\n";
+      textData += "========================================\n";
+      textData += " NO. NAMA BARANG            PLU      QTY\n";
+      textData += "========================================\n";
+      textData += "   1 POP MIE AYAM 75G      0037141    24\n";
+      textData += "   2 SOSRO TEH BTL TPK 1L  1141511    12\n";
+      textData += "   3 SARIMI GOR.AYM KK125  1179331    24\n";
+      textData += "   4 QTELA KRPK BLDO 180G  1254071    12\n";
+      textData += "========================================\n";
+      textData += "TOTAL : 4 ITEM / RP + PPN  :   433.536\n";
+      
+      // Create a blob with the text data
+      var blob = new Blob([textData], { type: 'text/plain;charset=utf-8' });
+      
+      // Create a temporary anchor element
+      var a = document.createElement('a');
+      var url = window.URL.createObjectURL(blob);
+      
+      // Set the href attribute of the anchor element to the Blob URL
+      a.href = url;
+      
+      // Set the download attribute to specify the filename
+      a.download = 'text_file.txt';
+      
+      // Programmatically click the anchor element to trigger the download
+      a.click();
+      
+      // Release the Object URL resource
+      window.URL.revokeObjectURL(url);
+    });
+}
 
 toggleInput =(nameClass,deleteVar)=>{
 
