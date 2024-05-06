@@ -199,32 +199,17 @@ class VoucherController extends Controller
 
     }
 
-    public function dspb_vm(Request $request){
+    public function dspb_vm($kodetoko = null, $tglpb = null, $nopb= null){
         
          try {
             $this->DB_PGSQL->beginTransaction();
 
-            $noDspb = $thnPb = "";
-            $noBatch = $jumlahKoli = $totalKoli = $totalLoading = 0;
-            $taxNum = $noKoli = $nmNpb = $nmRpb = $flagCrtPjk = $_toko = $_nopb = $_koli = $_txtPath = "";
-            $kodetoko = $dgv->item(2, $dgv->currentCell->rowIndex)->value;
-            $nopb = $dgv->item(3, $dgv->currentCell->rowIndex)->value;
-            $tglpb = date_create($dgv->item(4, $dgv->currentCell->rowIndex)->value);
-
-            
-
-            $flagProses = true;
-
-
             $noDspb = $this->DB_PGSQL->select("SELECT NEXTVAL('SEQ_NPB')")[0]->nextval;
-
             $thnPb = $this->DB_PGSQL->select("SELECT TO_CHAR(CURRENT_DATE, 'YY')")[0]->to_char;
-
             $tglServer = date('Y-m-d');
-
             $noDspb = $thnPb . str_pad($noDspb, 5, "0", STR_PAD_LEFT);
-
             $kodeDCIDM = "";
+            
             $dt =  $this->DB_PGSQL
                         ->table("master_supply_idm")
                         ->selectRaw("msi_kodedc")
@@ -834,8 +819,8 @@ class VoucherController extends Controller
 
     public function create_report($kodetoko = null, $tglpb = null, $nopb = null){
        
-        // try {
-        //     $this->DB_PGSQL->beginTransaction();
+        try {
+            $this->DB_PGSQL->beginTransaction();
             
             $flagFTZ = false;
             $flagFTZ_condition = null; 
@@ -870,8 +855,8 @@ class VoucherController extends Controller
                                 ".$flagFTZ_condition."
                              ")
                              ->whereRaw("PBO_QTYREALISASI > 0 ")
-                            //  ->whereRaw("PBO_RECORDID = '4' ")
-                            //  ->whereRaw("PBO_NOKOLI LIKE '04%' ")
+                             ->whereRaw("PBO_RECORDID = '4' ") // command for testing
+                             ->whereRaw("PBO_NOKOLI LIKE '04%' ") // command for testing
                              ->groupBy("ikl_kodeigr", "ikl_nokoli", "ikl_nocontainer" )
                              ->orderBy("ikl_nokoli","asc")
                              ->get();
@@ -1001,42 +986,29 @@ class VoucherController extends Controller
                                      ->selectRaw("*")
                                      ->limit(1)
                                      ->get();
-                dd($headerResult);
             }
 
-            // Execute the query and get the result
-            // $result = DB::select($SQL);
+            $data = [
+                'noseri'=> $noseriData?$noseriData:null,
+                'header' => $headerResult?$headerResult[0]:null,
+                'perusahaan'=> $perusahaanData?$perusahaanData:null,
+                'toko' => $tokoData?$tokoData:null,
+                'cluster' => $cluster?$cluster:null,
+                'group' => $group?$group:null,
+                'container' => $print_SJ[0]?$print_SJ[0]:null
 
-            // If data is available, proceed further
-            // if (!empty($result)) {
-            //     // Add fetched data to the dataset
-            //     $ds->add(['HEADER' => $headerResult, 'PERUSAHAAN' => $perusahaanData, 'TOKO' => $tokoData]);
-
-            //     // Write the dataset to an XML file
-            //     $ds->writeXml(public_path('reporting.xml'), LIBXML_NOEMPTYTAG);
-
-            //     // Set the data source for oRpt2
-            //     $oRpt2->SetDataSource($ds);
-
-            //     // Load the report view
-            //     return view('report', ['report' => $oRpt2]);
-            // }
-
+            ];
 
             
-
-
-
             
-        
+            $this->DB_PGSQL->commit();
+            return $data;
+        } catch (\Throwable $th) {
             
-        //     $this->DB_PGSQL->commit();
-        // } catch (\Throwable $th) {
-            
-        //     $this->DB_PGSQL->rollBack();
-        //     // dd($th);
-        //     return response()->json(['errors'=>true,'messages'=>$th->getMessage()],500);
-        // }
+            $this->DB_PGSQL->rollBack();
+            // dd($th);
+            return response()->json(['errors'=>true,'messages'=>$th->getMessage()],500);
+        }
     }
 
     public function print_qr(Request $request){
@@ -1067,21 +1039,21 @@ class VoucherController extends Controller
         $nopb = "900319";
         $tglpb = "2023-02-02";
         $header_cetak_custom = 'bellow';
-        $data = $this->create_report($kodetoko,$tglpb,$nopb);
-        dd('tidak masuk');
+        //Testing
+        $data = $this->dspb_vm($kodetoko,$tglpb,$nopb)
+        //end testing
+        // $data = $this->create_report($kodetoko,$tglpb,$nopb);
+        // $data['kodetoko'] = $kodetoko;
+        // $data['tglpb'] = $tglpb;
+        // $data['nopb'] = $nopb;
         // $date = date('Y-m');
-        // $perusahaan = '[{"prs_namaperusahaan":"PT.INTI CAKRAWALA CITRA","prs_namacabang":"INDOGROSIR SEMARANG POST","customer":"105005 - PUJI RAHAYU","nomor_faktur":"010.007-23.30540947","tgl_faktur":"2023-05-31 00:00:00","dpp":"6432836.0000","ppn":"707624.0000","ppn_bkp":"707624.0000","ppn_bebas":"0","ppn_dtp":"0"}]';
-        // $data = '[{"prs_kodeigr":"22","prs_kodeperusahaan":"PT","prs_namaperusahaan":"PT.INTI CAKRAWALA CITRA","prs_kodewilayah":"SM2","prs_namawilayah":"SEMARANG","prs_singkatanwilayah":"SMG","prs_koderegional":"01","prs_namaregional":"SEMARANG","prs_singkatanregional":"SMG","prs_kodecabang":"22","prs_namacabang":"INDOGROSIR SEMARANG POST","prs_singkatancabang":"IGR SMG","prs_kodesbu":"4","prs_namasbu":"INDOGROSIR","prs_singkatansbu":"IGR","prs_lokasisbu":"SEMARANG","prs_alamat1":"JL.RAYA KALIGAWE 38 KM 5,1","prs_alamat2":"TERBOYO WETAN","prs_alamat3":"GENUK","prs_telepon":"02476928282","prs_npwp":"01.781.214.0-046.000","prs_nosk":"01.781.214.0-046.000","prs_tglsk":"2007-04-09 00:00:00","prs_alamatfakturpajak1":"JL.ANCOL BARAT I NO.9-10 ANCOL","prs_alamatfakturpajak2":"PADEMANGAN JAKARTA UTARA","prs_alamatfakturpajak3":"DKI JAKARTA 14430","prs_modalawal":"40000000","prs_fmmupb":"100000","prs_flagppn":"Y","prs_flagpkp":null,"prs_jenistimbangan":"3","prs_fmfsgd":null,"prs_jenisprinter":"2","prs_classcabang":"M","prs_tipehrg":"A","prs_nokpp":null,"prs_creditlimit":"0","prs_flagdpd":"Y","prs_limitprofitlabelbiru":"1","prs_noserifakturpajak":null,"prs_nopo":"00000","prs_nobpb":"000000","prs_nonpb":"00000","prs_nonkb":"00000","prs_nobapb":"00000","prs_nompp":"00000","prs_noklm":"00000","prs_notkl":"00000","prs_nofaktur":"00000","prs_nofakturpajak1":"0000000","prs_nofakturpajak2":"0000000","prs_nonrb":"0000000","prs_nobrb":"00000","prs_nonk":"00000","prs_nond":"00000","prs_periodebaru":null,"prs_periodeterakhir":"2023-10-13 22:17:07","prs_bulanberjalan":"10","prs_tahunberjalan":"2023","prs_toleransihrg":"0","prs_fmflcs":null,"prs_nilaippn":"11","prs_nilaippnbm":"0","prs_kodemto":"016","prs_reportpath":null,"prs_ipserver":"\\\\192.168.237.194\\d\\grosir","prs_userserver":"igrsmg","prs_pwdserver":"igrsmg","prs_directorypb":"G:\\Grosir\\Lhost\\MM","prs_rptname":"rep_ias-igrsmg","prs_mdftpurl":null,"prs_mdftpuser":null,"prs_mdftppassword":null,"prs_mdftpport":null,"prs_directorykirim":null,"prs_create_by":"sys","prs_create_dt":"2011-07-25 13:01:21","prs_modify_by":"DV3","prs_modify_dt":"2023-10-13 22:17:07","prs_kphconst":"6","prs_flagcmo":"Y","prs_tglcmo":"2017-10-02 00:00:00","prs_flag_ftz":null,"prs_potong_plano_scan":null}]';
-        // $data = json_decode($data);
-        // $data = [];
-        // $perusahaan = json_decode($perusahaan);
-        // $perusahaan = $perusahaan[0];
+        // $perusahaan = $data['perusahaan'];
         // $pdf = PDF::loadview('menu.voucher.report.report_ rincian_nomor_referensi_materai', compact('data','date','perusahaan','header_cetak_custom'));
         // $pdf->output();
         // $dompdf = $pdf->getDomPDF()->set_option("enable_php", true);
         // $canvas = $dompdf->get_canvas();
 
-        // //make page text in header and left side
+        // // //make page text in header and left side
         // $canvas->page_text(595, 810, "Page {PAGE_NUM} of {PAGE_COUNT}", null, 10, array(0, 0, 0));
     
     
