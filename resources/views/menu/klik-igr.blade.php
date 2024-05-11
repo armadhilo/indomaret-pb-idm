@@ -143,6 +143,11 @@
         flex-shrink: 0;
         margin-right: 15px;
     }
+
+    #tab_detail_transaksi .nav-item .nav-link.active{
+        color: #012970;
+        font-weight: bold;
+    }
 </style>
 @endsection
 
@@ -326,11 +331,11 @@
                     <table class="table table-striped table-hover datatable-dark-primary w-100" id="tb_edit_pb">
                         <thead>
                             <tr>
-                                <td>PLU</td>
-                                <td>Nama Barang</td>
-                                <td>Qty Order</td>
-                                <td>Qty Real</td>
-                                <td>Action</td>
+                                <th>PLU</th>
+                                <th>Nama Barang</th>
+                                <th>Qty Order</th>
+                                <th>Qty Real</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -418,6 +423,148 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_hitung_ulang" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">Hitung Ulang DSP / SP</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-center flex-column align-items-center" style="border-radius: 6px; padding: 12px 15px; background: #cbcbcba8">
+                    <div style="width: 600px;" class="d-flex justify-content-between">
+                        <div class="detail-edit-pb detail-info" style="width: 350px">
+                            <p>No. PB</p>
+                            <p>:&nbsp; &nbsp; <span id="no_pb_hitung_ulang">0</span></p>
+                        </div>
+                        <div class="detail-edit-pb detail-info" style="width: 230px">
+                            <p>Tanggal PB</p>
+                            <p>:&nbsp; &nbsp; <span id="tanggal_pb_hitung_ulang">0</span></p>
+                        </div>
+                    </div>
+                    <div style="width: 600px;" class="d-flex justify-content-between mt-2">
+                        <div class="detail-edit-pb detail-info" style="width: 230px">
+                            <p>Member</p>
+                            <p>:&nbsp; &nbsp; <span id="kode_member_hitung_ulang">0</span></p>
+                        </div>
+                        <div class="detail-edit-pb detail-info" style="width: 350px">
+                            <p class="w-100"><span id="nama_member_hitung_ulang">0</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-info bg-royal float-right" style="height: 25px; width: 150px; margin-top: 20px; margin-bottom: 4px; font-size: .9rem">*Edit di Qty Real</div>
+                <div class="table-responsive position-relative">
+                    <table class="table table-striped table-hover datatable-dark-primary w-100" id="tb_hitung_ulang">
+                        <thead>
+                            <tr>
+                                <th>PLU</th>
+                                <th>Deskripsi</th>
+                                <th>Frac</th>
+                                <th>Qty PB</th>
+                                <th>Qty Real</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <button class="btn btn-lg btn-primary d-none" id="loading_datatable_hitung_ulang" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" type="button" disabled>
+                            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                            Loading...
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalHitungUlang();">Hitung Ulang</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionF4Proses();">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_pembatalan_pb" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">Modal Pembatalan PB</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive position-relative">
+                    <table class="table table-striped table-hover datatable-dark-primary w-100 table-center" id="tb_pembatalan_pb">
+                        <thead>
+                            <tr>
+                                <th>No. PB</th>
+                                <th>No. Trans</th>
+                                <th>Tgl. Trans</th>
+                                <th>Alasan</th>
+                                <th>Lain-lain</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    <button class="btn btn-lg btn-primary d-none" id="loading_datatable_hitung_ulang" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" type="button" disabled>
+                            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                            Loading...
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalSimpanPembatalanPB();">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_detail_transaksi" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">DETAIL TRANSAKSI</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="tab_detail_transaksi" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="info_trans-tab" data-toggle="tab" data-target="#info_trans" type="button" role="tab" aria-controls="info_trans" aria-selected="true">Info Trans</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pengiriman-tab" data-toggle="tab" data-target="#pengiriman" type="button" role="tab" aria-controls="pengiriman" aria-selected="false">Pengiriman</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pembayaran-tab" data-toggle="tab" data-target="#pembayaran" type="button" role="tab" aria-controls="pembayaran" aria-selected="false">Pembayaran</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="realisasi-tab" data-toggle="tab" data-target="#realisasi" type="button" role="tab" aria-controls="realisasi" aria-selected="true">Realisasi</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="reprint_koli-tab" data-toggle="tab" data-target="#reprint_koli" type="button" role="tab" aria-controls="reprint_koli" aria-selected="false">Reprint Koli</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="info_trans" role="tabpanel" aria-labelledby="info-trans-tab">Info Trans</div>
+                    <div class="tab-pane fade" id="pengiriman" role="tabpanel" aria-labelledby="Pengiriman-tab">Pengiriman</div>
+                    <div class="tab-pane fade" id="pembayaran" role="tabpanel" aria-labelledby="Pembayaran-tab">Pembayaran</div>
+                    <div class="tab-pane fade" id="realisasi" role="tabpanel" aria-labelledby="Realisasi-tab">Realisasi</div>
+                    <div class="tab-pane fade" id="reprint_koli" role="tabpanel" aria-labelledby="reprint_koli-tab">Reprint Koli</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalSimpanPembatalanPB();">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_password_manager" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #2f4f4f!important">
@@ -437,11 +584,12 @@
 @endsection
 
 @push('page-script')
+<script src="{{ asset("js/project/klikIGRKeyDown.js") }}"></script>
 <script>
-    let tb, tb_list_pb, tb_edit_pb;
-    let countPasswordManager = 0;
+    var isFunctionRunning = false;
     let statusSiapPicking = "{{ $statusSiapPicking }}";
     let statusSiapPacking = "{{ $statusSiapPacking }}";
+    
     $(document).ready(function() {
         setDateNow("#tanggal_trans");
         tb = $('#tb').DataTable({
@@ -499,6 +647,37 @@
             "scrollCollapse": true,
             lengthChange: false,
         });
+
+        tb_hitung_ulang = $('#tb_hitung_ulang').DataTable({
+            data: [],
+            language: {
+                emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+            },
+            columnDefs: [{ className: 'text-center', targets: "_all" }],
+            columns: [
+                { data: 'plu' },
+                { data: 'deskripsi' },
+                { data: 'frac' },
+                {
+                    data: 'qtypb',
+                    render: function(data, type, row) {
+                        return parseFloat(parseInt(data)).toFixed(0);
+                    }
+                },
+                {
+                    data: 'qtyreal',
+                    render: function(data, type, row) {
+                        return `<input type="number" class="form-control input-hitung-ulang" style="width: 80px" value="${parseFloat(parseInt(data)).toFixed(0)}">`;
+                    },
+                    className: "text-center"
+                },
+            ],
+            ordering: false,
+            "paging": false, 
+            "scrollY": "calc(100vh - 600px)",
+            "scrollCollapse": true,
+            lengthChange: false,
+        });
         
         var hasBtnDetailColumn = false;
         tb.columns().every(function () {
@@ -517,556 +696,60 @@
         }
         
         $(document).keydown(function(event) {
-            if (event.key.startsWith("F") && !isNaN(event.key.substring(1)) && event.key !== "F12") {
+            if ((event.key.startsWith("F") && !isNaN(event.key.substring(1))) || event.key === "Delete") {
                 event.preventDefault();
-                if(event.key !== "F8" && tb.row(".select-r").data() === undefined){
+                if (isFunctionRunning || isModalShowing()) {
+                    return;
+                }
+                if (event.key !== "F8" && tb.row(".select-r").data() === undefined) {
                     Swal.fire('Peringatan!', 'Pilih Data Terlebih Dahulu..!', 'warning');
                     return;
                 }
                 var functionName = "action_" + event.key.toLowerCase();
-                if (typeof window[functionName] === 'function' && tb.row(".select-r").data().no_trans !== null) {
+                if (["F4", "F5", "F6", "F7", "F12", "Delete"].includes(event.key.toLowerCase())) {
+                    if (typeof window[functionName] === 'function' && tb.row(".select-r").data().no_trans !== null) {
+                        isFunctionRunning = true; 
+                        window[functionName]();
+                        setTimeout(function() {
+                        isFunctionRunning = false;
+                    }, 300);
+                }
+            } else {
+                if (typeof window[functionName] === 'function') {
+                    isFunctionRunning = true; 
                     window[functionName]();
+                    setTimeout(function() {
+                        isFunctionRunning = false;
+                    }, 300); 
                 }
             }
-        });
-
-        // LIST PLU BERMASALAH DIAMBIL DARI MANA ?
-        $("#cek_item_bermasalah").on("change", function(){
-            if ($(this).is(':checked')) {
-                // tb_edit_pb.columns(STATUS_COLUMN_INDEX).search('true').draw();
-            }
-        });
+        }
     });
 
-    function initialize_datatables_detail(data, columnsData, columnsDefsData = []){
-        columnsDefsData.push({ className: 'text-center', targets: "_all" });
-        tb_detail = $('#tb_detail').DataTable({
-            data: data,
-            language: {
-                emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
-            },
-            columnDefs: columnsDefsData,
-            columns: columnsData,
-            ordering: false,
-            pageLength: 5,
-            lengthChange: false,
-            destory: true,
-        });
-    }
 
-    function draw_tb_edit_pb(selectedRow){
-        tb_edit_pb.clear().draw();
-        $('.datatable-no-data').css('color', '#F2F2F2');
-        $('#loading_datatable_edit_pb').removeClass('d-none');
-        $.ajax({
-            url: currentURL + "/action/f4",
-            type: "POST",
-            data: { actionSelected: $("#action_form_pembatalan").val(), no_trans: selectedRow.no_trans, nopb: selectedRow.no_pb},
-            success: function(response) {
-                $('#loading_datatable_edit_pb').addClass('d-none');
-                $('.datatable-no-data').css('color', '#ababab');
-                tb_edit_pb.rows.add(response.data).draw();
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#loading_datatable_edit_pb').addClass('d-none'); }, 500);
-                $('.datatable-no-data').css('color', '#ababab');
-                Swal.fire({
-                    text: "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-    }
-
-    // START GLOBAL FUNCTION
-    function showModalPasswordManager(status, mode = "isManager"){
-        var modalElement = $('#modal_password_manager');
-        modalElement.modal("show");
-        modalElement.attr("status", status);
-        modalElement.attr("mode", mode);
-        $("#password_manager").val('');
-        if(status === 'edit_pb'){
-            $("#modal_edit_pb").addClass("brightness-blur");
+    // LIST PLU BERMASALAH DIAMBIL DARI MANA ?
+    $("#cek_item_bermasalah").on("change", function(){
+        if ($(this).is(':checked')) {
+            // tb_edit_pb.columns(STATUS_COLUMN_INDEX).search('true').draw();
         }
-    }
+    });
 
-    function closeModalPasswordManager(){
-        var modalElement = $('#modal_password_manager');
-        modalElement.modal('hide'); 
-        $("#password_manager").val('');
-        if(modalElement.attr('status') === 'edit_pb'){
-            $("#modal_edit_pb").removeClass("brightness-blur");
-        }
-        modalElement.attr("status", "");    
-        modalElement.attr("mode", "");    
-    }
-
-    function showValidasiStruk(){
-        var selectedRow = tb.row(".select-r").data();
-        $("#modal_validasi_struk").modal("show");
-        $("#no_trans_validasi_struk").val(selectedRow.no_trans);
-        $("#no_pb_validasi_struk").val(selectedRow.no_pb);
-        $("#tanggal_trans_validasi_struk").val(moment(selectedRow.tgltrans, 'DD-MM-YYYY').format('YYYY-MM-DD'));
-        $("#member_validasi_struk").val(selectedRow.kode_member);
-
-        //DETAIL
-        setDateNow("#tanggal_struk_validasi_struk");
-        setTimeNow("#time_struk_validasi_struk");
-    }
-
-    function closeValidasiStruk(){
-        $("#modal_validasi_struk").modal("hide");
-        $("#no_trans_validasi_struk").val("");
-        $("#no_pb_validasi_struk").val("");
-        $("#tanggal_trans_validasi_struk").val("");
-        $("#member_validasi_struk").val("");
-
-        //DETAIL
-        $("#no_struk_validasi_struk").val("");
-        $("#tanggal_struk_validasi_struk").val("");
-        $("#time_struk_validasi_struk").val("");
-        $("#station_validasi_struk").val("");
-        $("#cashier_id_validasi_struk").val("");
-    }
-    // END GLOBAL FUNCTION
-
-    // START ADDITIONAL FUNCTION
-    function actionAdditionalValidasiRak(rowsData){
-        rowsData = rowsData.map(function(row) {
-            return { plu: row.plu };
-        });
-
-        $('#modal_loading').modal('show');
-        $.ajax({
-            url: currentURL + `/action/f4-validasi-rak`,
-            type: "POST",
-            data: {datatables: rowsData, no_trans: tb.row(".select-r").data().no_trans, nopb: tb.row(".select-r").data().no_pb},
-            success: function(response) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire('Success!', response.message,'success');
-                var selectedRow = tb.row(".select-r").data();
-                draw_tb_edit_pb(selectedRow);
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire({
-                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                        ? jqXHR.responseJSON.message
-                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-    }
-
-    function actionAdditionalItemBatal(rowsData, directCetak = false){
-        $('#modal_loading').modal('show');
-        var url_action = directCetak ? "/action/f4-cetak-item-batal" : "/action/f4-item-batal";
-        $.ajax({
-            url: currentURL + url_action,
-            type: "POST",
-            data: {datatables: rowsData, no_trans: tb.row(".select-r").data().no_trans, nopb: tb.row(".select-r").data().no_pb,},
-            success: function(response) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                var swalMessage = directCetak ? "Cetak Item Batal Berhasil" : response.message;
-                Swal.fire('Success!', swalMessage,'success');
-                var blob = new Blob([response.data.content], { type: "text/plain" });
-                var link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.download = response.data.nama_file;
-                link.click();
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire({
-                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                        ? jqXHR.responseJSON.message
-                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-    }
-
-    function actionAdditionalPasswordManager(){
-        var password_manager = $("#password_manager").val();
-        if(password_manager === "" || password_manager === undefined){
-            Swal.fire('Peringatan!', 'Harap isi Password Terlebih Dahulu..!', 'warning');
-            return;
-        }
-        $('#modal_loading').modal('show');
-        $.ajax({
-            url: currentURL + `/password-manager`,
-            type: "POST",
-            data: { password_manager: $("#password_manager").val(), count: countPasswordManager, mode: $("#modal_password_manager").attr("mode") },
-            success: function(response) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire('Success!', response.message,'success').then(function(){
-                    var status = $("#modal_password_manager").attr('status');
-                    if(status === 'edit_pb'){
-                        actionF4Proses(true);
-                    } else if(status === 'reaktivasi_pb'){
-                        action_f5(true);
-                    } else if(status === 'validasi_struk'){
-                        showValidasiStruk();
-                    }
-                    closeModalPasswordManager();
-                });
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                countPasswordManager += 1;
-                if(countPasswordManager >= 3){
-                    countPasswordManager = 0;
-                    Swal.fire('Peringatan!', jqXHR.responseJSON.message, 'warning').then(function(){
-                        closeModalPasswordManager();
-                    });
-                    return;
-                }
-                Swal.fire({
-                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                        ? jqXHR.responseJSON.message
-                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-
-
-    }
-    // END ADDITIONAL FUNCTION
-
-    function action_f1(){
-        $('#modal_loading').modal('show');
-        $.ajax({
-            url: currentURL + "/action/f1",
-            type: "POST",
-            data: {no_trans: tb.row(".select-r").data().no_trans, nopb: tb.row(".select-r").data().no_pb},
-            success: function(response) {
-                setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
-                $("#modal_detail").modal("show");
-                $(".detail-title").text("DETIAL PB");
-                
-                if ($.fn.DataTable.isDataTable('#tb_detail')) {
-                    tb_detail.clear().draw();
-                    $("#tb_detail").dataTable().fnDestroy();
-                    $("#tb_detail thead").empty()
-                }
-
-                var newColumns = [
-                    { data: 'plu', title: 'PLU' },
-                    { data: 'barang', title: 'Barang' },
-                    { data: 'jumlah', title: 'Jumlah' },
-                    { data: 'harga', title: 'Harga' },
-                    { data: 'diskon', title: 'Diskon' },
-                    { data: 'subtotal', title: 'Subtotal' },
-                    { data: 'tag', title: 'Tag' }
-                ];
-
-                response.data = response.data.map(function(item){
-                    if(item.jumlah !== null){
-                        item.jumlah = parseFloat(item.jumlah).toFixed(0);
-                    }
-                    return item;
-                });
-
-                initialize_datatables_detail(response.data, newColumns);
-                
-                if(response.data.length > 0){
-                    window.open(currentURL + "/action/f1-download-excel", '_blank');
-                }
-
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
-                Swal.fire({
-                    text: "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-    }
-
-    function action_f2(){
-        $('#modal_loading').modal('show');
-        var selectedRow = tb.row(".select-r").data();
-        $.ajax({
-            url: currentURL + `/action/f2`,
-            type: "POST",
-            data: {member_igr: selectedRow.kode_member, no_trans: selectedRow.no_trans, nopb: selectedRow.no_pb},
-            success: function(response) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                $("#modal_detail").modal("show");
-                $(".detail-title").text("DETAIL PROMO");
-
-                if ($.fn.DataTable.isDataTable('#tb_detail')) {
-                    tb_detail.clear().draw();
-                    $("#tb_detail").dataTable().fnDestroy();
-                    $("#tb_detail thead").empty()
-                }
-
-                var newColumns = [
-                    { data: 'KODE PROMO', title: 'KODE PROMO' },
-                    { data: 'potongan', title: 'POTONGAN' },
-                    { data: 'promo', title: 'PROMO' },
-                    { data: 'tipe', title: 'TIPE' },
-                ];
-
-                initialize_datatables_detail(response.data, newColumns);
-
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire({
-                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                        ? jqXHR.responseJSON.message
-                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-    }
-
-    function action_f3(){
-        $('#modal_loading').modal('show');
-        var selectedRow = tb.row(".select-r").data();
-        $.ajax({
-            url: currentURL + `/action/f3`,
-            type: "POST",
-            data: {no_trans: selectedRow.no_trans, nopb: selectedRow.no_pb},
-            success: function(response) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                $("#modal_detail").modal("show");
-                $(".detail-title").text("DETAIL OTV PICKING");
-
-                if ($.fn.DataTable.isDataTable('#tb_detail')) {
-                    tb_detail.clear().draw();
-                    $("#tb_detail").dataTable().fnDestroy();
-                    $("#tb_detail thead").empty()
-                }
-
-                response.data = response.data.map(item => ({
-                    ...item,
-                    qty_order: item.qty_order !== null ? parseFloat(item.qty_order).toFixed(0) : item.qty_order,
-                    qty_picking: item.qty_picking !== null ? parseFloat(item.qty_picking).toFixed(0) : item.qty_picking,
-                    qty_packing: item.qty_packing !== null ? parseFloat(item.qty_packing).toFixed(0) : item.qty_packing
-                }));
-
-                var newColumns = [
-                    { data: 'plu', title: 'PLU' },
-                    { data: 'deskripsi', title: 'DESKRIPSI' },
-                    { data: 'qty_order', title: 'QTY_ORDER' },
-                    { data: 'qty_picking', title: 'QTY_PICKING' },
-                    { data: 'status_picking', title: 'STATUS_PICKING' },
-                    { data: 'group_name', title: 'GROUP' },
-                    { data: 'picker', title: 'PICKER' },
-                    { data: 'qty_packing', title: 'QTY_PACKING' },
-                ];
-
-                var newColumnDefs = [{ className: 'w-40-center', targets: 1 }];
-
-                initialize_datatables_detail(response.data, newColumns, newColumnDefs);
-
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire({
-                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                        ? jqXHR.responseJSON.message
-                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-    }
-
-    function action_f4(){
-        Swal.fire({
-            title: 'Yakin?',
-            html: `Edit PB/Validasi Rak untuk Item Batal?`,
-            icon: 'info',
-            showCancelButton: true,
-        })
-        .then((result) => {
-            if (result.value) {
-                var selectedRow = tb.row(".select-r").data();
-                $("#modal_edit_pb").modal("show");
-                $("#no_pb_detail_edit").text(selectedRow.no_pb);
-                $("#tanggal_pb_detail_edit").text(selectedRow.tgl_pb);
-                $("#no_trans_detail_edit").text(selectedRow.no_trans);
-                if (["Siap Picking", "Set Ongkir", "Siap Draft Struk", statusSiapPacking].includes(selectedRow.status)) {
-                    $("#action_form_pembatalan").append(`<option value="ITEM BATAL">Item Batal</option>`);
-                }
-                draw_tb_edit_pb(selectedRow);
-            }
-        });
-    }
-
-    function actionF4Proses(passPasswordManager = false){
-        var swalText, functionName, checkedRowsData = [];
-        var isChecked = false;
-
-        $(".checkbox-group").each(function() {
-            if ($(this).prop('checked')) {
-                checkedRowsData.push(tb_edit_pb.row($(this).closest('tr')).data())
-                isChecked = true;
-            }
-        });
+    $(document).on('keypress', '.input-hitung-ulang', function(e) {
+        var key = e.which || e.keyCode;
         
-        if(isChecked === false){
-            Swal.fire('Peringatan!', 'Item Belum Dipilih..!', 'warning');
-            return;
+        var inputValue = $(this).val();
+        if ((key !== 13 && key !== 8 && isNaN(String.fromCharCode(key))) || (inputValue.length >= 4)) {
+            e.preventDefault(); 
         }
-
-        if($("#action_form_pembatalan").val() === "VALIDASI RAK"){
-            swalText = `Validasi ${$(".checkbox-group:checked").length} Item yang sudah dikembalikan ke rak ?`;
-            functionName = "actionAdditionalValidasiRak";
-        } else {
-            if(passPasswordManager === false){
-                showModalPasswordManager('edit_pb', 'isManager');
-                return;
-            }
-            swalText = `Proses ${$(".checkbox-group:checked").length} Item Batal ?`;
-            functionName = "actionAdditionalItemBatal";
+    });
+    
+    $(document).on('change', '.input-hitung-ulang', function(e) {
+        if ($(this).val() === '') {
+            $(this).val(0);
         }
+    });
 
-        Swal.fire({
-            title: 'Yakin?',
-            html: swalText,
-            icon: 'info',
-            showCancelButton: true,
-        })
-        .then((result) => {
-            if (result.value) {
-                if (typeof window[functionName] === 'function') {
-                    window[functionName](checkedRowsData);
-                }
-            }
-        });
-    }
-
-    function action_f5(passPasswordManager = false){
-        var selectedRow = tb.row(".select-r").data();
-        if(passPasswordManager === false){
-            if(selectedRow.status === "Transaksi Batal" && selectedRow.flagbayar !== "Y"){
-                Swal.fire({
-                    title: 'Yakin?',
-                    html: `Mengaktifkan Kembali Transaksi No.${selectedRow.no_trans} yang sudah batal?`,
-                    icon: 'info',
-                    showCancelButton: true,
-                })
-                .then((result) => {
-                    if (result.value) {
-                        showModalPasswordManager('reaktivasi_pb', 'isManager');
-                    }
-                });
-            } else {
-                Swal.fire('Peringatan!', 'Bukan data yang bisa diaktifkan kembali..!', 'warning');
-                return;
-            }
-        } else {
-            $('#modal_loading').modal('show');
-            $.ajax({
-                url: currentURL + `/action/f5`,
-                type: "POST",
-                data: { status: selectedRow.status, flag_bayar: selectedRow.flagbayar, no_trans: selectedRow.no_trans, nopb: selectedRow.no_pb, tanggal_trans: $("#tanggal_trans").val() },
-                success: function(response) {
-                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                    Swal.fire('Success!', response.message,'success');
-                }, error: function(jqXHR, textStatus, errorThrown) {
-                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                    Swal.fire({
-                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                            ? jqXHR.responseJSON.message
-                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                        icon: "error"
-                    });
-                }
-            });
-        }
-    }
-
-    function action_f6(passPasswordManager = false){
-        var selectedRow = tb.row(".select-r").data();
-        if(passPasswordManager === false){
-            if(selectedRow.status === "Siap Struk"){
-                showModalPasswordManager('validasi_struk', 'isOTP');
-            } else {
-                Swal.fire('Peringatan!', 'Bukan data yang bisa validasi struk..!', 'warning');
-                return;
-            }
-        } else {
-            var no_struk = $("#no_struk_validasi_struk").val(),
-                tanggal_struk = $("#tanggal_struk_validasi_struk").val(),
-                time_struk = $("#time_struk_validasi_struk").val(),
-                station = $("#station_validasi_struk").val(),
-                cashier = $("#cashier_id_validasi_struk").val();
-
-            if (!no_struk || !tanggal_struk || !time_struk || !station || !cashier) {
-                Swal.fire('Peringatan!', 'Input Detail Struk Belum Lengkap..!', 'warning');
-                return;
-            }
-
-            $('#modal_loading').modal('show');
-            $.ajax({
-                url: currentURL + `/action/f6`,
-                type: "POST",
-                data: { no_trans: selectedRow.no_trans, nopb: selectedRow.no_pb, kode_member: selectedRow.kode_member, tanggal_trans: selectedRow.tgltrans, no_struk: no_struk, tanggal_struk: tanggal_struk, time_struk: time_struk, station: station, cashier: cashier, status: selectedRow.status },
-                success: function(response) {
-                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                    Swal.fire('Success!', response.message,'success').then(function(){
-                        tb.ajax.reload();
-                        closeValidasiStruk();
-                    });
-                }, error: function(jqXHR, textStatus, errorThrown) {
-                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                    Swal.fire({
-                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                            ? jqXHR.responseJSON.message
-                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                        icon: "error"
-                    });
-                }
-            });
-        }
-    }
-
-    function action_f7(){
-        var selectedRow = tb.row(".select-r").data();
-        if(selectedRow.status !== "Siap Picking" || selectedRow.status !== statusSiapPacking){
-            Swal.fire('Peringatan!', 'Bukan data yang dipicking/dipacking..!', 'warning');
-            return;
-        }
-        var data = { status: selectedRow.status, status_siap_packing: statusSiapPacking, tanggal_trans: $("#tanggal_trans").val(), no_trans: selectedRow.no_trans, nopb: selectedRow.no_pb, kode_member: selectedRow.kode_member }
-        $('#modal_loading').modal('show');
-        $.ajax({
-            url: currentURL + `/action/f7`,
-            type: "POST",
-            data: data,
-            success: function(response) {
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', currentURL + '/action/f7', true);
-                xhr.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
-                xhr.responseType = 'blob';
-                xhr.onload = function() {
-                    if (this.status === 200) {
-                        setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                        var blob = new Blob([xhr.response], { type: 'application/pdf' }); // Corrected line
-                        var link = document.createElement('a');
-                        link.href = window.URL.createObjectURL(blob);
-                        link.download = 'RPT-JALUR-KERTAS.pdf';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }
-                };
-                xhr.send(data);
-            }, 
-            error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire({
-                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                        ? jqXHR.responseJSON.message
-                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                    icon: "error"
-                });
-            }
-        });
-
-    }
+});
 </script>
 @endpush
 

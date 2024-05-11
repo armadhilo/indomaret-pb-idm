@@ -233,3 +233,12 @@ table thead th, table tbody td{
 .bg-teal{
     background-color: #008080!important;
 }
+
+.dataTableLayout {
+    table-layout:fixed;
+    width:100%;
+}
+
+.nav-link:focus, .nav-link:focus-visible{
+    outline: unset!important;
+}

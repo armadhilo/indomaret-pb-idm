@@ -58,7 +58,10 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post("/f4-validasi-rak", [KlikIgrController::class, 'actionF4ValidasiRak']);
             Route::post("/f4-item-batal", [KlikIgrController::class, 'actionF4ItemBatal']);
             Route::post("/f4-cetak-item-batal", [KlikIgrController::class, 'actionF4PrintItemBatal']);
-            $functionKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12'];
+            Route::post("/f10-hitung-ulang", [KlikIgrController::class, 'actionF10HitungUlang']);
+            Route::get('/delete-alasan-pembatalan-pb', [KlikIgrController::class, 'getAlasanPembatalanPB']);
+            
+            $functionKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12', 'delete'];
 
             foreach ($functionKeys as $key) {
                 Route::post("/$key", [KlikIgrController::class, "action$key"]);
