@@ -659,9 +659,9 @@ class KlikIgrController extends Controller
         //* Cetak Laporan Penyusutan Harian?
 
         $data = $this->rptPenyusutanHarianPerishable($request->tanggal_trans);
-        
+
         $data['request'] = $request;
-        $pdf = PDF::loadView('pdf.rpt-penyusutan-harian', $data);    
+        $pdf = PDF::loadView('pdf.rpt-penyusutan-harian', $data);
         return response($pdf->output())
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="RPT-PENYUSUTAN-HARIAN.pdf"');
@@ -727,7 +727,7 @@ class KlikIgrController extends Controller
     }
 
     public function actionF10HitungUlang(Request $request){
-        DB::beginTransaction(); 
+        DB::beginTransaction();
         $selectedRow = $request->selectedRow;
 
         try {
@@ -756,9 +756,9 @@ class KlikIgrController extends Controller
                     $query .= "  JOIN tbtr_obi_d d ";
                     $query .= "    ON h.obi_notrans = d.obi_notrans ";
                     $query .= "   AND h.obi_tgltrans = d.obi_tgltrans ";
-                    $query .= " WHERE h.obi_kdmember = '" . $selectedRow["kode_member"] . "' "; 
-                    $query .= "   AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' "; 
-                    $query .= "   AND h.obi_nopb = '" . $selectedRow["no_pb"] . "' "; 
+                    $query .= " WHERE h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
+                    $query .= "   AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
+                    $query .= "   AND h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
                     $query .= "   AND d.obi_recid IS NULL ";
                     $query .= "   AND d.obi_qtyorder <> d.obi_qty_hitungulang ";
                     $query .= " GROUP BY SUBSTR(obi_prdcd,1,6) || '0' ";
@@ -1051,8 +1051,8 @@ class KlikIgrController extends Controller
         $dtDSP = DB::select($sql);
 
         $splitTrans = explode("/", $dt[0]->obi_nopb);
-        
-        //* TXT 
+
+        //* TXT
         $str = "";
         $str .= "\n";
         $str .= "          HITUNG ULANG DSP/SP           " . PHP_EOL;
@@ -1158,9 +1158,9 @@ class KlikIgrController extends Controller
                 foreach ($dtCashback as $row) {
                     if (strpos($row->nama, $tempPLU) !== false) {
                         if ($row->flag == 0) {
-                            $str .= "   Potongan    : " . 
-                                str_pad(number_format($row->kelipatan, 0), 3, " ", STR_PAD_LEFT) . " X " . 
-                                "-" . str_pad(number_format($row->reward_per_promo, 0), 8, " ", STR_PAD_LEFT) . 
+                            $str .= "   Potongan    : " .
+                                str_pad(number_format($row->kelipatan, 0), 3, " ", STR_PAD_LEFT) . " X " .
+                                "-" . str_pad(number_format($row->reward_per_promo, 0), 8, " ", STR_PAD_LEFT) .
                                 "-" . str_pad(number_format($row->reward, 0), 9, " ", STR_PAD_LEFT);
                             $str .= PHP_EOL;
                             $row->flag = 1;
@@ -1198,7 +1198,7 @@ class KlikIgrController extends Controller
         if (count($dtGabungan) > 0) {
             $str .= "========================================" . PHP_EOL;
             foreach ($dtGabungan as $row) {
-                $str .= "   Potongan " . $row->nama . str_repeat(" ", 32 - strlen("   Potongan " . $row->nama)) . 
+                $str .= "   Potongan " . $row->nama . str_repeat(" ", 32 - strlen("   Potongan " . $row->nama)) .
                     " -" . number_format($row->reward, 0) . str_repeat(" ", 8 - strlen(number_format($row->reward, 0))) . PHP_EOL;
                 $cashbackbarang += $row->reward;
                 $ttlCashback += $row->reward;
@@ -1378,7 +1378,7 @@ class KlikIgrController extends Controller
             if ($itemPPN > 0) {
                 $str .= "      " . str_pad(number_format($itemPPN, 0), 4, " ", STR_PAD_LEFT);
                 $str .= " Item PPN.........:" . str_pad(number_format($dppAll + $ppnAll, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
-                $str .= "         DPP=" . str_pad(number_format($dppAll, 0), 12, " ", STR_PAD_LEFT) . 
+                $str .= "         DPP=" . str_pad(number_format($dppAll, 0), 12, " ", STR_PAD_LEFT) .
                         " PPN=" . str_pad(number_format($ppnAll, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
             }
 
@@ -1395,14 +1395,14 @@ class KlikIgrController extends Controller
             if ($itemDTP > 0) {
                 $str .= "  ***:" . str_pad(number_format($itemDTP, 0), 4, " ", STR_PAD_LEFT);
                 $str .= " Item PPN DTP.....:" . str_pad(number_format($ttlDPPDTP, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
-                $str .= "         DPP=" . str_pad(number_format($ttlDPPDTP, 0), 12, " ", STR_PAD_LEFT) . 
+                $str .= "         DPP=" . str_pad(number_format($ttlDPPDTP, 0), 12, " ", STR_PAD_LEFT) .
                         " PPN=" . str_pad(number_format($ttlPPNDTP, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
             }
 
             if ($itemBBS > 0) {
                 $str .= " ****:" . str_pad(number_format($itemBBS, 0), 4, " ", STR_PAD_LEFT);
                 $str .= " Item PPN Bebas...:" . str_pad(number_format($ttlDPPBBS, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
-                $str .= "         DPP=" . str_pad(number_format($ttlDPPBBS, 0), 12, " ", STR_PAD_LEFT) . 
+                $str .= "         DPP=" . str_pad(number_format($ttlDPPBBS, 0), 12, " ", STR_PAD_LEFT) .
                         " PPN=" . str_pad(number_format($ttlPPNBBS, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
             }
         }
@@ -1424,7 +1424,7 @@ class KlikIgrController extends Controller
         $str .= "========================================" . PHP_EOL;
 
         if (!is_null($dt[0]->obi_nostruk)) {
-            $str .= str_pad("No.SP  :" . $dt[0]->obi_nostruk, 20, " ") . 
+            $str .= str_pad("No.SP  :" . $dt[0]->obi_nostruk, 20, " ") .
                     str_pad("Tgl.SP  :" . date("d-m-Y", strtotime($dt[0]->obi_tglstruk)), 20, " ") . PHP_EOL;
         }
 
@@ -1453,14 +1453,14 @@ class KlikIgrController extends Controller
         $query .= "WHERE obi_tgltrans = TO_DATE('" . date('d-m-Y', strtotime($tgltrans)) . "','DD-MM-YYYY') ";
         $query .= "AND obi_notrans = '" . $notrans . "' ";
         $query .= "WHERE obi_prdcd = '" . $prdcd . "' ";
-        
+
         $affectedRows = DB::update($query);
 
         if ($affectedRows === 0) {
-            return false; 
+            return false;
         }
 
-        return true; 
+        return true;
     }
 
     private function actionF10Datatables($flagSPI, $nopb, $notrans, $kodemember, $tgltrans){
@@ -1492,7 +1492,7 @@ class KlikIgrController extends Controller
         return DataTables::of($data)
             ->addIndexColumn()
             ->make(true);
-        
+
     }
 
     public function actionF12(Request $request){
@@ -1533,7 +1533,7 @@ class KlikIgrController extends Controller
     public function actionDelete(Request $request){
         $strHasil = "";
         $noPb = "";
-        DB::beginTransaction(); 
+        DB::beginTransaction();
         try {
             $query = "SELECT obi_nopb, SUBSTRING(COALESCE(obi_recid,'0'), -1, 1) AS obi_recid ";
             $query .= "FROM tbtr_obi_h AS h ";
@@ -1558,7 +1558,7 @@ class KlikIgrController extends Controller
                     }
                 }
 
-                //! PADA VB DICOMMENT 
+                //! PADA VB DICOMMENT
                 // BATAL SETELAH DRAFT STRUK (RECID 4) - KURANG INTRANSIT
                 // sb = New StringBuilder
                 // sb.AppendLine("MERGE INTO ( ")
@@ -2651,6 +2651,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
 
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = null;
 
@@ -2667,15 +2668,15 @@ class KlikIgrController extends Controller
         $query .= " '" . $noPB . "', ";
         $query .= " '" . $newTrxid . "', ";
         $query .= " '" . $urlSPI . "', ";
-        $query .= " '" . $strPostData . "', "; //! dummy result dari ConToWebServiceNew
-        $query .= " '" . $strResponse . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " '" . $strPostData . "', ";
+        $query .= " '" . $strResponse . "', ";
         $query .= " NOW() ";
         $query .= ") ";
         DB::insert($query);
 
         try{
 
-            //! dummy result dari ConToWebServiceNew
+            //! GET RESPONSE DARI ConToWebServiceNew
             $response_code = null;
             $response_message = '';
             $noAWB = null;
@@ -2893,6 +2894,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlKLIK, $apiName, $apiKey, $postData);
 
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = null;
 
@@ -2909,15 +2911,15 @@ class KlikIgrController extends Controller
         $query .= " '" . $noPB . "', ";
         $query .= " '" . $newTrxid . "', ";
         $query .= " '" . $urlKLIK . "', ";
-        $query .= " '" . $strPostData . "', "; //! dummy result dari ConToWebServiceNew
-        $query .= " '" . $strResponse . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " '" . $strPostData . "', ";
+        $query .= " '" . $strResponse . "', ";
         $query .= " NOW() ";
         $query .= ") ";
         DB::insert($query);
 
         try{
 
-            //! dummy result dari ConToWebServiceNew
+            //! GET RESPONSE DARI ConToWebServiceNew
             $response_code = null;
             $response_message = '';
             $noAWB = null;
@@ -3177,7 +3179,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
 
-        //! dummy result dari ConToWebServiceNew
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = '';
 
@@ -3202,7 +3204,7 @@ class KlikIgrController extends Controller
 
         try{
 
-             //! dummy result dari ConToWebServiceNew
+             //! GET RESPONSE DARI ConToWebServiceNew
              $response_code = null;
              $noAWB = null;
              $cost = null;
@@ -3367,7 +3369,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlKlik, $apiName, $apiKey, $postData);
 
-        //! dummy result dari ConToWebServiceNew
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = '';
 
@@ -3392,7 +3394,7 @@ class KlikIgrController extends Controller
 
         try{
 
-             //! dummy result dari ConToWebServiceNew
+             //! GET RESPONSE DARI ConToWebServiceNew
              $response_code = null;
              $noAWB = null;
              $cost = null;
@@ -4293,7 +4295,7 @@ class KlikIgrController extends Controller
             $apiKey = $cre[0]->cre_key;
             $this->ConToWebServiceNew($urlUpdateRealisasiKlik, $apiName, $apiKey, $postData);
 
-            //! dummy harusnya return dari ConToWebServiceNew
+            //! GET RESPONSE DARI ConToWebServiceNew
             $json = null;
             $ret = null;
 
@@ -5653,10 +5655,10 @@ class KlikIgrController extends Controller
         $query .= ") AS subquery_alias";
         $query .= " ORDER BY deskripsi ASC ";
 
-        
+
         $data['data'] = DB::select($query);
 
-        
+
         if(!count($data['data'])){
             return [
                 "status" => false,
