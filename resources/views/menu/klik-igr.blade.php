@@ -82,7 +82,7 @@
     .btn-green{
         background: #47b460b0;
     }
-    
+
     .btn-green:hover{
         background: #307841B0;
         color: white;
@@ -95,7 +95,7 @@
     .btn-orange{
         background: #ff6f00;
     }
-    
+
     .btn-orange:hover{
         background: #c85700;
         color: white;
@@ -104,7 +104,7 @@
     .btn-light-red{
         background: #d14745b0;
     }
-    
+
     .btn-light-red:hover{
         background: #742726b0;
         color: white;
@@ -190,7 +190,7 @@
                         <button class="btn btn-green">Pembayaran Virtual Account</button>
                         <button class="btn btn-green" @if($btnKonfirmasiBayar) disabled @endif>Konfirmasi Pembayaran</button>
                         <button class="btn btn-blue">SALES</button>
-                        <div class="d-flex flex-row" style="gap: 10px"> 
+                        <div class="d-flex flex-row" style="gap: 10px">
                             <button class="btn btn-royal w-100" style="height: 50px">Cetak Surat Jalan</button>
                             <button class="btn btn-royal w-100" style="height: 50px">Cetak IIK</button>
                         </div>
@@ -200,10 +200,9 @@
                         <button class="btn btn-light-red">List PB Lebih dari Max Serah Terima</button>
                         <button class="btn btn-orange">Master Picker HH</button>
                         <button class="btn btn-orange">Listing Delivery</button>
-                        <button class="btn btn-orange">Master No. Pol Delivery Van</button>
-                        <button class="btn btn-orange">Master Driver</button>
-                        <button class="btn btn-orange">Master Deliveryman</button>
-                        <button class="btn btn-orange">Master Driver</button>
+                        <button hidden class="btn btn-orange">Master No. Pol Delivery Van</button> {{-- tidak digunakan --}}
+                        <button hidden class="btn btn-orange">Master Driver</button> {{-- tidak digunakan --}}
+                        <button hidden class="btn btn-orange">Master Deliveryman</button> {{-- tidak digunakan --}}
                         <button class="btn btn-warning">Re Create AWB</button>
                         <button class="btn btn-warning">Master Alasan Batal Kirim</button>
                         <button class="btn btn-warning">BA Pengembalian Dana</button>
@@ -589,7 +588,7 @@
     var isFunctionRunning = false;
     let statusSiapPicking = "{{ $statusSiapPicking }}";
     let statusSiapPacking = "{{ $statusSiapPacking }}";
-    
+
     $(document).ready(function() {
         setDateNow("#tanggal_trans");
         tb = $('#tb').DataTable({
@@ -602,7 +601,7 @@
                 { className: 'text-center', targets: [0,1] },
             ],
             order: [],
-            "paging": false, 
+            "paging": false,
             "searching": false,
             "scrollY": "calc(100vh - 400px)",
             "scrollCollapse": true,
@@ -642,7 +641,7 @@
                 },
             ],
             ordering: false,
-            "paging": false, 
+            "paging": false,
             "scrollY": "calc(100vh - 600px)",
             "scrollCollapse": true,
             lengthChange: false,
@@ -673,17 +672,17 @@
                 },
             ],
             ordering: false,
-            "paging": false, 
+            "paging": false,
             "scrollY": "calc(100vh - 600px)",
             "scrollCollapse": true,
             lengthChange: false,
         });
-        
+
         var hasBtnDetailColumn = false;
         tb.columns().every(function () {
             if ($(this.header()).text() === "DETAIL") {
                 hasBtnDetailColumn = true;
-                return false; 
+                return false;
             }
         });
 
@@ -694,7 +693,7 @@
                 "className": "text-center"
             }).draw();
         }
-        
+
         $(document).keydown(function(event) {
             if ((event.key.startsWith("F") && !isNaN(event.key.substring(1))) || event.key === "Delete") {
                 event.preventDefault();
@@ -708,7 +707,7 @@
                 var functionName = "action_" + event.key.toLowerCase();
                 if (["F4", "F5", "F6", "F7", "F12", "Delete"].includes(event.key.toLowerCase())) {
                     if (typeof window[functionName] === 'function' && tb.row(".select-r").data().no_trans !== null) {
-                        isFunctionRunning = true; 
+                        isFunctionRunning = true;
                         window[functionName]();
                         setTimeout(function() {
                         isFunctionRunning = false;
@@ -716,11 +715,11 @@
                 }
             } else {
                 if (typeof window[functionName] === 'function') {
-                    isFunctionRunning = true; 
+                    isFunctionRunning = true;
                     window[functionName]();
                     setTimeout(function() {
                         isFunctionRunning = false;
-                    }, 300); 
+                    }, 300);
                 }
             }
         }
@@ -736,13 +735,13 @@
 
     $(document).on('keypress', '.input-hitung-ulang', function(e) {
         var key = e.which || e.keyCode;
-        
+
         var inputValue = $(this).val();
         if ((key !== 13 && key !== 8 && isNaN(String.fromCharCode(key))) || (inputValue.length >= 4)) {
-            e.preventDefault(); 
+            e.preventDefault();
         }
     });
-    
+
     $(document).on('change', '.input-hitung-ulang', function(e) {
         if ($(this).val() === '') {
             $(this).val(0);
