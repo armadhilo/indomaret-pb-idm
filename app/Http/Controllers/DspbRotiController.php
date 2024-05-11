@@ -415,7 +415,7 @@ class DspbRotiController extends Controller
                     $npbRes = null;
                     $jmlItem = 0;
 
-                    $okNPB = $this->insertToNPB(carbon::now(), $npbGudang, $nmNpb, $dtH, $dtD);
+                    $okNPB = $this->insertToNPB(date('Ymd', strtotime(now())) . $npbGudang, $nmNpb, $dtH, $dtD);
                     if($okNPB){
                         $tglConfirm = $okNPB['tglConfirm'];
                         $npbRes = $okNPB['npbRes'];

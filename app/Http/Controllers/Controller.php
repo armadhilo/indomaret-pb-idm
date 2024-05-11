@@ -31,8 +31,9 @@ class Controller extends BaseController
         return $data[0]['data'];
     }
 
+    //! INI KARENA HIT ENDPOINT LANGSUNG RETURN TRUE AJA
     public function insertToNPB($cabang, $NamaFile, $dtH, $dtD){
-
+        return true;
     }
 
     //! NOTE IPAN
