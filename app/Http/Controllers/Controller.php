@@ -2169,6 +2169,16 @@ class Controller extends BaseController
         return true;
     }
 
+    //! BELUM SELESAI BINGUNG FUNCTIONNYA
+    private function CetakContainerPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+
+    }
+
+    //! BELUM SELESAI BINGUNG FUNCTIONNYA
+    private function CetakBronjongPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+
+    }
+
     private function konversi_SPI($noTrans, $tglTrans){
 
         try {

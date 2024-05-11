@@ -3105,11 +3105,22 @@ class KlikIgrController extends Controller
 
     }
 
-    private function updateDeliveryInfo_SPI($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = ''){
+    //? param $responseData digunakan untuk menentukan data yang di return
+    //? apabila TRUE maka response akan berbentuk data sehingga perlu diolah di function yang memanggilnya
+    //? apabila FALSE maka akan langsung return ke FE
+    private function updateDeliveryInfo_SPI($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = '', $responseData = false){
         //* GET API IPP x SPI
         $dt = DB::select("SELECT ws_url, ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'IPP_SPI'");
         if(count($dt) == 0 || $dt[0]->ws_url == ''){
             $message = 'API IPP SPI tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3124,6 +3135,14 @@ class KlikIgrController extends Controller
         $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_SPI'");
         if(count($dt) == 0){
             $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3152,6 +3171,14 @@ class KlikIgrController extends Controller
 
         if(count($dt) == 0){
             $message = "Data PB $noPB Tidak ditemukan.";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3290,16 +3317,35 @@ class KlikIgrController extends Controller
         }catch(\Exception $e){
 
             $message = "Oops! Something wrong ( $e )";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
     }
 
-    private function updateDeliveryInfo_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = ''){
+    //? param $responseData digunakan untuk menentukan data yang di return
+    //? apabila TRUE maka response akan berbentuk data sehingga perlu diolah di function yang memanggilnya
+    //? apabila FALSE maka akan langsung return ke FE
+    private function updateDeliveryInfo_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = '', $responseData = false){
         //* GET API IPP x SPI
         $dt = DB::select("SELECT ws_url, ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'IPP_KLIK'");
         if(count($dt) == 0 || $dt[0]->ws_url == ''){
             $message = 'API IPP Klik tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3314,6 +3360,14 @@ class KlikIgrController extends Controller
         $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_KLIK'");
         if(count($dt) == 0){
             $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3342,6 +3396,14 @@ class KlikIgrController extends Controller
 
         if(count($dt) == 0){
             $message = "Data PB $noPB Tidak ditemukan.";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3480,6 +3542,14 @@ class KlikIgrController extends Controller
         }catch(\Exception $e){
 
             $message = "Oops! Something wrong ( $e )";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -4615,7 +4685,6 @@ class KlikIgrController extends Controller
                     ];
                 }
 
-                //! BELUM SELESAI
                 $api = $this->requestPromo($transKlik, $kdMember, $noTrans, $noPB);
                 if($api != true){
                     $message = 'Gagal Hitung Ulang Promosi Klik Indogrosir';
@@ -4648,15 +4717,18 @@ class KlikIgrController extends Controller
 
         //! JALANKAN FUNGSI DRAFT STRUK
         if($memberOK == true AND $alamatOK == true){
+            $status = '';
             $userMODUL = session('userid');
             $KodeIGR = session('KODECABANG');
 
             if($kdWeb = 'WebMM'){
                 //! BELUM SELESAI (PROCEDURE INI TIDAK ADA)
-                DB::select("sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }else{
-                DB::select("sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }
+
+            $status = $procedure[0]->p_Status;
 
             if($flagSkipIPP == false){
                 if(!(str_contains(strtoupper($kurir), 'KURIR INDOGROSIR') OR
@@ -4667,12 +4739,12 @@ class KlikIgrController extends Controller
 
                     //! BELUM SELESAI
                     if(session('flagSPI') == true){
-                        // suksesDeliveryInfo = updateDeliveryInfo_SPI(kdMember, noTrans, dtTrans.Value.ToString("dd-MM-yyyy"), noPB)
+                        $suksesDeliveryInfo = $this->updateDeliveryInfo_SPI($kdMember, $noTrans, $dtTrans, $noPB, '', true);
                     }else{
-                        // suksesDeliveryInfo = updateDeliveryInfo_KLIK(kdMember, noTrans, dtTrans.Value.ToString("dd-MM-yyyy"), noPB)
+                        $suksesDeliveryInfo = updateDeliveryInfo_KLIK($kdMember, $noTrans, $dtTrans, $noPB, '', true);
                     }
 
-                    if($suksesDeliveryInfo == false){
+                    if($suksesDeliveryInfo['status'] == false){
                         $query = '';
                         $query .= "update tbtr_obi_h set obi_realorder = 0, ";
                         $query .= "obi_realppn = 0, ";
@@ -4724,41 +4796,255 @@ class KlikIgrController extends Controller
                         $dtCek = DB::select($query);
 
                         if(count($dtCek) > 0){
-                            //! BELUM SELESAI
-                            // updateIntransit(False, noTrans, dtTrans.Value.ToString("dd-MM-yyyy"))
+                            $this->updateIntransit(False, $noTrans, $dtTrans);
                         }
+
+                        throw new HttpResponseException(ApiFormatter::error(400, $suksesDeliveryInfo['message']));
                     }
                 }
             }
-        }
 
+            if($dgv_kredit == 'Y' OR $dgv_flagBayar == 'Y' OR session('flagSPI') == true){
+                $query = '';
+                $query .= "UPDATE TBTR_OBI_H SET OBI_RECID = '5' ";
+                $query .= "Where OBI_NOPB = '" . $noPB . "' ";
+                $query .= "AND OBI_KDMEMBER = '" . $kdMember . "' ";
+                $query .= "AND OBI_NOTRANS = '" . $noTrans . "' ";
+                $query .= "AND OBI_RECID = '4' ";
+                DB::update($query);
+
+                $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "5", "3");
+
+                if (str_contains($dgv_tipebayar, 'COD')) {
+                    $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "5", "6");
+                }
+
+                $skipStatus = true;
+            }
+
+
+            if (str_contains($status, 'Sukses')) {
+                if(str_contains($noPB, 'TMI') == false AND session('flagSPI') == false){
+                    $this->updateReal($noPB, $noTrans, $tglPB, $kdMember);
+                }
+
+                if(session('flagSPI') == true){
+                    $this->PrintNotaNewSPI("N", "DRAFT STRUK", $kdWeb, $dgv_tipe_kredit);
+                }else{
+                    $this->PrintNotaNew("N", "DRAFT STRUK", $kdWeb, $dgv_tipe_kredit);
+                }
+            }
+        }
     }
 
-    private function requestPromo($transKlik, $kdMember, $noTrans, $noPB){
+    private function requestPromo($transKlik, $kdMember, $noTrans, $noPB, $flagHitungUlang = false){
+
+        $flagProrate = true;
+
         //! BELUM SELESAI
         //! INI GAPAHAM SUSAH DIBACA
         //! TANYAKAN AKSES API UNTUK BODYNYA FORMAT DATANYA SEPERTI APA
 
-        // sb.AppendLine(" SELECT ws_url, cre_name, cre_key FROM tbmaster_webservice  ")
-        // sb.AppendLine(" LEFT JOIN tbmaster_credential ON ws_nama = cre_type ")
-        // If flagSPI Then
-        //     sb.AppendLine(" WHERE ws_nama = 'HIT_PROMO_SPI' ")
-        // Else
-        //     sb.AppendLine(" WHERE ws_nama = 'HIT_PROMO_KLIK' ")
-        // End If
-        // dtGet = QueryOra(sb.ToString)
+        $query = '';
+        $query .= " SELECT ws_url, cre_name, cre_key FROM tbmaster_webservice  ";
+        $query .= " LEFT JOIN tbmaster_credential ON ws_nama = cre_type ";
+        if(session('flagSPI')){
+            $query .= " WHERE ws_nama = 'HIT_PROMO_SPI' ";
+        }else{
+            $query .= " WHERE ws_nama = 'HIT_PROMO_KLIK' ";
+        }
+        $dt = DB::select($query);
 
-        // If dtGet.Rows.Count > 0 Then
-        //     urlPromo = dtGet.Rows(0).Item(0).ToString
-        //     creName = dtGet.Rows(0).Item(1).ToString
-        //     creKey = dtGet.Rows(0).Item(2).ToString
-        // Else
-        //     urlPromo = "https://api.mitraindogrosir.co.id/dataportal/klik-igr/flex-promo/recalculate-new"
-        //     creName = "x-api-key"
-        //     creKey = "zEebxEx3Y44V8UdNJdkOE79HdYEMKDER1eEvYg2T"
-        // End If
+        $urlPromo = "https://api.mitraindogrosir.co.id/dataportal/klik-igr/flex-promo/recalculate-new";
+        $apiName = "x-api-key";
+        $apiKey = "zEebxEx3Y44V8UdNJdkOE79HdYEMKDER1eEvYg2T";
+        if(count($dt) > 0){
+            $urlPromo = $dt[0]->ws_url;
+            $apiName = $dt[0]->cre_name;
+            $apiKey = $dt[0]->cre_key;
+        }
 
+        $postData = $transKlik;
 
+        $strResponse = $this->ConToWebServiceNew($urlPromo, $apiName, $apiKey, $postData);
+
+        //! DUMMY VALUE harusnya dari response ConToWebServiceNew
+        $statusMessage = 'OK';
+        $data = [];
+        $type = 0;
+        $promo_type = 'CASHBACK';
+        $strResponse = '';
+        $transaction_id = ''; //transKlik.transaction_id
+        $affected_plu = '';
+
+        //* LOG_HITUNG_PROMOKLIK
+        $query = '';
+        $query .= "INSERT INTO log_hitung_promoklik ( ";
+        $query .= " nopb, ";
+        $query .= " notrans, ";
+        $query .= " url, ";
+        $query .= " post_data, ";
+        $query .= " response, ";
+        $query .= " create_dt ";
+        $query .= ") ";
+        $query .= "VALUES ( ";
+        $query .= " '" . $noPB . "', ";
+        $query .= " '" . $transaction_id . "', "; //! INI GATAU DAPET DARIMANA
+        $query .= " '" . $urlPromo . "', ";
+        $query .= " '" . str_replace("'", "''", $postData) . "', ";
+        $query .= " '" . substr(str_replace("'", "''", $strResponse), 0, 4000) . " ', ";
+        $query .= " NOW() ";
+        $query .= ") ";
+        DB::insert($query);
+
+        if($statusMessage == 'OK'){
+            foreach($data as $item){
+
+                //! DUMMY VALUE harusnya dari response ConToWebServiceNew
+                $promo_total = '';
+                $desc = '';
+                $promo_qty = '';
+                $promo_reward = '';
+                $promo_code = '';
+
+                $query = '';
+                $query .= "UPDATE promo_klikigr ";
+                $query .= "   SET ";
+                if($flagHitungUlang == true){
+                    if($promo_type == 'CASHBACK'){
+                        $query .= "      cashback_hitungulang = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > cashback_order THEN cashback_order ELSE " . str_replace(",", ".", strval($promo_total)) . " END, ";
+                    }else{
+                        $query .= "      gift_real = '" . str_replace("'", "''", $desc) . "', ";
+                    }
+                    $query .= "      kelipatan_hitungulang = " . str_replace(",", ".", strval($promo_qty)) . ", ";
+                    $query .= "      reward_per_promo_hitungulang = " . str_replace(",", ".", strval($promo_reward)) . ", ";
+                    $query .= "      reward_nominal_hitungulang = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > reward_nominal THEN reward_nominal ELSE " . str_replace(",", ".", strval($promo_total)) . " END ";
+                }else{
+                    if($promo_type == 'CASHBACK'){
+                        $query .= "      cashback_real = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > cashback_order THEN cashback_order ELSE " . str_replace(",", ".", strval($promo_total)) . " END, ";
+                    }else{
+                        $query .= "      gift_real = '" . str_replace("'", "''", $desc) . "', ";
+                    }
+                    //$query .= "      kelipatan = CASE WHEN " . str_replace(",", ".", strval($promo_qty)) . " > kelipatan THEN kelipatan ELSE " . str_replace(",", ".", strval($promo_qty)) . " END, ";
+                    $query .= "      kelipatan = " . str_replace(",", ".", strval($promo_qty)) . ", ";
+                    $query .= "      reward_per_promo = " . str_replace(",", ".", strval($promo_reward)) . ", ";
+                    $query .= "      reward_nominal = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > reward_nominal THEN reward_nominal ELSE " . str_replace(",", ".", strval($promo_total)) . " END ";
+                }
+                $query .= "WHERE kode_member = '" . $kdMember . "' ";
+                $query .= "  AND no_trans = '" . $noTrans . "' ";
+                $query .= "  AND no_pb = '" . $noPB . "' ";
+                $query .= "  AND kode_promo = '" . $promo_code . "' ";
+                if($promo_type == 'CASHBACK' AND $type == 0){
+                    if (strpos($affected_plu, '|') === false) {
+                        $query .= " AND prdcd = '" . $affected_plu . "' ";
+                    }
+                }
+                DB::update($query);
+            }
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            if($flagHitungUlang){
+                $query .= "SET cashback_hitungulang = 0, reward_nominal = 0 ";
+            }else{
+                $query .= "SET cashback_real = 0, reward_nominal = 0 ";
+            }
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            if($flagHitungUlang){
+                $query .= "  AND cashback_hitungulang IS NULL ";
+            }else{
+                $query .= "  AND cashback_real IS NULL ";
+            }
+            $query .= "  AND tipe_promo = 'CASHBACK' ";
+            $query .= "  AND id_tipe = '0' ";
+            $query .= "  AND EXISTS ( ";
+            $query .= "      SELECT obi_prdcd ";
+            $query .= "      FROM ( ";
+            $query .= "        SELECT SUBSTR(obi_prdcd,1,6) || '0' obi_prdcd, ";
+            if($flagHitungUlang){
+                $query .= "               sum(obi_qty_hitungulang) obi_qtyrealisasi ";
+            }else{
+                $query .= "               sum(obi_qtyrealisasi) obi_qtyrealisasi ";
+            }
+            $query .= "        FROM tbtr_obi_h h ";
+            $query .= "        JOIN tbtr_obi_d d ";
+            $query .= "        ON h.obi_notrans = d.obi_notrans ";
+            $query .= "        AND h.obi_tgltrans = d.obi_tgltrans ";
+            $query .= "        WHERE h.obi_kdmember = '" . $kdMember . "' ";
+            $query .= "        AND h.obi_notrans = '" . $noTrans . "' ";
+            $query .= "        AND h.obi_nopb = '" . $noPB . "' ";
+            $query .= "        GROUP BY SUBSTR(obi_prdcd,1,6) || '0' ";
+            if($flagHitungUlang){
+                $query .= "        HAVING sum(obi_qty_hitungulang) = 0 ";
+            }else{
+                $query .= "        HAVING sum(obi_qtyrealisasi) = 0 ";
+            }
+            $query .= "      ) tbtr_obi ";
+            $query .= "      WHERE obi_prdcd = prdcd ";
+            $query .= "  ) ";
+            DB::update($query);
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            if($flagHitungUlang){
+                $query .= "   SET cashback_hitungulang = cashback_order, ";
+                $query .= "       kelipatan_hitungulang = kelipatan, ";
+                $query .= "       reward_per_promo_hitungulang = reward_per_promo, ";
+                $query .= "       reward_nominal_hitungulang = reward_nominal ";
+            }else{
+                $query .= "   SET cashback_real = cashback_order ";
+            }
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            if($flagHitungUlang){
+                $query .= "  AND cashback_hitungulang IS NULL ";
+            }else{
+                $query .= "  AND cashback_real IS NULL ";
+            }
+            $query .= "  AND tipe_promo = 'CASHBACK' ";
+            $query .= "  AND id_tipe = '1' ";
+            if($flagProrate == false){
+                DB::update($query);
+            }
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            $query .= "   SET gift_real = gift_order ";
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            $query .= "  AND gift_real IS NULL ";
+            $query .= "  AND tipe_promo <> 'CASHBACK' ";
+            if($flagProrate == false){
+                DB::update($query);
+            }
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            if($flagHitungUlang){
+                $query .= "   SET kelipatan_hitungulang = ROUND(cashback_hitungulang / reward_per_promo_hitungulang,2) ";
+            }else{
+                $query .= "   SET kelipatan = ROUND(cashback_real / reward_per_promo,2) ";
+            }
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            if($flagHitungUlang){
+                $query .= "  AND cashback_hitungulang IS NOT NULL ";
+            }else{
+                $query .= "  AND cashback_real IS NOT NULL ";
+            }
+            $query .= "  AND tipe_promo = 'CASHBACK' ";
+            DB::update($query);
+
+            return true;
+
+        }else{
+            throw new HttpResponseException(ApiFormatter::error(400, $statusMessage));
+        }
     }
 
     private function validasiDataMember($noTrans, $dtTrans){
@@ -5310,8 +5596,8 @@ class KlikIgrController extends Controller
             $query .= ") WHERE LOKASI = 0 ";
             $dt = DB::select($query);
 
-            //! FUNCTION INI BELUM SELESAI
-            // logPLUtanpaLokasi(nopb, dtprdcd)
+            //! PROSES MENGHASILKAN FILE
+            $this->logPLUtanpaLokasi($dgv_nopb, $dt[0]->obi_prdcd);
 
             $txtPlu = '';
             foreach($dt as $item2){
@@ -5415,6 +5701,22 @@ class KlikIgrController extends Controller
             $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = ".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."  ";
             $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
         }
+    }
+
+    private function logPLUtanpaLokasi($nopb, $prdcd){
+        // pb = Strings.Left(Replace(nopb, "/", ""), 6)
+        // namaFile = "LOG_OBI_LOKASI_KOSONG_" & pb & ".LOG"
+        // pathSimpanLog = System.IO.Path.Combine(path, namaFile)
+
+        // Dim SW As New IO.StreamWriter(pathSimpanLog, True)
+        // SW.WriteLine("========= BEGIN ===========")
+        // SW.WriteLine("No PB     : " & nopb)
+        // SW.WriteLine("Tgl PB    : " & dgv_tglpb)
+        // SW.WriteLine("===========================")
+        // For m As Integer = 0 To prdcd.Rows.Count - 1
+        //     SW.WriteLine("PLU       : " & prdcd.Rows(m).Item(0))
+        // Next
+        // SW.WriteLine("=========== END ===========")
     }
 
     private function ulangPicking($dgv_notrans, $dgv_nopb){
@@ -6269,7 +6571,6 @@ class KlikIgrController extends Controller
         }
     }
 
-    //! BELUM SELESAI
     private function getKonversiItemPerishable($flagMsg){
 
         //! CEK HARI INI UDAH PERNAH GET DATA KONVERSI ITEM PERISHABLE
@@ -6292,7 +6593,6 @@ class KlikIgrController extends Controller
 
         $url = $cek->ws_url;
 
-        //! BELUM DI MIGRATE
         $this->ConToWebService($url);
 
         //! INSERT LOG_KONVERSI_KLIKIGR
@@ -6306,7 +6606,7 @@ class KlikIgrController extends Controller
                 'create_dt' => Carbon::now(),
             ]);
 
-        //! BELUM BERES MASIH AGAK BINGUNG
+        //! BELUM SELESAI MASIH AGAK BINGUNG
     }
 
     private function alterDPDNOIDCTN(){
