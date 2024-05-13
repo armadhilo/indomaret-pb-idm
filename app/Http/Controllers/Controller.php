@@ -31,8 +31,10 @@ class Controller extends BaseController
         return $data[0]['data'];
     }
 
-    //! INI KARENA HIT ENDPOINT LANGSUNG RETURN TRUE AJA
+    //! NOTE INDOMARET
     public function insertToNPB($cabang, $NamaFile, $dtH, $dtD){
+
+        //! INI KARENA HIT ENDPOINT LANGSUNG RETURN TRUE AJA
         return true;
     }
 
@@ -99,6 +101,7 @@ class Controller extends BaseController
         }
     }
 
+    //! NOTE INDOMARET
     private function ConToWebService($endpoint, $postData = []){
 
         //! INFO DARI PIHAK IDM PROSES DI COMMENT AJA
@@ -126,6 +129,7 @@ class Controller extends BaseController
         return true;
     }
 
+    //! NOTE INDOMARET
     private function ConToWebServiceNew($endpoint, $apiName, $apiKey, $postData = []){
 
         //! INFO DARI PIHAK IDM PROSES DI COMMENT AJA
@@ -2179,14 +2183,18 @@ class Controller extends BaseController
         return true;
     }
 
-    //! BELUM SELESAI BINGUNG FUNCTIONNYA
+    //! NOTE INDOMARET
     private function CetakContainerPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+        //! INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
 
+        return true;
     }
 
-    //! BELUM SELESAI BINGUNG FUNCTIONNYA
+    //! NOTE INDOMARET
     private function CetakBronjongPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+        //! INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
 
+        return true;
     }
 
     private function konversi_SPI($noTrans, $tglTrans){
