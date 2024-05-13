@@ -274,7 +274,7 @@ class KlikIgrController extends Controller
             $query .= "  AND tipe_bayar <> 'SALDO' ";
             $query .= "  AND tipe_bayar <> 'POIN' ";
             $tmpPayment = DB::select($query);
-            
+
             $query = " SELECT tipe_bayar, ";
             $query .= "        TO_CHAR(tgl_bayar,'DD-MM-YYYY HH24:MI:SS') AS tgl_bayar, ";
             $query .= "        no_reference, ";
@@ -453,7 +453,7 @@ class KlikIgrController extends Controller
         } else {
             $data['ekspedisi_pengiriman_detail_transaksi_tab2'] = $selectedRow["kdekspedisi"];
         }
-        
+
         $data['kredit_pembayaran_detail_transaksi_tab3'] = $selectedRow["tipe_bayar"];
 
         if($flagMultiPayment > 1){
@@ -2035,36 +2035,51 @@ class KlikIgrController extends Controller
         return ApiFormatter::success(200, "success", $data);
     }
 
+    //! NOTE IPAN
+    //! ADA PROSES YANG BELUM SELESAI (function logPLUtanpaLokasi di private function sendHH)
     //* btnSendJalur_Click
     public function actionSendHandHelt(Request $request){
-        //* Send Jalur No Trans = " & dgv_notrans & " Ini?
-        //! dgv_notrans tidak boleh null atau '';
 
-        // if($request->status != $request->statusSiapPicking){
-        //     return ApiFormatter::error(400, 'Bukan Data Yang Siap Send Jalur!');
-        // }
+        DB::beginTransaction();
+        try{
+            //* Send Jalur No Trans = " & dgv_notrans & " Ini?
+            //! dgv_notrans tidak boleh null atau '';
 
-        $cbPickRakTokoVisible = $request->pickRakToko == 1 ? true : false;
+            // if($request->status != $request->statusSiapPicking){
+            //     return ApiFormatter::error(400, 'Bukan Data Yang Siap Send Jalur!');
+            // }
 
-        if(session('flagSPI') == true AND session('flagIGR') == false){
-            if (str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D') ) {
-                //? kalo susah form ini tampil diawal aja karena cuma buat dapet variable $pilihan
-                //! open form -> frmOpsiPickSPI
+            $cbPickRakTokoVisible = $request->pickRakToko == 1 ? true : false;
 
-                if($request->pilihan == 1){
-                    $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
-                }elseif($request->pilihan == 2){
+            if(session('flagSPI') == true AND session('flagIGR') == false){
+                if (str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D') ) {
+                    //? kalo susah form ini tampil diawal aja karena cuma buat dapet variable $pilihan
+                    //! open form -> frmOpsiPickSPI
+                    if($request->pilihan == 1){
+                        $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
+                    }elseif($request->pilihan == 2){
+                        $this->sendHH($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
+                    }else{
+                        return ApiFormatter::error(400, 'Send Jalur dibatalkan!');
+                    }
+                }elseif(str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
                     $this->sendHH($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
                 }else{
-                    return ApiFormatter::error(400, 'Send Jalur dibatalkan!');
+                    $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
                 }
-            }elseif(str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
-                $this->sendHH($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
             }else{
-                $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
+                $this->sendHH($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
             }
-        }else{
-            $this->sendHH($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
+
+            dd('done comment commit');
+
+            DB::commit();
+            return ApiFormatter::success(200, 'Proses Send HandHelt berhasil');
+
+        }catch(\Exception $e){
+
+            $message = "Oops! Something wrong ( $e )";
+            return ApiFormatter::error(400, $message);
         }
     }
 
@@ -2086,7 +2101,7 @@ class KlikIgrController extends Controller
         $ongkos = 0;
         $zona = "1";
         $flagEks = ($request->pengiriman == "EKSPEDISI") ? true : false;
-        
+
     }
 
     //* btnStruk_Click
@@ -2838,9 +2853,9 @@ class KlikIgrController extends Controller
             if(session('flagSPI')){
                 return ApiFormatter::error(400, 'Khusus Cabang Indogrosir');
             }
-    
+
             //! open form -> frmSerahTerimaKardus
-    
+
             //! tampil di datatable frmSerahTerimaKardus
             //* Query Tampilan Datagridview
             $query = '';
@@ -2886,15 +2901,15 @@ class KlikIgrController extends Controller
             }
             //! action dari frmPeriodePesanan
             //! dummy variable
-    
+
             if($isHistory == true){
                 $seqSerahTerimaKardus = $NoSTKHistory;
                 $tglSTK = $tglSTKHistory;
-    
+
             }else{
                 $seqSerahTerimaKardus = '';
                 $tglSTK = DB::select("SELECT TO_CHAR(NOW(), 'YYMM') || LPAD(nextval('seq_serah_terima_kardus')::text, 6, '0') as value")[0]->value;
-    
+
                 $query = '';
                 $query .= "INSERT INTO tbtr_serah_terima_kardus ( ";
                 $query .= "  stk_nopb, ";
@@ -2926,7 +2941,7 @@ class KlikIgrController extends Controller
                 $query .= "AND obi_kdmember = kode_member ";
                 $query .= "WHERE IP = '" . $this->getIP() . "' ";
             }
-    
+
             $query = '';
             $query .= "SELECT  ";
             $query .= "  stk_nopb no_pesanan, ";
@@ -2951,15 +2966,15 @@ class KlikIgrController extends Controller
             $query .= "GROUP BY stk_nopb, pobi_nocontainer, stk_nostruk ";
             $query .= "ORDER BY no_pesanan ASC, no_koli ASC ";
             $dtItem = DB::select($query);
-    
+
             if(count($dtItem) == 0){
                 return ApiFormatter::error(400, 'List Delivery tidak ditemukan.');
             }
-    
+
             dd($dtItem);
-    
+
             //! open form -> rptSTKardus
-    
+
             // rptSTKardus.SetParameterValue("kdIGR", NamaIGR)
             // rptSTKardus.SetParameterValue("user_id", UserMODUL)
             // rptSTKardus.SetParameterValue("noSTKrat", seqSerahTerimaKardus)
@@ -6246,7 +6261,7 @@ class KlikIgrController extends Controller
                         $flagLockJarak = false;
                     }
                 }
-                
+
                 $query = "SELECT eks_namaekspedisi, eks_kodeekspedisi ";
                 $query .= "FROM tbmaster_obi_ekspedisi WHERE eks_kodeigr = '" . session('KODECABANG') . "' order by 2";
                 $data['namaEkspedisi1'] = DB::select($query);
@@ -6367,7 +6382,7 @@ class KlikIgrController extends Controller
         $query .= "FROM tbtr_obi_d ";
         $query .= "LEFT JOIN tbmaster_stock ";
         $query .= "ON st_prdcd = SUBSTR(obi_prdcd,1,6) || '0' ";
-        $query .= "WHERE DATE_TRUNC('DAY',obi_tgltrans) = ".Carbon::parse($tglTrans)->format('Y-m-d H:i:s')." ";
+        $query .= "WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($tglTrans)->format('Y-m-d')."' ";
         $query .= "AND obi_notrans = '" . $notrans . "' ";
         $query .= "AND obi_recid IS NULL ";
         $query .= "AND st_lokasi = '01' ";
@@ -6393,21 +6408,21 @@ class KlikIgrController extends Controller
         $query .= "    SELECT SUBSTR(obi_prdcd, 1, 6) || '0' plu, ";
         $query .= "        SUM(obi_qtyorder) qtyorder ";
         $query .= "    FROM tbtr_obi_d ";
-        $query .= "    WHERE DATE_TRUNC('DAY',obi_tgltrans) = ".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."  ";
+        $query .= "    WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
         $query .= "        AND obi_notrans = '" . $notrans . "' ";
         $query .= "        AND obi_recid IS NULL ";
         $query .= "    GROUP BY SUBSTR(obi_prdcd, 1, 6) ";
-        $query .= ") ";
+        $query .= ") w1 ";
         $query .= "LEFT JOIN ( ";
         $query .= "    SELECT lks_prdcd, ";
         $query .= "        SUM(lks_qty) qtyLPP ";
         $query .= "    FROM tbmaster_lokasi ";
         $query .= "    JOIN tbtr_obi_d ON lks_prdcd = obi_prdcd ";
-        $query .= "    WHERE DATE_TRUNC('DAY',obi_tgltrans) = ".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."  ";
+        $query .= "    WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
         $query .= "        AND obi_notrans = '" . $notrans . "' ";
         $query .= "        AND obi_recid IS NULL     ";
         $query .= "    GROUP BY lks_prdcd ";
-        $query .= ") ON lks_prdcd = plu ";
+        $query .= ") w2 ON lks_prdcd = plu ";
         $query .= "WHERE qtyLPP < qtyorder ";
         $query .= "ORDER BY plu ASC ";
         $dtCek = DB::select($query);
@@ -6472,12 +6487,12 @@ class KlikIgrController extends Controller
         $query .= "AND obi_notrans = '" . $notrans . "' ";
         $query .= "AND obi_recid IS NULL ";
         $query .= "AND EXISTS ( ";
-        $query .= "  SELECT tag_kodetag ";
-        $query .= "  FROM tbmaster_prodmast ";
-        $query .= "  JOIN tbmaster_tag  ";
-        $query .= "  ON tag_kodetag = prd_kodetag ";
-        $query .= "  AND COALESCE(tag_tidakbolehjual,'N') = 'Y' ";
-        $query .= "  WHERE prd_prdcd = obi_prdcd ";
+        $query .= "SELECT tag_kodetag ";
+        $query .= "FROM tbmaster_prodmast ";
+        $query .= "JOIN tbmaster_tag  ";
+        $query .= "ON tag_kodetag = prd_kodetag ";
+        $query .= "AND COALESCE(tag_tidakbolehjual,'N') = 'Y' ";
+        $query .= "WHERE prd_prdcd = obi_prdcd ";
         $query .= ") ";
         $dtCek = DB::select($query);
 
@@ -6579,54 +6594,54 @@ class KlikIgrController extends Controller
         $query = '';
         $query .= "SELECT DISTINCT rak ";
         $query .= "FROM ( ";
-        $query .= "    SELECT DISTINCT MIN(lks_koderak || '.' || lks_kodesubrak) rak, lks_prdcd ";
-        $query .= "    FROM tbmaster_lokasi ";
+        $query .= "SELECT DISTINCT MIN(lks_koderak || '.' || lks_kodesubrak) rak, lks_prdcd ";
+        $query .= "FROM tbmaster_lokasi ";
 
         if($cbPickRakToko){
-            $query .= "    WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
         }else{
-            $query .= "    WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
         }
 
-        $query .= "    AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
-        $query .= "    AND COALESCE(lks_noid,'99999') NOT LIKE ( ";
-        $query .= "        CASE WHEN ( ";
-        $query .= "            SELECT COUNT(1) ";
-        $query .= "            FROM tbmaster_lokasi ";
+        $query .= "AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+        $query .= "AND COALESCE(lks_noid,'99999') NOT LIKE ( ";
+        $query .= "CASE WHEN ( ";
+        $query .= "SELECT COUNT(1) ";
+        $query .= "FROM tbmaster_lokasi ";
 
         if($cbPickRakToko){
-            $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
         }else{
-            $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
         }
 
-        $query .= "            AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
-        $query .= "            AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
-        $query .= "            AND EXISTS ( ";
-        $query .= "                SELECT obi_prdcd ";
-        $query .= "                FROM tbtr_obi_d ";
-        $query .= "                WHERE obi_recid IS NULL AND coalesce(obi_itemkg,0) = 0 ";
-        $query .= "                    AND DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
-        $query .= "                    AND obi_notrans = '" . $notrans . "' ";
-        $query .= "                    AND substr(obi_prdcd,1,6) || '0' = lks_prdcd ";
-        $query .= "            ) ";
-        $query .= "        ) != '0' THEN '%B' ELSE '99999' END ";
-        $query .= "    ) ";
-        $query .= "    AND EXISTS ( ";
-        $query .= "        SELECT obi_prdcd ";
-        $query .= "        FROM tbtr_obi_d ";
-        $query .= "        WHERE obi_recid IS NULL AND coalesce(obi_itemkg,0) = 0 ";
-        $query .= "            AND DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
-        $query .= "            AND obi_notrans = '" . $notrans . "' ";
-        $query .= "            AND substr(obi_prdcd,1,6) || '0' = lks_prdcd ";
-        $query .= "    ) ";
-        $query .= "    GROUP BY lks_prdcd ";
+        $query .= "AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+        $query .= "AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
+        $query .= "AND EXISTS ( ";
+        $query .= "SELECT obi_prdcd ";
+        $query .= "FROM tbtr_obi_d ";
+        $query .= "WHERE obi_recid IS NULL AND coalesce(obi_itemkg,0) = 0 ";
+        $query .= "AND DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
+        $query .= "AND obi_notrans = '" . $notrans . "' ";
+        $query .= "AND substr(obi_prdcd,1,6) || '0' = lks_prdcd ";
+        $query .= ") ";
+        $query .= ") != '0' THEN '%B' ELSE '99999' END ";
+        $query .= ") ";
+        $query .= "AND EXISTS ( ";
+        $query .= "SELECT obi_prdcd ";
+        $query .= "FROM tbtr_obi_d ";
+        $query .= "WHERE obi_recid IS NULL AND coalesce(obi_itemkg,0) = 0 ";
+        $query .= "AND DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
+        $query .= "AND obi_notrans = '" . $notrans . "' ";
+        $query .= "AND substr(obi_prdcd,1,6) || '0' = lks_prdcd ";
+        $query .= ") ";
+        $query .= "GROUP BY lks_prdcd ";
         $query .= ") list_rak ";
         $query .= "WHERE NOT EXISTS ( ";
-        $query .= "	   SELECT pk_userid ";
-        $query .= "	   FROM picker_klik ";
-        $query .= "	   WHERE pk_koderak || '.' || pk_kodesubrak  = rak ";
-        $query .= "		   AND pk_group = '" . $groupPickingTerbanyak . "' ";
+        $query .= "SELECT pk_userid ";
+        $query .= "FROM picker_klik ";
+        $query .= "WHERE pk_koderak || '.' || pk_kodesubrak  = rak ";
+        $query .= "AND pk_group = '" . $groupPickingTerbanyak . "' ";
         $query .= ") ORDER BY 1 ";
         $dt = DB::select($query);
 
@@ -6643,98 +6658,99 @@ class KlikIgrController extends Controller
 
         $query = '';
         $query .= "SELECT COUNT(1) FROM ( ";
-        $query .= "    SELECT D.*, COALESCE( ";
-        $query .= "        ( ";
-        $query .= "            SELECT COUNT(1) ";
-        $query .= "            FROM tbmaster_lokasi AS tb1 ";
+        $query .= "SELECT D.*, COALESCE( ";
+        $query .= "( ";
+        $query .= "SELECT COUNT(1) ";
+        $query .= "FROM tbmaster_lokasi AS tb1 ";
 
         if($cbPickRakToko){
-            $query .= "            WHERE (tb1.lks_koderak LIKE 'R%' OR tb1.lks_koderak LIKE 'O%' OR tb1.lks_koderak LIKE 'DKLIK%' OR tb1.lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (tb1.lks_koderak LIKE 'R%' OR tb1.lks_koderak LIKE 'O%' OR tb1.lks_koderak LIKE 'DKLIK%' OR tb1.lks_koderak LIKE 'P%') ";
         }else{
-            $query .= "            WHERE (tb1.lks_koderak LIKE 'R%' OR tb1.lks_koderak LIKE 'O%' OR tb1.lks_koderak LIKE 'D%' OR tb1.lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (tb1.lks_koderak LIKE 'R%' OR tb1.lks_koderak LIKE 'O%' OR tb1.lks_koderak LIKE 'D%' OR tb1.lks_koderak LIKE 'P%') ";
         }
 
-        $query .= "                AND (tb1.lks_tiperak LIKE 'B%' OR tb1.lks_tiperak LIKE 'I%' OR tb1.lks_tiperak LIKE 'N%') ";
-        $query .= "                AND COALESCE(tb1.lks_noid,'99999') NOT LIKE ( ";
-        $query .= "                    CASE WHEN ( ";
-        $query .= "                        SELECT COUNT(1) ";
-        $query .= "                        FROM tbmaster_lokasi AS tb2 ";
+        $query .= "AND (tb1.lks_tiperak LIKE 'B%' OR tb1.lks_tiperak LIKE 'I%' OR tb1.lks_tiperak LIKE 'N%') ";
+        $query .= "AND COALESCE(tb1.lks_noid,'99999') NOT LIKE ( ";
+        $query .= "CASE WHEN ( ";
+        $query .= "SELECT COUNT(1) ";
+        $query .= "FROM tbmaster_lokasi AS tb2 ";
 
         if($cbPickRakToko){
-            $query .= "                        WHERE (tb2.lks_koderak LIKE 'R%' OR tb2.lks_koderak LIKE 'O%' OR tb2.lks_koderak LIKE 'DKLIK%' OR tb2.lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (tb2.lks_koderak LIKE 'R%' OR tb2.lks_koderak LIKE 'O%' OR tb2.lks_koderak LIKE 'DKLIK%' OR tb2.lks_koderak LIKE 'P%') ";
         }else{
-            $query .= "                        WHERE (tb2.lks_koderak LIKE 'R%' OR tb2.lks_koderak LIKE 'O%' OR tb2.lks_koderak LIKE 'D%' OR tb2.lks_koderak LIKE 'P%') ";
+            $query .= "WHERE (tb2.lks_koderak LIKE 'R%' OR tb2.lks_koderak LIKE 'O%' OR tb2.lks_koderak LIKE 'D%' OR tb2.lks_koderak LIKE 'P%') ";
         }
 
-        $query .= "                            AND (tb2.lks_tiperak LIKE 'B%' OR tb2.lks_tiperak LIKE 'I%' OR tb2.lks_tiperak LIKE 'N%') ";
-        $query .= "                            AND COALESCE(tb2.lks_noid,'99999') NOT LIKE '%B' ";
-        $query .= "                            AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
-        $query .= "                    ) != '0' THEN '%B' ELSE '99999' END ";
-        $query .= "                ) ";
-        $query .= "                AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
-        $query .= "        ),0 ";
-        $query .= "    ) LOKASI FROM TBTR_OBI_D D ";
-        $query .= "    WHERE OBI_TGLTRANS = :OBI_TGLTRANS ";
-        $query .= "		   AND OBI_NOTRANS = :OBI_NOTRANS ";
-        $query .= "		   AND OBI_RECID IS NULL ";
-        $query .= "		   AND COALESCE(OBI_ITEMKG,0) = 0 ";
+        $query .= "AND (tb2.lks_tiperak LIKE 'B%' OR tb2.lks_tiperak LIKE 'I%' OR tb2.lks_tiperak LIKE 'N%') ";
+        $query .= "AND COALESCE(tb2.lks_noid,'99999') NOT LIKE '%B' ";
+        $query .= "AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+        $query .= ") != '0' THEN '%B' ELSE '99999' END ";
+        $query .= ") ";
+        $query .= "AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+        $query .= "),0 ";
+        $query .= ") LOKASI FROM TBTR_OBI_D D ";
+        $query .= "WHERE OBI_TGLTRANS = OBI_TGLTRANS ";
+        $query .= "AND OBI_NOTRANS = OBI_NOTRANS ";
+        $query .= "AND OBI_RECID IS NULL ";
+        $query .= "AND COALESCE(OBI_ITEMKG,0) = 0 ";
         $query .= ") AS subquery WHERE LOKASI = 0 ";
-
         $pluDouble = DB::select($query);
 
-        if(count($pluDouble) > 0){
+        if(count($pluDouble) > 0 && $pluDouble[0]->count > 0){
             $query = '';
             $query .= "SELECT obi_prdcd FROM ( ";
-            $query .= "    SELECT D.*, COALESCE( ";
-            $query .= "        ( ";
-            $query .= "            SELECT COUNT(1) ";
-            $query .= "            FROM tbmaster_lokasi ";
+            $query .= "SELECT D.*, COALESCE( ";
+            $query .= "( ";
+            $query .= "SELECT COUNT(1) ";
+            $query .= "FROM tbmaster_lokasi ";
 
             if($cbPickRakToko){
-                $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+                $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
             }else{
-                $query .= "            WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+                $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
             }
 
-            $query .= "                AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
-            $query .= "                AND COALESCE(lks_noid,'99999') NOT LIKE ( ";
-            $query .= "                    CASE WHEN ( ";
-            $query .= "                        SELECT COUNT(1) ";
-            $query .= "                        FROM tbmaster_lokasi ";
+            $query .= "AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+            $query .= "AND COALESCE(lks_noid,'99999') NOT LIKE ( ";
+            $query .= "CASE WHEN ( ";
+            $query .= "SELECT COUNT(1) ";
+            $query .= "FROM tbmaster_lokasi ";
 
             if($cbPickRakToko){
-                $query .= "                        WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
+                $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%') ";
             }else{
-                $query .= "                        WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
+                $query .= "WHERE (lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%') ";
             }
 
-            $query .= "                            AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
-            $query .= "                            AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
-            $query .= "                            AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
-            $query .= "                    ) != '0' THEN '%B' ELSE '99999' END ";
-            $query .= "                ) ";
-            $query .= "                AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
-            $query .= "        ),0 ";
-            $query .= "    ) LOKASI FROM TBTR_OBI_D D ";
-            $query .= "    WHERE OBI_TGLTRANS = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
-            $query .= "		   AND OBI_NOTRANS = '" . $notrans . "' ";
-            $query .= "		   AND OBI_RECID IS NULL ";
-            $query .= "		   AND COALESCE(OBI_ITEMKG,0) = 0 ";
-            $query .= ") WHERE LOKASI = 0 ";
+            $query .= "AND (lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%') ";
+            $query .= "AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
+            $query .= "AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+            $query .= ") != '0' THEN '%B' ELSE '99999' END ";
+            $query .= ") ";
+            $query .= "AND LKS_PRDCD = SUBSTR(OBI_PRDCD,1,6) || '0' ";
+            $query .= "),0 ";
+            $query .= ") LOKASI FROM TBTR_OBI_D D ";
+            $query .= "WHERE OBI_TGLTRANS = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
+            $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
+            $query .= "AND OBI_RECID IS NULL ";
+            $query .= "AND COALESCE(OBI_ITEMKG,0) = 0 ";
+            $query .= ") as www WHERE LOKASI = 0 ";
             $dt = DB::select($query);
 
-            //! PROSES MENGHASILKAN FILE
-            $this->logPLUtanpaLokasi($dgv_nopb, $dt[0]->obi_prdcd);
+            if(count($dt)){
+                //! PROSES MENGHASILKAN FILE
+                $this->logPLUtanpaLokasi($dgv_nopb, $dt);
 
-            $txtPlu = '';
-            foreach($dt as $item2){
-                $listPLUMasalah[] = $item2->obi_prdcd;
-                $txtPlu .= $item->obi_prdcd;
+                $txtPlu = '';
+                foreach($dt as $item2){
+                    $listPLUMasalah[] = $item2->obi_prdcd;
+                    $txtPlu .= $item->obi_prdcd;
+                }
+
+                //* Ada " & pluDouble & " Plu: " & plu & " Yang Tidak Punya Lokasi!
+                $message = 'Ada ' . $pluDouble . 'plu : ' . rtrim($txtPlu, ",") . ' yang tidak punya Lokasi!';
+                throw new HttpResponseException(ApiFormatter::error(400, $message));
             }
-
-            //* Ada " & pluDouble & " Plu: " & plu & " Yang Tidak Punya Lokasi!
-            $message = 'Ada ' . $pluDouble . 'plu : ' . rtrim($txtPlu, ",") . ' yang tidak punya Lokasi!';
-            throw new HttpResponseException(ApiFormatter::error(400, $message));
 
         }else{
 
@@ -6772,8 +6788,8 @@ class KlikIgrController extends Controller
                 $query .= "SET OBI_RECID = '1', ";
             }
 
-            $query .= "    OBI_SENDPICK = NOW(), ";
-            $query .= "    OBI_FLAGSENDHH = '2' ";
+            $query .= "OBI_SENDPICK = NOW(), ";
+            $query .= "OBI_FLAGSENDHH = '2' ";
             if(count($dtNonPerishable) == 0 AND count($dtPerishable) > 0){
                 $query .= ", obi_selesaipick = NOW() ";
             }
@@ -6797,39 +6813,40 @@ class KlikIgrController extends Controller
             //! Update lokasi picking rak biasa
             $query .= "UPDATE tbtr_obi_d ";
             $query .= "SET (obi_koderak, obi_kodesubrak, obi_tiperak, obi_shelvingrak, obi_nourut) ";
-            $query .= "  = ( ";
-            $query .= "	SELECT lks_koderak, lks_kodesubrak, lks_tiperak, lks_shelvingrak, lks_nourut ";
-            $query .= "	FROM ( ";
-            $query .= "		SELECT lks_koderak, lks_kodesubrak, lks_tiperak, lks_shelvingrak, lks_nourut, lks_prdcd ";
-            $query .= "		FROM tbmaster_lokasi ";
-            $query .= "		JOIN picker_klik ";
-            $query .= "		ON pk_koderak = lks_koderak ";
-            $query .= "			AND pk_kodesubrak = lks_kodesubrak ";
-            $query .= "			AND pk_group = '" . $groupPickingTerbanyak . "' ";
-            $query .= "		WHERE ( ";
+            $query .= "= ( ";
+            $query .= "SELECT lks_koderak, lks_kodesubrak, lks_tiperak, lks_shelvingrak, lks_nourut ";
+            $query .= "FROM ( ";
+            $query .= "SELECT lks_koderak, lks_kodesubrak, lks_tiperak, lks_shelvingrak, lks_nourut, lks_prdcd ";
+            $query .= "FROM tbmaster_lokasi ";
+            $query .= "JOIN picker_klik ";
+            $query .= "ON pk_koderak = lks_koderak ";
+            $query .= "AND pk_kodesubrak = lks_kodesubrak ";
+            $query .= "AND pk_group = '" . $groupPickingTerbanyak . "' ";
+            $query .= "WHERE ( ";
 
             if($cbPickRakToko){
-                $query .= "		lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%' ";
+                $query .= "lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'DKLIK%' OR lks_koderak LIKE 'P%' ";
             }else{
-                $query .= "		lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%' ";
+                $query .= "lks_koderak LIKE 'R%' OR lks_koderak LIKE 'O%' OR lks_koderak LIKE 'D%' OR lks_koderak LIKE 'P%' ";
             }
 
-            $query .= "		) ";
-            $query .= "			AND ( ";
-            $query .= "			lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%' ";
-            $query .= "			) ";
-            $query .= "			AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
-            $query .= "		ORDER BY coalesce(lks_noid,'99999') ASC, SUBSTR(lks_koderak,0,1) ASC, pk_urutan ASC ";
-            $query .= "		) AS datas";
-            $query .= "	WHERE lks_prdcd = SUBSTR(obi_prdcd, 1, 6) || '0' ";
-            $query .= "	LIMIT 1 ";
-            $query .= "  ) ";
+            $query .= ") ";
+            $query .= "AND ( ";
+            $query .= "lks_tiperak LIKE 'B%' OR lks_tiperak LIKE 'I%' OR lks_tiperak LIKE 'N%' ";
+            $query .= ") ";
+            $query .= "AND COALESCE(lks_noid,'99999') NOT LIKE '%B' ";
+            $query .= "ORDER BY coalesce(lks_noid,'99999') ASC, SUBSTR(lks_koderak,0,1) ASC, pk_urutan ASC ";
+            $query .= ") AS datas";
+            $query .= "WHERE lks_prdcd = SUBSTR(obi_prdcd, 1, 6) || '0' ";
+            $query .= "LIMIT 1 ";
+            $query .= ") ";
             $query .= "WHERE OBI_RECID IS NULL AND COALESCE(OBI_ITEMKG,0) = 0 ";
             $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
             $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
         }
     }
 
+    //! PROSES MENGHASILKAN FILE (BELUM SELESAI)
     private function logPLUtanpaLokasi($nopb, $prdcd){
         // pb = Strings.Left(Replace(nopb, "/", ""), 6)
         // namaFile = "LOG_OBI_LOKASI_KOSONG_" & pb & ".LOG"
