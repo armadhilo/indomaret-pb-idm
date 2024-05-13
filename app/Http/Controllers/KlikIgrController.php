@@ -15,11 +15,13 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GeneralExcelExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\File;
 
 class KlikIgrController extends Controller
 {
 
     protected $kodeDGV = 0;
+    protected $urlUpdateRealisasiKlik = '';
 
     public function __construct(Request $request){
         DatabaseConnection::setConnection(session('KODECABANG'), "PRODUCTION");
@@ -63,6 +65,8 @@ class KlikIgrController extends Controller
         // if(!empty($dtUrl)){
         //     $data['urlUpdateStatusKlik'] = $dtUrl->ws_url . '/updatestatustrx';
         //     $data['urlUpdateRealisasiKlik'] = $dtUrl->ws_url . '/updtqtyrealisasi';
+
+        //     $this->urlUpdateRealisasiKlik = $dtUrl->ws_url . '/updtqtyrealisasi';
         // }
 
         // if(session('flagSPI')){
@@ -944,9 +948,9 @@ class KlikIgrController extends Controller
         //* Cetak Laporan Penyusutan Harian?
 
         $data = $this->rptPenyusutanHarianPerishable($request->tanggal_trans);
-        
+
         $data['request'] = $request;
-        $pdf = PDF::loadView('pdf.rpt-penyusutan-harian', $data);    
+        $pdf = PDF::loadView('pdf.rpt-penyusutan-harian', $data);
         return response($pdf->output())
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="RPT-PENYUSUTAN-HARIAN.pdf"');
@@ -1012,7 +1016,7 @@ class KlikIgrController extends Controller
     }
 
     public function actionF10HitungUlang(Request $request){
-        DB::beginTransaction(); 
+        DB::beginTransaction();
         $selectedRow = $request->selectedRow;
 
         try {
@@ -1041,9 +1045,9 @@ class KlikIgrController extends Controller
                     $query .= "  JOIN tbtr_obi_d d ";
                     $query .= "    ON h.obi_notrans = d.obi_notrans ";
                     $query .= "   AND h.obi_tgltrans = d.obi_tgltrans ";
-                    $query .= " WHERE h.obi_kdmember = '" . $selectedRow["kode_member"] . "' "; 
-                    $query .= "   AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' "; 
-                    $query .= "   AND h.obi_nopb = '" . $selectedRow["no_pb"] . "' "; 
+                    $query .= " WHERE h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
+                    $query .= "   AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
+                    $query .= "   AND h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
                     $query .= "   AND d.obi_recid IS NULL ";
                     $query .= "   AND d.obi_qtyorder <> d.obi_qty_hitungulang ";
                     $query .= " GROUP BY SUBSTR(obi_prdcd,1,6) || '0' ";
@@ -1084,7 +1088,7 @@ class KlikIgrController extends Controller
                         foreach($dt as $item){
                             $transKlik[] = [
                                 'PLU' => $item->PLU,
-                                'orderr' => $item->orderr,
+                                'order' => $item->orderr,
                                 'realisasi' => $item->realisasi,
                                 'orderinrp' => $item->orderinrp,
                                 'realisasiiinrp' => $item->realisasiiinrp,
@@ -1336,8 +1340,8 @@ class KlikIgrController extends Controller
         $dtDSP = DB::select($sql);
 
         $splitTrans = explode("/", $dt[0]->obi_nopb);
-        
-        //* TXT 
+
+        //* TXT
         $str = "";
         $str .= "\n";
         $str .= "          HITUNG ULANG DSP/SP           " . PHP_EOL;
@@ -1443,9 +1447,9 @@ class KlikIgrController extends Controller
                 foreach ($dtCashback as $row) {
                     if (strpos($row->nama, $tempPLU) !== false) {
                         if ($row->flag == 0) {
-                            $str .= "   Potongan    : " . 
-                                str_pad(number_format($row->kelipatan, 0), 3, " ", STR_PAD_LEFT) . " X " . 
-                                "-" . str_pad(number_format($row->reward_per_promo, 0), 8, " ", STR_PAD_LEFT) . 
+                            $str .= "   Potongan    : " .
+                                str_pad(number_format($row->kelipatan, 0), 3, " ", STR_PAD_LEFT) . " X " .
+                                "-" . str_pad(number_format($row->reward_per_promo, 0), 8, " ", STR_PAD_LEFT) .
                                 "-" . str_pad(number_format($row->reward, 0), 9, " ", STR_PAD_LEFT);
                             $str .= PHP_EOL;
                             $row->flag = 1;
@@ -1483,7 +1487,7 @@ class KlikIgrController extends Controller
         if (count($dtGabungan) > 0) {
             $str .= "========================================" . PHP_EOL;
             foreach ($dtGabungan as $row) {
-                $str .= "   Potongan " . $row->nama . str_repeat(" ", 32 - strlen("   Potongan " . $row->nama)) . 
+                $str .= "   Potongan " . $row->nama . str_repeat(" ", 32 - strlen("   Potongan " . $row->nama)) .
                     " -" . number_format($row->reward, 0) . str_repeat(" ", 8 - strlen(number_format($row->reward, 0))) . PHP_EOL;
                 $cashbackbarang += $row->reward;
                 $ttlCashback += $row->reward;
@@ -1583,7 +1587,7 @@ class KlikIgrController extends Controller
         $tipeBayar = strtoupper($dt[0]->tipe_bayar);
         $pembayaranNonPoin = 0;
 
-        if (count($dtPayment) > 0 && strtoupper($tipeBayar) !== "TOP") {
+        if (count($dtPayment) > 0 AND strtoupper($tipeBayar) != "COD" AND strtoupper($tipeBayar) != "TOP") {
             $totalBayar = 0;
             $str .= str_pad("PEMBAYARAN", 28, ".") . ":" . PHP_EOL;
             foreach ($dtPayment as $row) {
@@ -1594,6 +1598,42 @@ class KlikIgrController extends Controller
                     $pembayaranNonPoin = $row->total;
                 }
             }
+        }elseif(strtoupper($tipeBayar) == "COD"){
+            $totalBayar = 0;
+
+            $str .= str_pad("PEMBAYARAN", 28, ".") . ":" . PHP_EOL;
+            for ($i = 0; $i < $dtPayment; $i++) {
+                if ($dtPayment > 1) {
+                    if ($i == 0) {
+                        if (!strpos(strtoupper($dtPayment[0]->tipe_bayar), "POIN") !== false) {
+                            if (!strpos(strtoupper($dtPayment[1]->tipe_bayar), "POIN") !== false) {
+                                $str .= str_pad(" -" . strtoupper($dtPayment[0]->tipe_bayar), 28, ".") . ":" . str_pad(number_format($dtPayment[0]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                                $totalBayar += $dtPayment[0]->total;
+                            } else {
+                                if ($totalBelanja > $dtPayment[1]->total) {
+                                    $str .= str_pad(" -" . strtoupper($dtPayment[0]->tipe_bayar), 28, ".") . ":" . str_pad(number_format($totalBelanja - $dtPayment[1]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                                    $totalBayar += $dtPayment[0]->total;
+                                }
+                            }
+                        } else {
+                            $str .= str_pad(" -" . strtoupper($dtPayment[0]->tipe_bayar), 28, ".") . ":" . str_pad(number_format($dtPayment[0]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                            $totalBayar += $dtPayment[0]->total;
+                        }
+                    } else {
+                        if (!strpos(strtoupper($dtPayment[0]->tipe_bayar), "POIN") !== false) {
+                            $str .= str_pad(" -" . strtoupper($dtPayment[$i]->tipe_bayar), 28, ".") . ":" . str_pad(number_format($dtPayment[$i]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                            $totalBayar += $dtPayment[$i]->total;
+                        } else {
+                            $str .= str_pad(" -" . strtoupper($dtPayment[0]->tipe_bayar), 28, ".") . ":" . str_pad(number_format($totalBelanja - $dtPayment[0]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                            $totalBayar += $dtPayment[$i]->total;
+                        }
+                    }
+                } else {
+                    $str .= str_pad(" -" . strtoupper($dtPayment[0]->tipe_bayar), 28, ".") . ":" . str_pad(number_format($dtPayment[0]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                    $totalBayar += $dtPayment[0]->total;
+                }
+            }
+
         } else {
             $totalBayar = $totalBelanja;
 
@@ -1663,7 +1703,7 @@ class KlikIgrController extends Controller
             if ($itemPPN > 0) {
                 $str .= "      " . str_pad(number_format($itemPPN, 0), 4, " ", STR_PAD_LEFT);
                 $str .= " Item PPN.........:" . str_pad(number_format($dppAll + $ppnAll, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
-                $str .= "         DPP=" . str_pad(number_format($dppAll, 0), 12, " ", STR_PAD_LEFT) . 
+                $str .= "         DPP=" . str_pad(number_format($dppAll, 0), 12, " ", STR_PAD_LEFT) .
                         " PPN=" . str_pad(number_format($ppnAll, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
             }
 
@@ -1680,14 +1720,14 @@ class KlikIgrController extends Controller
             if ($itemDTP > 0) {
                 $str .= "  ***:" . str_pad(number_format($itemDTP, 0), 4, " ", STR_PAD_LEFT);
                 $str .= " Item PPN DTP.....:" . str_pad(number_format($ttlDPPDTP, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
-                $str .= "         DPP=" . str_pad(number_format($ttlDPPDTP, 0), 12, " ", STR_PAD_LEFT) . 
+                $str .= "         DPP=" . str_pad(number_format($ttlDPPDTP, 0), 12, " ", STR_PAD_LEFT) .
                         " PPN=" . str_pad(number_format($ttlPPNDTP, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
             }
 
             if ($itemBBS > 0) {
                 $str .= " ****:" . str_pad(number_format($itemBBS, 0), 4, " ", STR_PAD_LEFT);
                 $str .= " Item PPN Bebas...:" . str_pad(number_format($ttlDPPBBS, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
-                $str .= "         DPP=" . str_pad(number_format($ttlDPPBBS, 0), 12, " ", STR_PAD_LEFT) . 
+                $str .= "         DPP=" . str_pad(number_format($ttlDPPBBS, 0), 12, " ", STR_PAD_LEFT) .
                         " PPN=" . str_pad(number_format($ttlPPNBBS, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
             }
         }
@@ -1709,7 +1749,7 @@ class KlikIgrController extends Controller
         $str .= "========================================" . PHP_EOL;
 
         if (!is_null($dt[0]->obi_nostruk)) {
-            $str .= str_pad("No.SP  :" . $dt[0]->obi_nostruk, 20, " ") . 
+            $str .= str_pad("No.SP  :" . $dt[0]->obi_nostruk, 20, " ") .
                     str_pad("Tgl.SP  :" . date("d-m-Y", strtotime($dt[0]->obi_tglstruk)), 20, " ") . PHP_EOL;
         }
 
@@ -1738,14 +1778,14 @@ class KlikIgrController extends Controller
         $query .= "WHERE obi_tgltrans = TO_DATE('" . date('d-m-Y', strtotime($tgltrans)) . "','DD-MM-YYYY') ";
         $query .= "AND obi_notrans = '" . $notrans . "' ";
         $query .= "WHERE obi_prdcd = '" . $prdcd . "' ";
-        
+
         $affectedRows = DB::update($query);
 
         if ($affectedRows === 0) {
-            return false; 
+            return false;
         }
 
-        return true; 
+        return true;
     }
 
     private function actionF10Datatables($flagSPI, $nopb, $notrans, $kodemember, $tgltrans){
@@ -1777,7 +1817,7 @@ class KlikIgrController extends Controller
         return DataTables::of($data)
             ->addIndexColumn()
             ->make(true);
-        
+
     }
 
     public function actionF12(Request $request){
@@ -1818,7 +1858,7 @@ class KlikIgrController extends Controller
     public function actionDelete(Request $request){
         $strHasil = "";
         $noPb = "";
-        DB::beginTransaction(); 
+        DB::beginTransaction();
         try {
             $query = "SELECT obi_nopb, SUBSTRING(COALESCE(obi_recid,'0'), -1, 1) AS obi_recid ";
             $query .= "FROM tbtr_obi_h AS h ";
@@ -1843,7 +1883,7 @@ class KlikIgrController extends Controller
                     }
                 }
 
-                //! PADA VB DICOMMENT 
+                //! PADA VB DICOMMENT
                 // BATAL SETELAH DRAFT STRUK (RECID 4) - KURANG INTRANSIT
                 // sb = New StringBuilder
                 // sb.AppendLine("MERGE INTO ( ")
@@ -2050,7 +2090,7 @@ class KlikIgrController extends Controller
     }
 
     //* btnStruk_Click
-    public function actionDraftStruk($dgv_notrans, $dgv_nopb, $dgv_status, $dgv_kodeweb, $dgv_memberigr, $dgv_tglpb, $dtTrans, $dgv_freeongkir){
+    public function actionDraftStruk($dgv_notrans, $dgv_nopb, $dgv_status, $dgv_kodeweb, $dgv_memberigr, $dgv_tglpb, $dtTrans, $dgv_freeongkir, $dgv_kredit, $dgv_flagBayar, $dgv_tipebayar, $dgv_tipe_kredit){
         $itemReal = $this->cekItemRealisasi($dgv_notrans, $dgv_nopb);
         if(!isset($dgv_notrans)){
             return ApiFormatter::error(400, 'Pilih Data Dahulu!');
@@ -2064,7 +2104,7 @@ class KlikIgrController extends Controller
             return ApiFormatter::error(400, 'Tidak Ada Data Realisasi!');
         }
 
-        $this->draftStruk($dgv_kodeweb, $dgv_memberigr, $dgv_notrans, $dgv_nopb, $dgv_tglpb, $dtTrans, $dgv_freeongkir);
+        $this->draftStruk($dgv_kodeweb, $dgv_memberigr, $dgv_notrans, $dgv_nopb, $dgv_tglpb, $dtTrans, $dgv_freeongkir, $dgv_kredit, $dgv_flagBayar, $dgv_tipebayar, $dgv_tipe_kredit);
     }
 
     //* btnPembayaranVA_Click
@@ -2113,7 +2153,7 @@ class KlikIgrController extends Controller
     }
 
     //* btnSales_Click
-    public function actionSales($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_tipebayar, $dgv_tglpb, $dgv_kodeweb, $dgv_memberigr, $dgv_tipe_kredit, $dtTrans, $urlUpdateRealisasiKlik){
+    public function actionSales($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_tipebayar, $dgv_tglpb, $dgv_kodeweb, $dgv_memberigr, $dgv_tipe_kredit, $dtTrans){
         $trxid = substr($dgv_nopb, 0, 6);
 
         if(!isset($dgv_notrans)){
@@ -2135,7 +2175,7 @@ class KlikIgrController extends Controller
             }else{
                 PrintStruk:
 
-                $this->InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar, $urlUpdateRealisasiKlik);
+                $this->InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar);
             }
 
         }else{
@@ -2352,6 +2392,12 @@ class KlikIgrController extends Controller
         // nopol = fDelivery.noPol
         // driver = fDelivery.driver
         // deliveryman = fDelivery.deliveryman
+
+        //! BELUM SELESAI
+        //! dummy variable
+        $nopol = '';
+        $driver = '';
+        $deliveryman = '';
 
         //* jika ada data $noListing dan $tglListing pada frmDeliverySPI_New
         // noListing = fDelivery.NoListingHistory
@@ -2968,6 +3014,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
 
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = null;
 
@@ -2984,15 +3031,15 @@ class KlikIgrController extends Controller
         $query .= " '" . $noPB . "', ";
         $query .= " '" . $newTrxid . "', ";
         $query .= " '" . $urlSPI . "', ";
-        $query .= " '" . $strPostData . "', "; //! dummy result dari ConToWebServiceNew
-        $query .= " '" . $strResponse . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " '" . $strPostData . "', ";
+        $query .= " '" . $strResponse . "', ";
         $query .= " NOW() ";
         $query .= ") ";
         DB::insert($query);
 
         try{
 
-            //! dummy result dari ConToWebServiceNew
+            //! GET RESPONSE DARI ConToWebServiceNew
             $response_code = null;
             $response_message = '';
             $noAWB = null;
@@ -3210,6 +3257,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlKLIK, $apiName, $apiKey, $postData);
 
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = null;
 
@@ -3226,15 +3274,15 @@ class KlikIgrController extends Controller
         $query .= " '" . $noPB . "', ";
         $query .= " '" . $newTrxid . "', ";
         $query .= " '" . $urlKLIK . "', ";
-        $query .= " '" . $strPostData . "', "; //! dummy result dari ConToWebServiceNew
-        $query .= " '" . $strResponse . "', "; //! dummy result dari ConToWebServiceNew
+        $query .= " '" . $strPostData . "', ";
+        $query .= " '" . $strResponse . "', ";
         $query .= " NOW() ";
         $query .= ") ";
         DB::insert($query);
 
         try{
 
-            //! dummy result dari ConToWebServiceNew
+            //! GET RESPONSE DARI ConToWebServiceNew
             $response_code = null;
             $response_message = '';
             $noAWB = null;
@@ -3420,11 +3468,22 @@ class KlikIgrController extends Controller
 
     }
 
-    private function updateDeliveryInfo_SPI($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = ''){
+    //? param $responseData digunakan untuk menentukan data yang di return
+    //? apabila TRUE maka response akan berbentuk data sehingga perlu diolah di function yang memanggilnya
+    //? apabila FALSE maka akan langsung return ke FE
+    private function updateDeliveryInfo_SPI($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = '', $responseData = false){
         //* GET API IPP x SPI
         $dt = DB::select("SELECT ws_url, ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'IPP_SPI'");
         if(count($dt) == 0 || $dt[0]->ws_url == ''){
             $message = 'API IPP SPI tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3439,6 +3498,14 @@ class KlikIgrController extends Controller
         $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_SPI'");
         if(count($dt) == 0){
             $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3467,6 +3534,14 @@ class KlikIgrController extends Controller
 
         if(count($dt) == 0){
             $message = "Data PB $noPB Tidak ditemukan.";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3494,7 +3569,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
 
-        //! dummy result dari ConToWebServiceNew
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = '';
 
@@ -3519,7 +3594,7 @@ class KlikIgrController extends Controller
 
         try{
 
-             //! dummy result dari ConToWebServiceNew
+             //! GET RESPONSE DARI ConToWebServiceNew
              $response_code = null;
              $noAWB = null;
              $cost = null;
@@ -3605,16 +3680,35 @@ class KlikIgrController extends Controller
         }catch(\Exception $e){
 
             $message = "Oops! Something wrong ( $e )";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
     }
 
-    private function updateDeliveryInfo_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = ''){
+    //? param $responseData digunakan untuk menentukan data yang di return
+    //? apabila TRUE maka response akan berbentuk data sehingga perlu diolah di function yang memanggilnya
+    //? apabila FALSE maka akan langsung return ke FE
+    private function updateDeliveryInfo_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $trxidnew = '', $responseData = false){
         //* GET API IPP x SPI
         $dt = DB::select("SELECT ws_url, ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'IPP_KLIK'");
         if(count($dt) == 0 || $dt[0]->ws_url == ''){
             $message = 'API IPP Klik tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3629,6 +3723,14 @@ class KlikIgrController extends Controller
         $dt = DB::select("SELECT cre_name, cre_key FROM tbmaster_credential WHERE cre_type = 'IPP_KLIK'");
         if(count($dt) == 0){
             $message = 'CREDENTIAL API IPP x SPI tidak ditemukan';
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3657,6 +3759,14 @@ class KlikIgrController extends Controller
 
         if(count($dt) == 0){
             $message = "Data PB $noPB Tidak ditemukan.";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -3684,7 +3794,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlKlik, $apiName, $apiKey, $postData);
 
-        //! dummy result dari ConToWebServiceNew
+        //! GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = '';
 
@@ -3709,7 +3819,7 @@ class KlikIgrController extends Controller
 
         try{
 
-             //! dummy result dari ConToWebServiceNew
+             //! GET RESPONSE DARI ConToWebServiceNew
              $response_code = null;
              $noAWB = null;
              $cost = null;
@@ -3795,6 +3905,14 @@ class KlikIgrController extends Controller
         }catch(\Exception $e){
 
             $message = "Oops! Something wrong ( $e )";
+
+            if($responseData == true){
+                return [
+                    'status' => false,
+                    'message' => $message,
+                ];
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
@@ -4457,7 +4575,7 @@ class KlikIgrController extends Controller
         // _rpt.SetParameterValue("barcodeAWB", code128(_dtDetailSJ.Rows.Item(0)("no_awb").ToString))
     }
 
-    private function InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar, $urlUpdateRealisasiKlik){
+    private function InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar){
 
         //* CHECK SUDAH PENAH SALES
         $query = '';
@@ -4500,15 +4618,25 @@ class KlikIgrController extends Controller
             if (str_contains($procedure, 'Sukses')) {
 
                 if (!str_contains($dgv_nopb, 'TMI') AND session('flagSPI') == false) {
-                    $this->updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr, $urlUpdateRealisasiKlik);
+                    $this->updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr);
                 }
+
+                $tempDir = storage_path('print-nota-new/' . Carbon::now()->format('Ymd_His'));
+                if (!File::exists($tempDir)) {
+                    File::makeDirectory($tempDir);
+                } else {
+                    return ApiFormatter::error(400, "Harap Tunggu 30 detik, lalu ulang Print Nota New");
+                }
+
+                //! dummy
+                $selectedRow = [];
 
                 if(session('flagSPI') == true){
                     //! BELUM SELESAI
-                    $this->PrintNotaNewSPI('N','STRUK', $dgv_kodeweb, $dgv_tipe_kredit);
+                    $this->PrintNotaNewKlikSPI('N','STRUK', 'SPI', $dgv_tipe_kredit, $selectedRow, $tempDir);
                 }else{
                     //! BELUM SELESAI
-                    $this->PrintNotaNew('N','STRUK', $dgv_kodeweb, $dgv_tipe_kredit);
+                    $this->PrintNotaNewKlikSPI('N','STRUK', 'KLIK', $dgv_tipe_kredit, $selectedRow, $tempDir);
                 }
 
                 if($dgv_tipebayar == 'COD-VA'){
@@ -4528,15 +4656,753 @@ class KlikIgrController extends Controller
         }
     }
 
-    private function PrintNotaNew(){
+    private function PrintNotaNewKlikSPI($Reprint, $judul, $type, $flagKredit, $selectedRow, $tempDir){
 
+        $count = DB::select("SELECT MAX(COALESCE(prs_nilaippn,0)/100) FROM tbmaster_perusahaan");
+        $ppnRate = $count[0]->max;
+        $nominal_voucher = $this->getNominalVoucher($selectedRow["no_trans"], $selectedRow["kode_member"]);
+
+        if(count($count) == 0){
+            throw new \Exception("Error executing query Nilai PPN");
+        }
+
+        if($flagKredit == "Y"){
+            $fk = "K";
+        } else {
+            $fk = "T";
+        }
+
+        $sql = "";
+        $sql .= "SELECT hdr.obi_tglpb obi_tglpb, ";
+        $sql .= "       hdr.obi_nopb obi_nopb, ";
+        $sql .= "       obi_kdmember, ";
+        $sql .= "       obi_prdcd, ";
+        $sql .= "       prd_deskripsipendek, ";
+        $sql .= "       hdr.obi_notrans obi_notrans,  ";
+        $sql .= "       hdr.obi_tgltrans obi_tgltrans,  ";
+        $sql .= "       obi_realorder, ";
+        $sql .= "       obi_realppn, ";
+        $sql .= "       obi_realdiskon, ";
+        $sql .= "       (obi_ekspedisi) obi_ekspedisi, ";
+        $sql .= "       obi_qtyorder, ";
+        $sql .= "       obi_qty_hitungulang obi_qtyrealisasi, ";
+        $sql .= "       obi_hargasatuan, ";
+        $sql .= "       obi_ppn, ";
+        $sql .= "       ROUND(obi_hargasatuan + obi_ppn) obi_hargafix, ";
+        $sql .= "       COALESCE(obi_hargaweb, ROUND((obi_hargasatuan + obi_ppn) * (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END), 0)) obi_hargaweb, ";
+        $sql .= "       obi_diskon,  ";
+        $sql .= "       obi_nostruk, ";
+        $sql .= "       obi_tglstruk,  ";
+        $sql .= "       obi_kdstation,  ";
+        $sql .= "       obi_kdmember, ";
+        $sql .= "       hdr.obi_createby obi_createby,  ";
+        $sql .= "       COALESCE(hdr.obi_nopo,'-') nopo, ";
+        $sql .= "       hdr.obi_realcashback realcashback,  ";
+        $sql .= "       dtl.obi_kd_promosi kdpromo,  ";
+        $sql .= "       dtl.obi_cashback nominal_csb,  ";
+        $sql .= "       (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) prd_frac,  ";
+        $sql .= "       (COALESCE(prd_ppn,0)/100) prd_ppn,  ";
+        $sql .= "       COALESCE(prd_flagbkp1, 'N') || COALESCE(prd_flagbkp2, 'N') plubkp, ";
+        $sql .= "       COALESCE(pobi_nocontainer, '-') nocon,  ";
+        $sql .= "       dtl.obi_scan_dt obi_scan_dt, ";
+        $sql .= "       COALESCE(amm_namapenerima, '-') amm_namapenerima,  ";
+        $sql .= "       obi_cashierid,  ";
+        $sql .= "       COALESCE(hdr.obi_pointbasic, 0) point_basic, ";
+        $sql .= "       COALESCE(hdr.obi_pointbonus, 0) point_bonus, ";
+        $sql .= "       COALESCE(obi_tipebayar,'x') tipe_bayar, ";
+        $sql .= "       ROUND(sat_gram / COALESCE(sat_pcs,1)) konversi, ";
+        $sql .= "       TO_CHAR(COALESCE(obi_draftstruk,CURRENT_TIMESTAMP),'DD-MM-YYYY HH24:MI:SS') tgldsp ";
+        $sql .= "FROM tbtr_obi_h hdr ";
+        $sql .= "JOIN tbtr_obi_d dtl ";
+        $sql .= "  ON hdr.obi_notrans = dtl.obi_notrans ";
+        $sql .= " AND hdr.obi_tgltrans = dtl.obi_tgltrans ";
+        $sql .= "JOIN tbtr_alamat_mm ";
+        $sql .= "  ON hdr.obi_notrans = amm_notrans ";
+        $sql .= " AND hdr.obi_nopb = amm_nopb ";
+        $sql .= " AND hdr.obi_kdmember = amm_kodemember ";
+        $sql .= "JOIN tbmaster_prodmast ";
+        $sql .= "  ON hdr.obi_kodeigr = prd_kodeigr ";
+        $sql .= " AND dtl.obi_prdcd = prd_prdcd   ";
+        $sql .= "LEFT JOIN tbtr_packing_obi ";
+        $sql .= "  ON dtl.obi_notrans = pobi_notransaksi ";
+        $sql .= " AND dtl.obi_tgltrans = pobi_tgltransaksi ";
+        $sql .= " AND dtl.obi_prdcd = pobi_prdcd ";
+        $sql .= "LEFT JOIN konversi_item_klikigr knv ";
+        $sql .= "  ON SUBSTR(dtl.obi_prdcd,1,6) || '0' = SUBSTR(knv.pluigr,1,6) || '0' ";
+        $sql .= "WHERE hdr.obi_tglpb = TO_DATE('" . date('d-m-Y', strtotime($selectedRow["tgl_pb"])) . "','DD-MM-YYYY')  ";
+        $sql .= "AND hdr.obi_nopb = '" . $selectedRow["no_pb"] . "'  ";
+        $sql .= "AND hdr.obi_kdmember = '" . $selectedRow["kode_member"] . "'  ";
+        $sql .= "AND hdr.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
+        $sql .= "AND COALESCE(obi_qty_hitungulang,0) > 0 ";
+        $sql .= "AND dtl.obi_recid IS NULL ";
+        $sql .= "ORDER BY pobi_nocontainer ASC, dtl.obi_scan_dt DESC, dtl.obi_prdcd ASC ";
+
+        $dt = DB::select($sql);
+
+        if(count($dt) <= 0){
+            throw new \Exception("Data Hitung Ulang Tidak Ditemukan");
+        }
+
+        $splitTrans = explode("/", $dt[0]->obi_nopb);
+        $notrx = $splitTrans[0];
+
+        $nmFilePicking = "PICK_" . session('KODECABANG') . "_" . str_pad($dt[0]->obi_notrans, 5, "0", STR_PAD_LEFT) . "_" . date("dmy", strtotime($dt[0]->obi_tgltrans));
+
+        if($type == "SPI"){
+            $fracbarang = 0;
+        }
+        $hargabarang = $qtybarang = $diskonbarang = $cashbackbarang = $ppnRateBarang = $hargajual = $dppbarang = $ppnbarang = $ttlPPN = $nonPPN = $cukai = 0;
+        $itemPPN = $itemNonPPN = $itemCukai = $itemBBS = $itemDTP = 0;
+        $totaldiskon = $total = $counter = $andahemat = $dppAll = $ppnAll = $dppTemp = $ttlDPPBBS = $ttlPPNBBS = $dppTemp2 = $ttlDPPDTP = $ttlPPNDTP = $dppTemp3 = $tempPotGab = $ttlCashback = $adminfee = 0;
+        $tgl = Carbon::parse($dt[0]->obi_tgltrans);
+        $notrans = $dt[0]->obi_notrans;
+        $nocon = '';
+
+        $splitTrans = explode("/", $dt[0]->obi_nopb);
+        $notrx = $splitTrans[0];
+
+        $query = '';
+        $query .= "SELECT  hdr.OBI_NOPB 'No Pemesanan',OBI_KODEALAMAT 'Kode Alamat',hdr.obi_notrans 'No Picking', hdr.obi_tgltrans 'Tgl Picking', ";
+        $query .= "OBI_EKSPEDISI 'Biaya Pengiriman',OBI_PRDCD 'Kode PLU OBI', OBI_QTYREAL 'Jml Picking' ";
+        $query .= ", (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) PRD_FRAC  ";
+        $query .= "FROM tbtr_obi_h hdr, tbhistory_obi_d his,tbmaster_prodmast  ";
+        $query .= "WHERE hdr.obi_notrans = his.obi_notrans ";
+        $query .= "AND hdr.obi_TGLtrans = his.obi_TGLtrans ";
+        $query .= "AND OBI_KODEIGR =  PRD_KODEIGR ";
+        $query .= "AND OBI_PRDCD  = PRD_PRDCD ";
+        $query .= "AND hdr.obi_TGLpb = '" . Carbon::parse($selectedRow['dgv_tglpb'])->format('Y-m-d H:i:s') . "' ";
+        $query .= "AND hdr.obi_nopb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $query .= "AND hdr.obi_KDMEMBER = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= "AND hdr.obi_notrans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $dtPicking = DB::select($query);
+        $this->WriteCSV($tempDir, $nmFilePicking, $dtPicking);
+
+        //* KUPON
+        $query = '';
+        $query .= " SELECT COALESCE(SUM(COALESCE(nilai_kupon,0)),0) NILAI_KUPON ";
+        $query .= " FROM kupon_klikigr ";
+        $query .= "WHERE kode_member = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= "  AND no_trans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $query .= "  AND no_pb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $dtKupon = DB::select($query);
+
+        //* CASHBACK LANGSUNG
+        $query = '';
+        $query .= "SELECT COALESCE(SUBSTR(ch.cbh_namapromosi, 1, 20), h.kode_promo) NAMA, ";
+        $query .= "       h.prdcd PRDCD, ";
+        $query .= "       h.kelipatan KELIPATAN, ";
+        $query .= "       h.reward_per_promo REWARD_PER_PROMO, ";
+        $query .= "       h.cashback_real REWARD, ";
+        $query .= "       0 flag ";
+        $query .= " FROM promo_klikigr h ";
+        $query .= " LEFT JOIN tbtr_cashback_hdr ch ";
+        $query .= " ON h.kode_promo = ch.cbh_kodepromosi ";
+        $query .= " WHERE h.tipe_promo = 'CASHBACK' ";
+        $query .= " AND h.id_tipe = '0' ";
+        $query .= " AND COALESCE(h.cashback_real,0) > 0 ";
+        $query .= " AND h.kode_member = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= " AND h.no_trans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $query .= " AND h.no_pb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $dtCashback = DB::select($query);
+
+        //* CASHBACK GABUNGAN
+        $query .= " SELECT COALESCE(SUBSTR(ch.cbh_namapromosi, 1, 20), h.kode_promo) NAMA, ";
+        $query .= "        h.cashback_real REWARD";
+        $query .= " FROM promo_klikigr h ";
+        $query .= " LEFT JOIN tbtr_cashback_hdr ch ";
+        $query .= " ON h.kode_promo = ch.cbh_kodepromosi ";
+        $query .= " WHERE h.tipe_promo = 'CASHBACK' ";
+        $query .= " AND h.id_tipe = '1' ";
+        $query .= " AND COALESCE(h.cashback_real,0) > 0 ";
+        $query .= " AND h.kode_member = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= " AND h.no_trans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $query .= " AND h.no_pb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $dtGabungan = DB::select($query);
+
+        //* GIFT
+        $query .= " SELECT COALESCE(gh.gfh_namapromosi, h.kode_promo) KODE, ";
+        $query .= "        h.id_tipe TIPE, ";
+        $query .= "        h.gift_real GIFT ";
+        $query .= " FROM promo_klikigr h ";
+        $query .= " LEFT JOIN tbtr_gift_hdr gh ";
+        $query .= " ON h.kode_promo = gh.gfh_kodepromosi ";
+        $query .= " WHERE h.tipe_promo = 'GIFT' ";
+        $query .= " AND h.gift_real IS NOT NULL ";
+        $query .= " AND h.kode_member = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= " AND h.no_trans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $query .= " AND h.no_pb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $query .= " ORDER BY h.id_tipe DESC, h.kode_promo ASC ";
+        $dtGift = DB::select($query);
+
+        //* POIN
+        $query = '';
+        $query .= " SELECT h.kode_promo KODE, ";
+        $query .= "        h.id_tipe TIPE, ";
+        $query .= "        COALESCE(h.gift_real,h.gift_order) GIFT ";
+        $query .= " FROM promo_klikigr h ";
+        $query .= " LEFT JOIN tbtr_gift_hdr gh ";
+        $query .= " ON h.kode_promo = gh.gfh_kodepromosi ";
+        $query .= " WHERE UPPER(h.tipe_promo) LIKE '%POIN%' ";
+        $query .= " AND COALESCE(h.reward_nominal, 0) > 0 ";
+        $query .= " AND h.kode_member = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= " AND h.no_trans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $query .= " AND h.no_pb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $query .= " ORDER BY h.id_tipe DESC, h.kode_promo ASC ";
+        $dtPoin = DB::select($query);
+
+        //* Payment
+        $query = '';
+        $query .= " SELECT tipe_bayar, total, admin_fee ";
+        $query .= " FROM payment_klikigr ";
+        $query .= " WHERE kode_member = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= " AND no_pb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $query .= " AND no_trans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $query .= " ORDER BY id_bayar ";
+        $dtPayment = DB::select($query);
+
+        //* Checker
+        $query = '';
+        $query .= "SELECT DISTINCT pobi_create_by checker ";
+        $query .= "FROM tbtr_obi_h ";
+        $query .= "JOIN tbtr_packing_obi ";
+        $query .= "ON DATE_TRUNC('DAY',obi_tgltrans) = DATE_TRUNC('DAY',pobi_tgltransaksi) ";
+        $query .= "AND obi_notrans = pobi_notransaksi ";
+        $query .= "WHERE obi_notrans = '" . $selectedRow['dgv_notrans'] . "' ";
+        $query .= "AND obi_kdmember = '" . $selectedRow['dgv_memberigr'] . "' ";
+        $query .= "AND obi_nopb = '" . $selectedRow['dgv_nopb'] . "' ";
+        $query .= "LIMIT 1";
+        $dtChecker = DB::select($query);
+
+        $splitTrans = explode("/", $dt[0]->obi_nopb);
+
+        //* TXT
+        $str = "";
+        $str .= "\n";
+        if($judul == 'DRAFT STRUK'){
+            $str .= "                  DRAFT                 " . PHP_EOL;
+            $str .= "========================================" . PHP_EOL;
+        }
+
+        if (!is_null($dt[0]->obi_nostruk)) {
+            $dtCashier = $this->getDetailCashier($selectedRow['dgv_notrans'], $selectedRow['dgv_nopb']);
+            $str .= "No.SP   :" . $dtCashier[0]->jh_cashierid . "/" . $dtCashier[0]->jh_cashierstation . "/" . $dtCashier[0]->jh_transactionno . str_pad("", 22, " ") . PHP_EOL;
+        }
+
+        $str .= str_pad("", 22, " ") . "No.PO  :" . $dt[0]->nopo . PHP_EOL;
+        $str .= str_pad("", 22, " ") . "Trx Id  :TRX" . str_pad($splitTrans[0], 10, " ") . "Checker:" . $dtChecker[0]["checker"] . PHP_EOL;
+        $str .= "Tgl.PB  :" . $dt[0]->tglcreate . PHP_EOL;
+        if (!is_null($dt[0]->obi_nostruk)) {
+            $str .= "Tgl.SP  :" . date("d-m-Y H:i:s", strtotime($dt[0]->obi_tglstruk)) . str_pad("", 22, " ") . PHP_EOL;
+        } else {
+            $str .= "Tgl.DSP :" . $dt[0]->tgldsp . PHP_EOL;
+        }
+
+        if ($Reprint == "Y") {
+            $str .= "------------- R E P R I N T ------------" . PHP_EOL;
+        } else {
+            $str .= "________________________________________" . PHP_EOL . PHP_EOL;
+        }
+
+        $str .= "Tgl.DSP :" . $dt[0]->tgldsp . PHP_EOL;
+        $str .= "----------------------------------------" . PHP_EOL;
+        $str .= "No. NAMA BARANG / PLU                   " . PHP_EOL;
+        if($type == "SPI"){
+            $str .= "   QTY/FRAC   H.SATUAN    DISC.    TOTAL" . PHP_EOL;
+        }else {
+            $str .= "    QTY    H.SATUAN       DISC.    TOTAL" . PHP_EOL;
+        }
+
+        if ($Reprint == "Y") {
+            $str .= "============= R E P R I N T ============" . PHP_EOL;
+        } else {
+            $str .= "========================================" . PHP_EOL;
+        }
+
+        foreach ($dt as $key => $row) {
+            $qtybarang = $row->obi_qtyrealisasi / $row->prd_frac;
+            if($type == "SPI"){
+                $row->prd_frac;
+                $fracbarang = $row->prd_frac;
+                $prd_prdcd = substr($row->obi_prdcd, 0, 6) . '0';
+                $query = "SELECT COALESCE(prd_frac, 1) FROM tbmaster_prodmast WHERE prd_prdcd LIKE '$prd_prdcd'";
+                $check = DB::select($query);
+                if(count($check)){
+                    $fracbarang = $check[0]->coalesce;
+                }
+            }
+
+            $hargabarang = round($row->obi_hargaweb, 2);
+            $diskonbarang = round($row->obi_diskon * $row->prd_frac, 0);
+            $ppnRateBarang = $row->prd_ppn;
+
+            if($type == 'SPI'){
+                $hargaFix = round($qtybarang * $hargabarang / 10, 0, PHP_ROUND_HALF_UP) * 10;
+                $diskonFix = round($qtybarang * $diskonbarang / 10, 0, PHP_ROUND_HALF_UP) * 10;
+            }else{
+                $hargaFix = ($qtybarang * $hargabarang % 5 !== 0) ?
+                    (round($qtybarang * $hargabarang / 10, 0, PHP_ROUND_HALF_UP) * 10) :
+                    ($qtybarang * $hargabarang);
+
+                $diskonFix = ($qtybarang * $diskonbarang % 5 !== 0) ?
+                    (round($qtybarang * $diskonbarang / 10, 0, PHP_ROUND_HALF_UP) * 10) :
+                    ($qtybarang * $diskonbarang);
+            }
+
+            $hargajual += $hargaFix;
+            $totaldiskon += $diskonFix;
+            $andahemat += $diskonFix;
+
+            if ($nocon != $row->nocon) {
+                if ($counter != 0) $str .= PHP_EOL;
+                $counter = 0;
+                $nocon = $row->nocon;
+                $str .= "No.Container : " . $nocon . PHP_EOL;
+            }
+
+            $str .= str_pad(($counter + 1), 2, " ", STR_PAD_LEFT) . " ";
+            $str .= str_pad(substr($row->prd_deskripsipendek, 0, 24), 24, " ") . "(" . str_pad($row->obi_prdcd, 7, " ") . ")";
+
+            //* Get Data PPN
+            $resultCheckPPN = $this->checkPPN($row->plubkp);
+            $dtPPN = $resultCheckPPN['dtPPN'];
+            if ($resultCheckPPN['response'] !== "OK") {
+                throw new \Exception("Gagal Buat Struk");
+            }
+
+            if ($dtPPN[0]->status == "KENA PPN") {
+                $str .= "    ";
+                $ttlPPN += $hargaFix - $diskonFix;
+                $dppTemp = $hargaFix - $diskonFix;
+                $itemPPN += 1;
+            } elseif ($dtPPN[0]->status == "BEBAS PPN") {
+                if (session("flagFTZ")) $str .= "****";
+                $dppTemp2 = $hargaFix - $diskonFix;
+                $itemBBS += 1;
+            } elseif ($dtPPN[0]->status == "PPN DTP") {
+                if (session("flagFTZ")) $str .= "*** ";
+                $dppTemp3 = $hargaFix - $diskonFix;
+                $itemDTP += 1;
+            } elseif ($dtPPN[0]->status == "CUKAI") {
+                if (session("flagFTZ")) $str .= "**  ";
+                $cukai += $hargaFix - $diskonFix;
+                $itemCukai += 1;
+            } else {
+                if (session("flagFTZ")) $str .= "*   ";
+                $nonPPN += $hargaFix - $diskonFix;
+                $itemNonPPN += 1;
+            }
+            $str .= PHP_EOL;
+
+            // Qty - Harga Satuan - Qty * Harga Satuan
+            if($type == "SPI"){
+                $str .= str_pad(number_format($qtybarang, 0), 6, " ", STR_PAD_LEFT) . "/";
+                $str .= str_pad(number_format($fracbarang, 0), 3, " ", STR_PAD_RIGHT);
+                $str .= str_pad(number_format($hargabarang, 0), 9, " ", STR_PAD_LEFT);
+            }else {
+                $str .= str_pad(number_format($qtybarang, 0), 7, " ", STR_PAD_LEFT);
+                $str .= str_pad(number_format($hargabarang, 0), 12, " ", STR_PAD_LEFT);
+            }
+
+            $str .= str_pad(number_format($qtybarang * $hargabarang, 0), 21, " ");
+            $str .= PHP_EOL;
+
+            // Pot.Member --> Potongan MD
+            if ($diskonbarang > 0) {
+                $str .= "   Pot. Member : ";
+                $str .= str_pad(number_format($qtybarang, 0), 3, " ", STR_PAD_LEFT) . " X ";
+                $str .= "-" . str_pad(number_format($diskonbarang, 0), 8, " ", STR_PAD_LEFT);
+                $str .= "-" . str_pad(number_format($diskonbarang * $qtybarang, 0), 9, " ", STR_PAD_LEFT);
+                $str .= PHP_EOL;
+            }
+
+
+            if (count($dtCashback) > 0) {
+                $tempPLU = $dt[$key]->obi_prdcd;
+                $tempPLU = substr($tempPLU, 0, 6);
+                foreach ($dtCashback as $row) {
+                    if (strpos($row->nama, $tempPLU) !== false) {
+                        if ($row->flag == 0) {
+                            $str .= "   Potongan    : " .
+                                str_pad(number_format($row->kelipatan, 0), 3, " ", STR_PAD_LEFT) . " X " .
+                                "-" . str_pad(number_format($row->reward_per_promo, 0), 8, " ", STR_PAD_LEFT) .
+                                "-" . str_pad(number_format($row->reward, 0), 9, " ", STR_PAD_LEFT);
+                            $str .= PHP_EOL;
+                            $row->flag = 1;
+
+                            if ($dtPPN[0]->status == "KENA PPN") {
+                                $cashbackbarang += $row->reward;
+                                $dppTemp -= $row->reward;
+                            } elseif ($dtPPN[0]->status == "BEBAS PPN") {
+                                $dppTemp2 -= $row->reward;
+                            } elseif ($dtPPN[0]->status == "PPN DTP") {
+                                $dppTemp3 -= $row->reward;
+                            } elseif ($dtPPN[0]->status == "CUKAI") {
+                                $cukai -= $row->reward;
+                            } else {
+                                $nonPPN -= $row->reward;
+                            }
+                            $ttlCashback += $row->reward;
+                            $andahemat += $row->reward;
+                        }
+                    }
+                }
+            }
+
+            if ($dtPPN[0]->status == "KENA PPN") {
+                $dppbarang += round($dppTemp / (1 + $ppnRateBarang), 0, PHP_ROUND_HALF_UP);
+            } elseif ($dtPPN[0]->status == "BEBAS PPN") {
+                $ttlDPPBBS += round($dppTemp2, 0, PHP_ROUND_HALF_UP);
+            } elseif ($dtPPN[0]->status == "PPN DTP") {
+                $ttlDPPDTP += round($dppTemp3, 0, PHP_ROUND_HALF_UP);
+            }
+
+            $counter += 1;
+        }
+
+        if (count($dtGabungan) > 0) {
+            if($Reprint == 'Y'){
+                $str .= "------------- R E P R I N T ------------" . PHP_EOL;
+            }else{
+                $str .= "========================================" . PHP_EOL;
+                $str .= PHP_EOL;
+            }
+
+            foreach ($dtGabungan as $row) {
+                $str .= "   Potongan " . $row->nama . str_repeat(" ", 32 - strlen("   Potongan " . $row->nama)) .
+                    " -" . number_format($row->reward, 0) . str_repeat(" ", 8 - strlen(number_format($row->reward, 0))) . PHP_EOL;
+                $cashbackbarang += $row->reward;
+                $ttlCashback += $row->reward;
+                $andahemat += $row->reward;
+
+                $tempPotGab += $row->reward;
+            }
+        }
+
+        $nominal_voucher = $this->getNominalVoucher($selectedRow['dgv_notrans'], $selectedRow['dgv_member']);
+
+        $total = round($hargajual - $totaldiskon, 0, PHP_ROUND_HALF_UP);
+        $hargajual -= $andahemat;
+        $ttlPPN -= $cashbackbarang;
+        $ttlPPNBBS = round($ttlDPPBBS * $ppnRateBarang, 0, PHP_ROUND_HALF_UP);
+        $ttlPPNDTP = round($ttlDPPDTP * $ppnRateBarang, 0, PHP_ROUND_HALF_UP);
+
+        $adminfee = 0;
+        if (!empty($dtPayment)) {
+            foreach ($dtPayment as $row) {
+                $adminfee += $row->admin_fee;
+            }
+        }
+
+        $ttlPPN += $dt[0]->obi_ekspedisi + $adminfee;
+        $dppbarang += round(($dt[0]->obi_ekspedisi + $adminfee) / (1 + $ppnRate), 0, PHP_ROUND_HALF_UP);
+        $ppnbarang = round($dppbarang * $ppnRateBarang, 0, PHP_ROUND_HALF_UP);
+
+        if ($tempPotGab > 0) {
+            $temp = 0;
+            $tempTotalDPPPPN = $dppbarang + $ppnbarang;
+
+            if ($tempTotalDPPPPN > $tempPotGab) {
+                $temp = $tempPotGab;
+                $tempPotGab -= $temp;
+                $tempTotalDPPPPN -= $temp;
+
+                $dppbarang = round($tempTotalDPPPPN / (1 + $ppnRateBarang), 0, PHP_ROUND_HALF_UP);
+                $ppnbarang = round($tempTotalDPPPPN - $dppbarang, 0, PHP_ROUND_HALF_UP);
+            } elseif ($tempTotalDPPPPN < $tempPotGab) {
+                $temp = $tempTotalDPPPPN;
+                $tempPotGab -= $temp;
+                $dppbarang -= $temp;
+                $ppnbarang = 0;
+            }
+
+            if ($ttlDPPBBS > $tempPotGab && $tempPotGab > 0) {
+                $temp = $tempPotGab;
+                $tempPotGab -= $temp;
+                $ttlDPPBBS -= $temp;
+                $ttlPPNBBS = $ttlDPPBBS * $ppnRateBarang;
+            } elseif ($ttlDPPBBS < $tempPotGab && $tempPotGab > 0) {
+                $temp = $ttlDPPBBS;
+                $tempPotGab -= $temp;
+                $ttlDPPBBS -= $temp;
+                $ttlPPNBBS = 0;
+            }
+
+            if ($ttlDPPDTP > $tempPotGab && $tempPotGab > 0) {
+                $temp = $tempPotGab;
+                $tempPotGab -= $temp;
+                $ttlDPPDTP -= $temp;
+                $ttlPPNDTP = $ttlDPPDTP * $ppnRateBarang;
+            } elseif ($ttlDPPDTP < $tempPotGab && $tempPotGab > 0) {
+                $temp = $ttlDPPDTP;
+                $tempPotGab -= $temp;
+                $ttlDPPDTP -= $temp;
+            }
+        }
+
+        //* HITUNG ULANG DPP PPN
+        $tempTtlPpn = round(($dppbarang + $ppnbarang) / 10, 0, PHP_ROUND_HALF_UP) * 10;
+        $dppAll = $dppbarang;
+        $ppnAll = $tempTtlPpn - $ppnbarang;
+
+        $ttlDPPBBS = round($ttlDPPBBS, 0, PHP_ROUND_HALF_UP);
+        $ttlDPPDTP = round($ttlDPPDTP, 0, PHP_ROUND_HALF_UP);
+
+        $nonPPN = round($nonPPN, 0, PHP_ROUND_HALF_UP);
+        $cukai = round($cukai, 0, PHP_ROUND_HALF_UP);
+
+        // JIKA MINUS
+        $hargajual = $hargajual < 0 ? 0 : $hargajual;
+
+        if($Reprint == 'Y'){
+            $str .= "------------- R E P R I N T ------------" . PHP_EOL;
+        }else{
+            $str .= "========================================" . PHP_EOL;
+            $str .= PHP_EOL;
+        }
+
+        $str .= "HARGA JUAL..................:" . str_pad(number_format(round($hargajual, 0, PHP_ROUND_HALF_UP), 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+        $str .= "BIAYA LAYANAN...............:" . str_pad(number_format(round($dt[0]->obi_ekspedisi + $adminfee, 0, PHP_ROUND_HALF_UP), 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+        $str .= "                              __________" . PHP_EOL;
+        $str .= PHP_EOL;
+
+        $totalBelanja = $total
+            - $dt[0]->realcashback
+            + $dt[0]->obi_ekspedisi
+            + $adminfee
+            - $ttlCashback
+            - (count($dtKupon) > 0 ? $dtKupon[0]->nilai_kupon : 0);
+
+        // JIKA MINUS
+        $totalBelanja = $totalBelanja < 0 ? 0 : $totalBelanja;
+        $tipeBayar = strtoupper($dt[0]->tipe_bayar);
+        $pembayaranNonPoin = 0;
+
+        if (count($dtPayment) > 0 AND strtoupper($tipeBayar) != "COD" AND strtoupper($tipeBayar) != 'TOP') {
+
+            $str .= "TOTAL YANG DIBAYAR..........:" . str_pad(number_format($totalBelanja, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+
+            $totalBayar = 0;
+            $str .= str_pad("PEMBAYARAN", 28, ".") . ":" . PHP_EOL;
+            foreach ($dtPayment as $row) {
+                $str .= str_pad(" -" . strtoupper($row->tipe_bayar), 28, ".") . ":" . str_pad(number_format($row->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                $totalBayar += $row->total;
+
+                if (!strpos(strtoupper($row->tipe_bayar), "POIN")) {
+                    $pembayaranNonPoin = $row->total;
+                }
+            }
+
+        } elseif(strtoupper($tipeBayar) == "COD"){
+            $str .= "TOTAL YANG DIBAYAR..........:" . str_pad(number_format($totalBelanja, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+            $str .= PHP_EOL;
+
+            $totalBayar = $totalBelanja;
+
+            $str .= str_pad("PEMBAYARAN", 28, ".", STR_PAD_RIGHT) . ":" . PHP_EOL;
+            foreach ($dtPayment as $keydtPayment => $row) {
+                if (count($dtPayment) > 1) {
+                    if ($keydtPayment == 0) {
+                        if (strtoupper($dtPayment[0]->tipe_bayar) === "COD") {
+                            $str .= (" -" . strtoupper($dtPayment[0]->tipe_bayar)) . str_pad("", 28 - strlen($dtPayment[0]->tipe_bayar), ".") . ":" . str_pad(number_format($totalBayar - $dtPayment[1]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                        } else {
+                            $str .= (" -" . strtoupper($dtPayment[0]->tipe_bayar)) . str_pad("", 28 - strlen($dtPayment[0]->tipe_bayar), ".") . ":" . str_pad(number_format($dtPayment[0]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                        }
+                    } else {
+                        if (strtoupper($dtPayment[1]->tipe_bayar) === "COD") {
+                            $str .= (" -" . strtoupper($dtPayment[0]->tipe_bayar)) . str_pad("", 28 - strlen($dtPayment[0]->tipe_bayar), ".") . ":" . str_pad(number_format($totalBayar - $dtPayment[0]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                        } else {
+                            $str .= (" -" . strtoupper($row->tipe_bayar)) . str_pad("", 28 - strlen($row->tipe_bayar), ".") . ":" . str_pad(number_format($row->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                        }
+                    }
+                } else {
+                    $str .= (" -" . strtoupper($dtPayment[0]->tipe_bayar)) . str_pad("", 28 - strlen($dtPayment[0]->tipe_bayar), ".") . ":" . str_pad(number_format($dtPayment[0]->total, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                }
+            }
+
+        } else {
+
+            $totalBayar = $totalBelanja;
+
+            if ($nominal_voucher > $totalBelanja || $nominal_voucher === $totalBelanja) {
+                $str .= "TOTAL YANG DIBAYAR..........:" . str_pad(number_format(0, 0), 11, " ") . PHP_EOL;
+                if ($tipeBayar !== "X") {
+                    $str .= str_pad("PEMBAYARAN " . $tipeBayar, 28, ".") . ":" . str_pad(number_format(0, 0), 11, " ") . PHP_EOL;
+                }
+            } elseif ($nominal_voucher < $totalBelanja) {
+                $str .= "TOTAL YANG DIBAYAR..........:" . str_pad(number_format(($totalBelanja - $nominal_voucher), 0), 11, " ") . PHP_EOL;
+                if ($tipeBayar !== "X") {
+                    $str .= str_pad("PEMBAYARAN " . $tipeBayar, 28, ".") . ":" . str_pad(number_format(($totalBayar - $nominal_voucher), 0), 11, " ") . PHP_EOL;
+                }
+            } else {
+                $str .= "TOTAL YANG DIBAYAR..........:" . str_pad(number_format($totalBelanja, 0), 11, " ") . PHP_EOL;
+                if ($tipeBayar !== "X") {
+                    $str .= str_pad("PEMBAYARAN " . $tipeBayar, 28, ".") . ":" . str_pad(number_format($totalBayar, 0), 11, " ") . PHP_EOL;
+                }
+            }
+        }
+
+        // Kembalian ke Saldo KlikIndogrosir
+        $ttlKembalian = 0;
+        $kembalianSaldo = 0;
+        $kembalianPoin = 0;
+        if ($totalBayar - $totalBelanja > 0) {
+            $ttlKembalian = $totalBayar - $totalBelanja;
+            if ($ttlKembalian > $pembayaranNonPoin) {
+                $kembalianSaldo = $pembayaranNonPoin;
+                $kembalianPoin = $ttlKembalian - $pembayaranNonPoin;
+            } else {
+                $kembalianSaldo = $ttlKembalian;
+            }
+            $str .= PHP_EOL;
+            $str .= str_pad("KEMBALIAN ", 28, ".", STR_PAD_RIGHT) . ":" . str_pad(number_format($ttlKembalian, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+            // if ($kembalianSaldo > 0) $str .= str_pad(" -KE SALDO KLIK", 28, ".", STR_PAD_RIGHT) . ":" . str_pad(number_format($kembalianSaldo, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+            // if ($kembalianPoin > 0) $str .= str_pad(" -KE POIN", 28, ".", STR_PAD_RIGHT) . ":" . str_pad(number_format($kembalianPoin, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+        }
+        $str .= PHP_EOL;
+        $str .= "  ANDA HEMAT................:" . str_pad(number_format($andahemat, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+        $str .= PHP_EOL;
+
+        // JIKA MINUS
+        $dppAll = $dppAll < 0 ? 0 : $dppAll;
+        $ppnAll = $ppnAll < 0 ? 0 : $ppnAll;
+        $ttlDPPBBS = $ttlDPPBBS < 0 ? 0 : $ttlDPPBBS;
+        $ttlPPNBBS = $ttlPPNBBS < 0 ? 0 : $ttlPPNBBS;
+        $ttlDPPDTP = $ttlDPPDTP < 0 ? 0 : $ttlDPPDTP;
+        $ttlPPNDTP = $ttlPPNDTP < 0 ? 0 : $ttlPPNDTP;
+        $itemNonPPN = $itemNonPPN < 0 ? 0 : $itemNonPPN;
+        $itemCukai = $itemCukai < 0 ? 0 : $itemCukai;
+        $itemBBS = $itemBBS < 0 ? 0 : $itemBBS;
+        $itemDTP = $itemDTP < 0 ? 0 : $itemDTP;
+
+        if (!session("flagFTZ")) {
+            if ($itemPPN > 0) {
+                $str .= "      " . str_pad(number_format($itemPPN, 0), 4, " ", STR_PAD_LEFT);
+                $str .= " Item PPN.........:" . str_pad(number_format($dppAll + $ppnAll, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                $str .= "         DPP=" . str_pad(number_format($dppAll, 0), 12, " ", STR_PAD_LEFT) .
+                        " PPN=" . str_pad(number_format($ppnAll, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
+            }
+
+            if ($itemNonPPN > 0) {
+                $str .= "    *:" . str_pad(number_format($itemNonPPN, 0), 4, " ", STR_PAD_LEFT);
+                $str .= " Item Tanpa PPN...:" . str_pad(number_format($nonPPN, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+            }
+
+            if ($itemCukai > 0) {
+                $str .= "   **:" . str_pad(number_format($itemCukai, 0), 4, " ", STR_PAD_LEFT);
+                $str .= " Item Kena Cukai..:" . str_pad(number_format($cukai, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+            }
+
+            if ($itemDTP > 0) {
+                $str .= "  ***:" . str_pad(number_format($itemDTP, 0), 4, " ", STR_PAD_LEFT);
+                $str .= " Item PPN DTP.....:" . str_pad(number_format($ttlDPPDTP, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                $str .= "         DPP=" . str_pad(number_format($ttlDPPDTP, 0), 12, " ", STR_PAD_LEFT) .
+                        " PPN=" . str_pad(number_format($ttlPPNDTP, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
+            }
+
+            if ($itemBBS > 0) {
+                $str .= " ****:" . str_pad(number_format($itemBBS, 0), 4, " ", STR_PAD_LEFT);
+                $str .= " Item PPN Bebas...:" . str_pad(number_format($ttlDPPBBS, 0), 11, " ", STR_PAD_LEFT) . PHP_EOL;
+                $str .= "         DPP=" . str_pad(number_format($ttlDPPBBS, 0), 12, " ", STR_PAD_LEFT) .
+                        " PPN=" . str_pad(number_format($ttlPPNBBS, 0), 10, " ", STR_PAD_LEFT) . PHP_EOL;
+            }
+        }
+
+        $str .= "             * TERIMA KASIH *           " . PHP_EOL;
+        $str .= "Kode/Nama Member : " . $dt[0]->obi_kdmember . "/" . $dt[0]->amm_namapenerima . PHP_EOL;
+        $str .= PHP_EOL;
+
+        if (strlen($dt[0]->amm_namapenerima) > 14) {
+            $str .= substr($dt[0]->amm_namapenerima, 14, 40) . PHP_EOL;
+
+            if (strlen($dt[0]->amm_namapenerima) > 54) {
+                $str .= substr($dt[0]->amm_namapenerima, 54, 40) . PHP_EOL;
+            }
+        }
+
+        $str .= "Anda Memperoleh : " . PHP_EOL;
+        $str .= " " . str_pad(number_format($dt[0]->point_basic, 0), 5, " ", STR_PAD_LEFT) . " Poin Igr. Basic" . PHP_EOL;
+        $str .= " " . str_pad(number_format($dt[0]->point_bonus, 0), 5, " ", STR_PAD_LEFT) . " Poin Igr. Bonus" . PHP_EOL;
+
+        if (count($dtPoin) > 0) {
+            foreach ($dtPoin as $row) {
+                $str .= "=>" . $row->gift . PHP_EOL;
+            }
+        }
+
+        //! INI NANTI CHECK LAGI DI VB NYA (BELUM SELESAI)
+        //! KARENA INI BUAT FILE BARU -> $str3
+        $str3 = "";
+        $str3 .= "            * TERIMA KASIH *            " . PHP_EOL;
+
+        if ($Reprint == "Y") {
+            $str3 .= "============= R E P R I N T ============" . PHP_EOL;
+        } else {
+            $str3 .= "========================================" . PHP_EOL;
+        }
+
+        if (!is_null($dt[0]->OBI_NOSTRUK)) {
+            $str3 .= str_pad("No.SP  :" . $dt[0]->OBI_NOSTRUK, 20, " ", STR_PAD_RIGHT) .
+                    str_pad("Tgl.SP  :" . date("d-m-Y", strtotime($dt[0]->OBI_TGLSTRUK)), 20, " ", STR_PAD_LEFT) . PHP_EOL;
+        }
+
+        $str3 .= "Kode/Nama Member : " . $dt[0]->obi_kdmember . "/" . substr($dt[0]->amm_namapenerima, 0, 14) . PHP_EOL;
+
+        if (strlen($dt[0]->amm_namapenerima) > 14) {
+            $str3 .= substr($dt[0]->amm_namapenerima, 14, 40) . PHP_EOL;
+
+            if (strlen($dt[0]->amm_namapenerima) > 54) {
+                $str3 .= substr($dt[0]->amm_namapenerima, 55, 40) . PHP_EOL;
+            }
+        }
+
+        if (count($dtGift) > 0) {
+            $str3 .= PHP_EOL;
+            $str3 .= "Anda Memperoleh :" . PHP_EOL;
+            foreach ($dtGift as $row) {
+                $str3 .= $row->kode . PHP_EOL;
+                if (strlen($row->gift) > 40) {
+                    $str3 .= "=>" . substr($row->gift, 0, 38) . PHP_EOL;
+                    $str3 .= substr($row->gift, 38) . PHP_EOL;
+                } else {
+                    $str3 .= "=>" . str_replace("GIFT berupa ", "", $row->gift) . PHP_EOL;
+                }
+            }
+        }
+
+        // If Directory.Exists("C:\TEMP") = False Then
+        //     Directory.CreateDirectory("C:\TEMP")
+        // End If
+
+        // Dim SW As New StreamWriter("C:\TEMP\STRUK_" & notrx & ".TXT", False)
+
+        //! END KARENA INI BUAT FILE BARU -> $str3
+
+        //! SETELAH INI ADA ENCRPYPT UNTUK QR CODE DI SKIP BINGUNG (BELUM SELESAI)
+
+        $nama_file = "HITUNGULANG_" . $notrx .'.txt';
+
+        return [
+            "str" => $str,
+            "nama_file" => $nama_file
+        ];
     }
 
-    private function PrintNotaNewSPI(){
-
+    private function getDetailCashier($dgv_notrans, $dgv_nopb){
+        $query = '';
+        $query .= "SELECT jh_cashierid, jh_cashierstation, jh_transactionno";
+        $query .= "FROM TBTR_JUALHEADER, TBTR_OBI_H";
+        $query .= "WHERE jh_transactionno = obi_nostruk";
+        $query .= "AND DATE_TRUNC('DAY',jh_transactiondate) = DATE_TRUNC('DAY',OBI_TGLSTRUK)";
+        $query .= "AND jh_cashierid = OBI_CASHIERID";
+        $query .= "AND jh_cashierstation = obi_kdstation";
+        $query .= "AND jh_cus_kodemember = obi_kdmember";
+        $query .= "AND obi_notrans = '" . $dgv_notrans . "'";
+        $query .= "AND obi_nopb = '" . $dgv_nopb . "'";
+        return DB::select($query);
     }
 
-    private function updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr, $urlUpdateRealisasiKlik){
+    private function updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr){
+
         try{
             $query = '';
             $query .= "SELECT plu, ";
@@ -4608,9 +5474,9 @@ class KlikIgrController extends Controller
 
             $apiName = $cre[0]->cre_name;
             $apiKey = $cre[0]->cre_key;
-            $this->ConToWebServiceNew($urlUpdateRealisasiKlik, $apiName, $apiKey, $postData);
+            $this->ConToWebServiceNew($this->urlUpdateRealisasiKlik, $apiName, $apiKey, $postData);
 
-            //! dummy harusnya return dari ConToWebServiceNew
+            //! GET RESPONSE DARI ConToWebServiceNew
             $json = null;
             $ret = null;
 
@@ -4630,7 +5496,7 @@ class KlikIgrController extends Controller
             $query .= "  '" . $dgv_nopb . "', ";
             $query .= "  '" . $dgv_memberigr . "', ";
             $query .= "  NOW(), ";
-            $query .= "  '" . $urlUpdateRealisasiKlik . "', ";
+            $query .= "  '" . $this->urlUpdateRealisasiKlik . "', ";
             $query .= "  '" . $json . "', ";
             $query .= "  '" . $ret . "' ";
             $query .= ") ";
@@ -4831,7 +5697,7 @@ class KlikIgrController extends Controller
         return $Kode;
     }
 
-    private function draftStruk($dgv_kodeweb, $dgv_memberigr, $dgv_notrans, $dgv_nopb, $dgv_tglpb, $dtTrans, $dgv_freeongkir){
+    private function draftStruk($dgv_kodeweb, $dgv_memberigr, $dgv_notrans, $dgv_nopb, $dgv_tglpb, $dtTrans, $dgv_freeongkir, $dgv_kredit, $dgv_flagBayar, $dgv_tipebayar, $dgv_tipe_kredit){
         $kdWeb = $dgv_kodeweb;
         $kdMember = $dgv_memberigr;
         $noTrans = $dgv_notrans;
@@ -4930,7 +5796,6 @@ class KlikIgrController extends Controller
                     ];
                 }
 
-                //! BELUM SELESAI
                 $api = $this->requestPromo($transKlik, $kdMember, $noTrans, $noPB);
                 if($api != true){
                     $message = 'Gagal Hitung Ulang Promosi Klik Indogrosir';
@@ -4963,15 +5828,18 @@ class KlikIgrController extends Controller
 
         //! JALANKAN FUNGSI DRAFT STRUK
         if($memberOK == true AND $alamatOK == true){
+            $status = '';
             $userMODUL = session('userid');
             $KodeIGR = session('KODECABANG');
 
             if($kdWeb = 'WebMM'){
                 //! BELUM SELESAI (PROCEDURE INI TIDAK ADA)
-                DB::select("sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }else{
-                DB::select("sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }
+
+            $status = $procedure[0]->p_Status;
 
             if($flagSkipIPP == false){
                 if(!(str_contains(strtoupper($kurir), 'KURIR INDOGROSIR') OR
@@ -4980,14 +5848,13 @@ class KlikIgrController extends Controller
                     str_contains(strtoupper($kurir), 'MOBIL ENGKEL/DOUBLE')
                 )){
 
-                    //! BELUM SELESAI
                     if(session('flagSPI') == true){
-                        // suksesDeliveryInfo = updateDeliveryInfo_SPI(kdMember, noTrans, dtTrans.Value.ToString("dd-MM-yyyy"), noPB)
+                        $suksesDeliveryInfo = $this->updateDeliveryInfo_SPI($kdMember, $noTrans, $dtTrans, $noPB, '', true);
                     }else{
-                        // suksesDeliveryInfo = updateDeliveryInfo_KLIK(kdMember, noTrans, dtTrans.Value.ToString("dd-MM-yyyy"), noPB)
+                        $suksesDeliveryInfo = $this->updateDeliveryInfo_KLIK($kdMember, $noTrans, $dtTrans, $noPB, '', true);
                     }
 
-                    if($suksesDeliveryInfo == false){
+                    if($suksesDeliveryInfo['status'] == false){
                         $query = '';
                         $query .= "update tbtr_obi_h set obi_realorder = 0, ";
                         $query .= "obi_realppn = 0, ";
@@ -5039,41 +5906,258 @@ class KlikIgrController extends Controller
                         $dtCek = DB::select($query);
 
                         if(count($dtCek) > 0){
-                            //! BELUM SELESAI
-                            // updateIntransit(False, noTrans, dtTrans.Value.ToString("dd-MM-yyyy"))
+                            $this->updateIntransit(False, $noTrans, $dtTrans);
                         }
+
+                        throw new HttpResponseException(ApiFormatter::error(400, $suksesDeliveryInfo['message']));
                     }
                 }
             }
-        }
 
+            if($dgv_kredit == 'Y' OR $dgv_flagBayar == 'Y' OR session('flagSPI') == true){
+                $query = '';
+                $query .= "UPDATE TBTR_OBI_H SET OBI_RECID = '5' ";
+                $query .= "Where OBI_NOPB = '" . $noPB . "' ";
+                $query .= "AND OBI_KDMEMBER = '" . $kdMember . "' ";
+                $query .= "AND OBI_NOTRANS = '" . $noTrans . "' ";
+                $query .= "AND OBI_RECID = '4' ";
+                DB::update($query);
+
+                $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "5", "3");
+
+                if (str_contains($dgv_tipebayar, 'COD')) {
+                    $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "5", "6");
+                }
+
+                $skipStatus = true;
+            }
+
+
+            if (str_contains($status, 'Sukses')) {
+                if(str_contains($noPB, 'TMI') == false AND session('flagSPI') == false){
+                    $this->updateReal($noPB, $noTrans, $tglPB, $kdMember);
+                }
+
+                if(session('flagSPI') == true){
+                    $this->PrintNotaNewSPI("N", "DRAFT STRUK", $kdWeb, $dgv_tipe_kredit);
+                }else{
+                    $this->PrintNotaNew("N", "DRAFT STRUK", $kdWeb, $dgv_tipe_kredit);
+                }
+            }
+        }
     }
 
-    private function requestPromo($transKlik, $kdMember, $noTrans, $noPB){
-        //! BELUM SELESAI
-        //! INI GAPAHAM SUSAH DIBACA
-        //! TANYAKAN AKSES API UNTUK BODYNYA FORMAT DATANYA SEPERTI APA
+    private function requestPromo($transKlik, $kdMember, $noTrans, $noPB, $flagHitungUlang = false){
 
-        // $query ".= SELECT ws_url, cre_name, cre_key FROM tbmaster_webservice  ";
-        // sb.AppendLine(" LEFT JOIN tbmaster_credential ON ws_nama = cre_type ")
-        // If flagSPI Then
-        //     sb.AppendLine(" WHERE ws_nama = 'HIT_PROMO_SPI' ")
-        // Else
-        //     sb.AppendLine(" WHERE ws_nama = 'HIT_PROMO_KLIK' ")
-        // End If
-        // dtGet = QueryOra(sb.ToString)
+        $flagProrate = true;
 
-        // If dtGet.Rows.Count > 0 Then
-        //     urlPromo = dtGet.Rows(0).Item(0).ToString
-        //     creName = dtGet.Rows(0).Item(1).ToString
-        //     creKey = dtGet.Rows(0).Item(2).ToString
-        // Else
-        //     urlPromo = "https://api.mitraindogrosir.co.id/dataportal/klik-igr/flex-promo/recalculate-new"
-        //     creName = "x-api-key"
-        //     creKey = "zEebxEx3Y44V8UdNJdkOE79HdYEMKDER1eEvYg2T"
-        // End If
+        $query = '';
+        $query .= " SELECT ws_url, cre_name, cre_key FROM tbmaster_webservice  ";
+        $query .= " LEFT JOIN tbmaster_credential ON ws_nama = cre_type ";
+        if(session('flagSPI')){
+            $query .= " WHERE ws_nama = 'HIT_PROMO_SPI' ";
+        }else{
+            $query .= " WHERE ws_nama = 'HIT_PROMO_KLIK' ";
+        }
+        $dt = DB::select($query);
 
+        $splitTrans = explode("/", $noPB);
+        $trxid = $splitTrans[0];
 
+        $urlPromo = "https://api.mitraindogrosir.co.id/dataportal/klik-igr/flex-promo/recalculate-new";
+        $apiName = "x-api-key";
+        $apiKey = "zEebxEx3Y44V8UdNJdkOE79HdYEMKDER1eEvYg2T";
+        if(count($dt) > 0){
+            $urlPromo = $dt[0]->ws_url;
+            $apiName = $dt[0]->cre_name;
+            $apiKey = $dt[0]->cre_key;
+        }
+
+        $postData = [
+            'transaction_id' => $trxid,
+            'data' => $transKlik,
+        ];
+
+        $strResponse = $this->ConToWebServiceNew($urlPromo, $apiName, $apiKey, $postData);
+
+        //! GET RESPONSE DARI ConToWebServiceNew
+        $statusMessage = 'OK';
+        $data = [];
+        $type = 0;
+        $promo_type = 'CASHBACK';
+        $strResponse = '';
+        $transaction_id = $trxid; //transKlik.transaction_id
+        $affected_plu = '';
+
+        //* LOG_HITUNG_PROMOKLIK
+        $query = '';
+        $query .= "INSERT INTO log_hitung_promoklik ( ";
+        $query .= " nopb, ";
+        $query .= " notrans, ";
+        $query .= " url, ";
+        $query .= " post_data, ";
+        $query .= " response, ";
+        $query .= " create_dt ";
+        $query .= ") ";
+        $query .= "VALUES ( ";
+        $query .= " '" . $noPB . "', ";
+        $query .= " '" . $transaction_id . "', ";
+        $query .= " '" . $urlPromo . "', ";
+        $query .= " '" . str_replace("'", "''", $postData) . "', ";
+        $query .= " '" . substr(str_replace("'", "''", $strResponse), 0, 4000) . " ', ";
+        $query .= " NOW() ";
+        $query .= ") ";
+        DB::insert($query);
+
+        if($statusMessage == 'OK'){
+            foreach($data as $item){
+
+                $promo_code = $item->promo_code;
+                $promo_type = $item->promo_type;
+                $promo_reward = $item->promo_reward;
+                $promo_qty = $item->promo_qty;
+                $promo_total = $item->promo_total;
+                $affected_plu = $item->affected_plu;
+                $desc = $item->desc;
+
+                $query = '';
+                $query .= "UPDATE promo_klikigr ";
+                $query .= "   SET ";
+                if($flagHitungUlang == true){
+                    if($promo_type == 'CASHBACK'){
+                        $query .= "      cashback_hitungulang = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > cashback_order THEN cashback_order ELSE " . str_replace(",", ".", strval($promo_total)) . " END, ";
+                    }else{
+                        $query .= "      gift_real = '" . str_replace("'", "''", $desc) . "', ";
+                    }
+                    $query .= "      kelipatan_hitungulang = " . str_replace(",", ".", strval($promo_qty)) . ", ";
+                    $query .= "      reward_per_promo_hitungulang = " . str_replace(",", ".", strval($promo_reward)) . ", ";
+                    $query .= "      reward_nominal_hitungulang = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > reward_nominal THEN reward_nominal ELSE " . str_replace(",", ".", strval($promo_total)) . " END ";
+                }else{
+                    if($promo_type == 'CASHBACK'){
+                        $query .= "      cashback_real = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > cashback_order THEN cashback_order ELSE " . str_replace(",", ".", strval($promo_total)) . " END, ";
+                    }else{
+                        $query .= "      gift_real = '" . str_replace("'", "''", $desc) . "', ";
+                    }
+                    //$query .= "      kelipatan = CASE WHEN " . str_replace(",", ".", strval($promo_qty)) . " > kelipatan THEN kelipatan ELSE " . str_replace(",", ".", strval($promo_qty)) . " END, ";
+                    $query .= "      kelipatan = " . str_replace(",", ".", strval($promo_qty)) . ", ";
+                    $query .= "      reward_per_promo = " . str_replace(",", ".", strval($promo_reward)) . ", ";
+                    $query .= "      reward_nominal = CASE WHEN " . str_replace(",", ".", strval($promo_total)) . " > reward_nominal THEN reward_nominal ELSE " . str_replace(",", ".", strval($promo_total)) . " END ";
+                }
+                $query .= "WHERE kode_member = '" . $kdMember . "' ";
+                $query .= "  AND no_trans = '" . $noTrans . "' ";
+                $query .= "  AND no_pb = '" . $noPB . "' ";
+                $query .= "  AND kode_promo = '" . $promo_code . "' ";
+                if($promo_type == 'CASHBACK' AND $type == 0){
+                    if (strpos($affected_plu, '|') === false) {
+                        $query .= " AND prdcd = '" . $affected_plu . "' ";
+                    }
+                }
+                DB::update($query);
+            }
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            if($flagHitungUlang){
+                $query .= "SET cashback_hitungulang = 0, reward_nominal = 0 ";
+            }else{
+                $query .= "SET cashback_real = 0, reward_nominal = 0 ";
+            }
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            if($flagHitungUlang){
+                $query .= "  AND cashback_hitungulang IS NULL ";
+            }else{
+                $query .= "  AND cashback_real IS NULL ";
+            }
+            $query .= "  AND tipe_promo = 'CASHBACK' ";
+            $query .= "  AND id_tipe = '0' ";
+            $query .= "  AND EXISTS ( ";
+            $query .= "      SELECT obi_prdcd ";
+            $query .= "      FROM ( ";
+            $query .= "        SELECT SUBSTR(obi_prdcd,1,6) || '0' obi_prdcd, ";
+            if($flagHitungUlang){
+                $query .= "               sum(obi_qty_hitungulang) obi_qtyrealisasi ";
+            }else{
+                $query .= "               sum(obi_qtyrealisasi) obi_qtyrealisasi ";
+            }
+            $query .= "        FROM tbtr_obi_h h ";
+            $query .= "        JOIN tbtr_obi_d d ";
+            $query .= "        ON h.obi_notrans = d.obi_notrans ";
+            $query .= "        AND h.obi_tgltrans = d.obi_tgltrans ";
+            $query .= "        WHERE h.obi_kdmember = '" . $kdMember . "' ";
+            $query .= "        AND h.obi_notrans = '" . $noTrans . "' ";
+            $query .= "        AND h.obi_nopb = '" . $noPB . "' ";
+            $query .= "        GROUP BY SUBSTR(obi_prdcd,1,6) || '0' ";
+            if($flagHitungUlang){
+                $query .= "        HAVING sum(obi_qty_hitungulang) = 0 ";
+            }else{
+                $query .= "        HAVING sum(obi_qtyrealisasi) = 0 ";
+            }
+            $query .= "      ) tbtr_obi ";
+            $query .= "      WHERE obi_prdcd = prdcd ";
+            $query .= "  ) ";
+            DB::update($query);
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            if($flagHitungUlang){
+                $query .= "   SET cashback_hitungulang = cashback_order, ";
+                $query .= "       kelipatan_hitungulang = kelipatan, ";
+                $query .= "       reward_per_promo_hitungulang = reward_per_promo, ";
+                $query .= "       reward_nominal_hitungulang = reward_nominal ";
+            }else{
+                $query .= "   SET cashback_real = cashback_order ";
+            }
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            if($flagHitungUlang){
+                $query .= "  AND cashback_hitungulang IS NULL ";
+            }else{
+                $query .= "  AND cashback_real IS NULL ";
+            }
+            $query .= "  AND tipe_promo = 'CASHBACK' ";
+            $query .= "  AND id_tipe = '1' ";
+            if($flagProrate == false){
+                DB::update($query);
+            }
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            $query .= "   SET gift_real = gift_order ";
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            $query .= "  AND gift_real IS NULL ";
+            $query .= "  AND tipe_promo <> 'CASHBACK' ";
+            if($flagProrate == false){
+                DB::update($query);
+            }
+
+            $query = '';
+            $query .= "UPDATE promo_klikigr ";
+            if($flagHitungUlang){
+                $query .= "   SET kelipatan_hitungulang = ROUND(cashback_hitungulang / reward_per_promo_hitungulang,2) ";
+            }else{
+                $query .= "   SET kelipatan = ROUND(cashback_real / reward_per_promo,2) ";
+            }
+            $query .= "WHERE kode_member = '" . $kdMember . "' ";
+            $query .= "  AND no_trans = '" . $noTrans . "' ";
+            $query .= "  AND no_pb = '" . $noPB . "' ";
+            if($flagHitungUlang){
+                $query .= "  AND cashback_hitungulang IS NOT NULL ";
+            }else{
+                $query .= "  AND cashback_real IS NOT NULL ";
+            }
+            $query .= "  AND tipe_promo = 'CASHBACK' ";
+            DB::update($query);
+
+            return true;
+
+        }else{
+            throw new HttpResponseException(ApiFormatter::error(400, $statusMessage));
+        }
     }
 
     private function validasiDataMember($noTrans, $dtTrans){
@@ -5639,8 +6723,8 @@ class KlikIgrController extends Controller
             $query .= ") WHERE LOKASI = 0 ";
             $dt = DB::select($query);
 
-            //! FUNCTION INI BELUM SELESAI
-            // logPLUtanpaLokasi(nopb, dtprdcd)
+            //! PROSES MENGHASILKAN FILE
+            $this->logPLUtanpaLokasi($dgv_nopb, $dt[0]->obi_prdcd);
 
             $txtPlu = '';
             foreach($dt as $item2){
@@ -5744,6 +6828,22 @@ class KlikIgrController extends Controller
             $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
             $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
         }
+    }
+
+    private function logPLUtanpaLokasi($nopb, $prdcd){
+        // pb = Strings.Left(Replace(nopb, "/", ""), 6)
+        // namaFile = "LOG_OBI_LOKASI_KOSONG_" & pb & ".LOG"
+        // pathSimpanLog = System.IO.Path.Combine(path, namaFile)
+
+        // Dim SW As New IO.StreamWriter(pathSimpanLog, True)
+        // SW.WriteLine("========= BEGIN ===========")
+        // SW.WriteLine("No PB     : " & nopb)
+        // SW.WriteLine("Tgl PB    : " & dgv_tglpb)
+        // SW.WriteLine("===========================")
+        // For m As Integer = 0 To prdcd.Rows.Count - 1
+        //     SW.WriteLine("PLU       : " & prdcd.Rows(m).Item(0))
+        // Next
+        // SW.WriteLine("=========== END ===========")
     }
 
     private function ulangPicking($dgv_notrans, $dgv_nopb){
@@ -5984,10 +7084,10 @@ class KlikIgrController extends Controller
         $query .= ") AS subquery_alias";
         $query .= " ORDER BY deskripsi ASC ";
 
-        
+
         $data['data'] = DB::select($query);
 
-        
+
         if(!count($data['data'])){
             return [
                 "status" => false,
@@ -6598,7 +7698,6 @@ class KlikIgrController extends Controller
         }
     }
 
-    //! BELUM SELESAI
     private function getKonversiItemPerishable($flagMsg){
 
         //! CEK HARI INI UDAH PERNAH GET DATA KONVERSI ITEM PERISHABLE
@@ -6621,8 +7720,7 @@ class KlikIgrController extends Controller
 
         $url = $cek->ws_url;
 
-        //! BELUM DI MIGRATE
-        $this->ConToWebService($url);
+        $response = $this->ConToWebService($url);
 
         //! INSERT LOG_KONVERSI_KLIKIGR
         DB::table('log_konversi_klikigr')
@@ -6635,7 +7733,33 @@ class KlikIgrController extends Controller
                 'create_dt' => Carbon::now(),
             ]);
 
-        //! BELUM BERES MASIH AGAK BINGUNG
+        //! GET RESPONSE DARI ConToWebService
+        $data = [];
+
+        if(count($data)){
+
+            //* TRUNCATE TABLE
+            DB::table('konversi_item_klikigr')->truncate();
+
+            //* INSERT INTO KONVERSI_ITEM_KLIKIGR
+            foreach($data as $item){
+                DB::table('konversi_item_klikigr')
+                    ->insert([
+                        'pluidm' => $item['PLU'],
+                        'pluigr' => $item['PLU_IGR'],
+                        'deskripsi' => $item['DESK_PRODUK'],
+                        'sat_pcs' => $item['SAT_PCS'],
+                        'sat_gram' => $item['SAT_GRAM'],
+                        'create_by' => session('userid'),
+                        'create_dt' => Carbon::now(),
+                        'sat_jual' => $item['SAT_JUAL'],
+                        'toleransi_awal' => $item['TOLERANSI_AWAL'],
+                        'toleransi_akhir' => $item['TOLERANSI_AKHIR'],
+                    ]);
+            }
+        }
+
+        return true;
     }
 
     private function alterDPDNOIDCTN(){

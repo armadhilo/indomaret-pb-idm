@@ -82,7 +82,7 @@
     .btn-green{
         background: #47b460b0;
     }
-    
+
     .btn-green:hover{
         background: #307841B0;
         color: white;
@@ -95,7 +95,7 @@
     .btn-orange{
         background: #ff6f00;
     }
-    
+
     .btn-orange:hover{
         background: #c85700;
         color: white;
@@ -104,7 +104,7 @@
     .btn-light-red{
         background: #d14745b0;
     }
-    
+
     .btn-light-red:hover{
         background: #742726b0;
         color: white;
@@ -294,9 +294,9 @@
                         <button class="btn btn-action btn-light-red" actionName="ListPbMaxSerahTerima">List PB Lebih dari Max Serah Terima</button>
                         <button class="btn btn-action btn-orange" actionName="MasterPickingHH">Master Picker HH</button>
                         <button class="btn btn-action btn-orange" actionName="ListingDelivery">Listing Delivery</button>
-                        <button class="btn btn-action btn-orange" actionName="MasterPolDeliveryVan">Master No. Pol Delivery Van</button>
+                        {{-- <button class="btn btn-action btn-orange" actionName="MasterPolDeliveryVan">Master No. Pol Delivery Van</button>
                         <button class="btn btn-action btn-orange" actionName="MasterDriver">Master Driver</button>
-                        <button class="btn btn-action btn-orange" actionName="MasterDeliveryman">Master Deliveryman</button>
+                        <button class="btn btn-action btn-orange" actionName="MasterDeliveryman">Master Deliveryman</button> --}}
                         <button class="btn btn-action btn-warning" actionName="ReCreateAWB">Re Create AWB</button>
                         <button class="btn btn-action btn-warning" actionName="MasterAlasanbatalKirim">Master Alasan Batal Kirim</button>
                         <button class="btn btn-action btn-warning" actionName="BaPengembalianDana">BA Pengembalian Dana</button>
@@ -1023,7 +1023,7 @@
     var isFunctionRunning = false;
     let statusSiapPicking = "{{ $statusSiapPicking }}";
     let statusSiapPacking = "{{ $statusSiapPacking }}";
-    
+
     $(document).ready(function() {
         setDateNow("#tanggal_trans");
         tb = $('#tb').DataTable({
@@ -1036,7 +1036,7 @@
                 { className: 'text-center', targets: [0,1] },
             ],
             order: [],
-            "paging": false, 
+            "paging": false,
             "searching": false,
             "scrollY": "calc(100vh - 400px)",
             "scrollCollapse": true,
@@ -1076,7 +1076,7 @@
                 },
             ],
             ordering: false,
-            "paging": false, 
+            "paging": false,
             "scrollY": "calc(100vh - 600px)",
             "scrollCollapse": true,
             lengthChange: false,
@@ -1107,17 +1107,17 @@
                 },
             ],
             ordering: false,
-            "paging": false, 
+            "paging": false,
             "scrollY": "calc(100vh - 600px)",
             "scrollCollapse": true,
             lengthChange: false,
         });
-        
+
         var hasBtnDetailColumn = false;
         tb.columns().every(function () {
             if ($(this.header()).text() === "DETAIL") {
                 hasBtnDetailColumn = true;
-                return false; 
+                return false;
             }
         });
 
@@ -1154,11 +1154,11 @@
                 }
             } else {
                 if (typeof window[functionName] === 'function') {
-                    isFunctionRunning = true; 
+                    isFunctionRunning = true;
                     window[functionName]();
                     setTimeout(function() {
                         isFunctionRunning = false;
-                    }, 300); 
+                    }, 300);
                 }
             }
         }
@@ -1197,13 +1197,13 @@
 
     $(document).on('keypress', '.input-hitung-ulang', function(e) {
         var key = e.which || e.keyCode;
-        
+
         var inputValue = $(this).val();
         if ((key !== 13 && key !== 8 && isNaN(String.fromCharCode(key))) || (inputValue.length >= 4)) {
-            e.preventDefault(); 
+            e.preventDefault();
         }
     });
-    
+
     $(document).on('change', '.input-hitung-ulang', function(e) {
         if ($(this).val() === '') {
             $(this).val(0);

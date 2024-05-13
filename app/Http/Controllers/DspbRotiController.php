@@ -93,7 +93,7 @@ class DspbRotiController extends Controller
             }
         }
         //! DELETE TEMP FOLDER
-        
+
         $this->cetakReportRekap($noRekap, $request->cluster, $tempDir);
 
         $zip = new ZipArchive();
@@ -103,7 +103,7 @@ class DspbRotiController extends Controller
             foreach ($files as $file) {
                 $zip->addFile($file, basename($file));
             }
-            
+
             $zip->close();
             $data['temp'] = basename($tempDir);
             return ApiFormatter::success(200, "Berhasil DSPB ROTI", $data);
@@ -111,7 +111,7 @@ class DspbRotiController extends Controller
             File::deleteDirectory($tempDir);
             return ApiFormatter::error(400, "Gagal Membuat Zip");
         }
-    
+
     }
 
     public function getZipFile($temp){
@@ -134,7 +134,7 @@ class DspbRotiController extends Controller
         $query .= "join TBMASTER_TOKOIGR on HDR_KODETOKO = TKO_KODEOMI and TKO_KODESBU = 'I' ";
         $query .= "join TBTR_REKAP_DSPB_ROTI on DSP_NODSPB = IKL_IDTRANSAKSI and CRI_KODECLUSTER = DSP_CLUSTER ";
         $query .= "where CRI_KODECLUSTER = '" . $cluster . "' and HDR_FLAG = '5' and DSP_NO_REKAP = '" . $noRekap . "' ";
-        $data['data'] = DB::select($query); 
+        $data['data'] = DB::select($query);
 
         if(!count($data['data'])){
             File::deleteDirectory($tempDir);
@@ -343,7 +343,7 @@ class DspbRotiController extends Controller
                     foreach ($files as $file) {
                         $zip->addFile($file, basename($file));
                     }
-                    
+
                     $zip->close();
                     File::deleteDirectory($tempDir . '/zip/');
                 } else {
@@ -415,7 +415,7 @@ class DspbRotiController extends Controller
                     $npbRes = null;
                     $jmlItem = 0;
 
-                    $okNPB = $this->insertToNPB(carbon::now(), $npbGudang, $nmNpb, $dtH, $dtD);
+                    $okNPB = $this->insertToNPB(date('Ymd', strtotime(now())) . $npbGudang, $nmNpb, $dtH, $dtD);
                     if($okNPB){
                         $tglConfirm = $okNPB['tglConfirm'];
                         $npbRes = $okNPB['npbRes'];
@@ -482,9 +482,9 @@ class DspbRotiController extends Controller
                 // End If
             }
         } catch(\Exception $e){
-            
+
             DB::rollBack();
-            
+
             $message = "Oops! Something wrong ( $e )";
             return ApiFormatter::error(400, $message);
         }
@@ -631,11 +631,6 @@ class DspbRotiController extends Controller
         }
 
 
-    }
-
-    private function writeCSV($tempDir, $nameFile, $check){
-        $fileContent = Excel::raw(new GeneralExcelExport($check), \Maatwebsite\Excel\Excel::CSV);
-        file_put_contents($tempDir . '/zip/' . $nameFile . ".csv", $fileContent);
     }
 
     private function updateDb($noDspb,$tglPb,$kodetoko,$noPb){

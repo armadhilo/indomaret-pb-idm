@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\GeneralExcelExport;
 use App\Helper\ApiFormatter;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Http;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Controller extends BaseController
 {
@@ -29,8 +31,18 @@ class Controller extends BaseController
         return $data[0]['data'];
     }
 
+    //! INI KARENA HIT ENDPOINT LANGSUNG RETURN TRUE AJA
     public function insertToNPB($cabang, $NamaFile, $dtH, $dtD){
+        return true;
+    }
 
+    //! NOTE IPAN
+    //! INI MINDAH FUNCTION DARI DSPB ROTI
+    //! KARENA DIGUNAKAN DI KLIK IGR JUGA
+    //! BISA DI CEK AJA COMPATIBLE ENGGA
+    public function writeCSV($tempDir, $nameFile, $data){
+        $fileContent = Excel::raw(new GeneralExcelExport($data), \Maatwebsite\Excel\Excel::CSV);
+        file_put_contents($tempDir . '/zip/' . $nameFile . ".csv", $fileContent);
     }
 
 
@@ -2010,7 +2022,6 @@ class Controller extends BaseController
 
                     if($SudahAdaCetakBarcodeHariIni == false){
 
-                        //! BELUM SELESAI (BELUM ADA FUNCTION)
                         $this->CetakContainerPSP($item->zon_printer,
                             $PSP_NoPick,
                             date("d-m-Y"),
@@ -2083,7 +2094,6 @@ class Controller extends BaseController
 
                     if($SudahAdaCetakBarcodeHariIni == false){
 
-                        //! BELUM SELESAI (BELUM ADA FUNCTION)
                         $this->CetakBronjongPSP($row[3],
                             $PSP_NoPick,
                             date("d-m-Y"),
@@ -2167,6 +2177,16 @@ class Controller extends BaseController
         $query .= "AND COALESCE(grr_flagcetakan,'?') <> 'Y' ";
 
         return true;
+    }
+
+    //! BELUM SELESAI BINGUNG FUNCTIONNYA
+    private function CetakContainerPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+
+    }
+
+    //! BELUM SELESAI BINGUNG FUNCTIONNYA
+    private function CetakBronjongPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+
     }
 
     private function konversi_SPI($noTrans, $tglTrans){
