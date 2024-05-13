@@ -220,6 +220,27 @@ select:hover{
     background-color: #6E214A!important;
 }
 
+.h-38px{
+    height: 38px!important;
+}
+
+.h-30px{
+    height: 30px!important;
+}
+
+.w-200px{
+    width: 200px!important;
+}
+
+
+.child-no-radius > *{
+    border-radius: 0!important;
+}
+
+.w-100px{
+    width: 100px!important;
+}
+
 .checkbox-table{
     width: 20px;
     margin: auto;

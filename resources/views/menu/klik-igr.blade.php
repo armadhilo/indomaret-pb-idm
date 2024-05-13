@@ -147,6 +147,96 @@
     #tab_detail_transaksi .nav-item .nav-link.active{
         color: #012970;
         font-weight: bold;
+        position: relative;
+        z-index: 300;
+    }
+
+    .w-130px{
+        width: 130px!important;
+    }
+
+    .w-230px{
+        width: 230px!important;
+    }
+
+    /* Modal Specific CSS */
+    *,
+    *:after,
+    *:before {
+        box-sizing: border-box;
+    }
+    #form_group_jalur_picking .modal-content {
+        border: 0;
+        background: #2f4f4f!important;
+    }
+
+    #form_group_jalur_picking .modal-body {
+        border: 1px solid white;
+        margin: 8px;
+        padding: 15px 19px;
+    }
+
+    #form_group_jalur_picking .modal-form-group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+    }
+
+    #form_group_jalur_picking .modal-label {
+        display: flex;
+        cursor: pointer;
+        font-weight: 500;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 0.375em;
+    }
+
+    #form_group_jalur_picking .modal-label input {
+        position: absolute;
+        left: -9999px;
+    }
+
+    #form_group_jalur_picking .modal-label input:checked + span {
+        background-color: mix(#fff, #00005c, 84%);
+    }
+
+    #form_group_jalur_picking .modal-label span {
+        display: flex;
+        align-items: center;
+        padding: 0.375em 0.75em 0.375em 0.375em;
+        border-radius: 99em; /* or something higher... */
+        transition: 0.25s ease;
+    }
+
+    #form_group_jalur_picking .modal-label span:hover {
+        background-color: mix(#fff, #00005c, 84%);
+    }
+
+    #form_group_jalur_picking .modal-label span:before {
+        display: flex;
+        flex-shrink: 0;
+        content: "";
+        background-color: #fff;
+        width: 1.5em;
+        height: 1.5em;
+        border-radius: 50%;
+        margin-right: 0.375em;
+        transition: 0.25s ease;
+    }
+
+    #form_group_jalur_picking .modal-label input:checked + span:before {
+        box-shadow: inset 0 0 0 0.3765em #00005c;
+    }
+
+    #form_group_jalur_picking .modal-label input + span:before {
+        box-shadow: inset 0 0 0 0.1765em #00005c;
+    }
+
+    #form_group_jalur_picking .modal-button {
+        box-shadow: unset!important;
+        width: 160px;
+        font-weight: bold;
     }
 </style>
 @endsection
@@ -178,40 +268,43 @@
                                     Auto Send HH
                                 </label>
                             </div>
+                            <label for="pick_rak_toko" class="checkbox-label checkbox-label-sm @if(!$cbPickRakTokoVisible) d-none @endif" style="height: 31px"  >
+                                <input type="checkbox" id="pick_rak_toko" onclick="$(this).val(this.checked ? 1 : 0)" value="0">
+                                Pick Rak Toko
+                            </label>
                             <button class="btn btn-primary" id="button_proses">Proses</button>
                         </div>
                     </div>
                 </div>
-                <div class="card shadow">
+                <div class="card shadow" id="container_btn_action">
                     <div class="card-body d-flex flex-column card-button" style="height: calc(100vh - 340px);">
-                        <button class="btn btn-blue">{{ $btnSendJalur }}</button>
-                        <button class="btn btn-green">Ongkos Kirim</button>
-                        <button class="btn btn-blue">Draft STRUK</button>
-                        <button class="btn btn-green">Pembayaran Virtual Account</button>
-                        <button class="btn btn-green" @if($btnKonfirmasiBayar) disabled @endif>Konfirmasi Pembayaran</button>
-                        <button class="btn btn-blue">SALES</button>
+                        <button class="btn btn-action btn-blue" actionName="SendHandheld">{{ $btnSendJalur }}</button>
+                        <button class="btn btn-action btn-green" actionName="OngkosKirim">Ongkos Kirim</button>
+                        <button class="btn btn-action btn-blue" actionName="DraftStruk">Draft STRUK</button>
+                        <button class="btn btn-action btn-green" actionName="PembayaranVA">Pembayaran Virtual Account</button>
+                        <button class="btn btn-action btn-green" actionName="KonfirmasiPembayaran" @if($btnKonfirmasiBayar) disabled @endif>Konfirmasi Pembayaran</button>
+                        <button class="btn btn-action btn-blue" actionName="Sales">SALES</button>
                         <div class="d-flex flex-row" style="gap: 10px"> 
-                            <button class="btn btn-royal w-100" style="height: 50px">Cetak Surat Jalan</button>
-                            <button class="btn btn-royal w-100" style="height: 50px">Cetak IIK</button>
+                            <button class="btn btn-action btn-royal w-100" actionName="CetakSuratJalan" style="height: 50px">Cetak Surat Jalan</button>
+                            <button class="btn btn-action btn-royal w-100" actionName="CetakIIK" style="height: 50px">Cetak IIK</button>
                         </div>
-                        <button class="btn btn-light-red">{{ $btnPBBatal }}</button>
-                        <button class="btn btn-light-red">List Item Picking Belum Transit</button>
-                        <button class="btn btn-light-red">LOPP - COD</button>
-                        <button class="btn btn-light-red">List PB Lebih dari Max Serah Terima</button>
-                        <button class="btn btn-orange">Master Picker HH</button>
-                        <button class="btn btn-orange">Listing Delivery</button>
-                        <button class="btn btn-orange">Master No. Pol Delivery Van</button>
-                        <button class="btn btn-orange">Master Driver</button>
-                        <button class="btn btn-orange">Master Deliveryman</button>
-                        <button class="btn btn-orange">Master Driver</button>
-                        <button class="btn btn-warning">Re Create AWB</button>
-                        <button class="btn btn-warning">Master Alasan Batal Kirim</button>
-                        <button class="btn btn-warning">BA Pengembalian Dana</button>
-                        <button class="btn btn-warning">BA Rusak Kemasan</button>
-                        <button class="btn btn-royal">Cetak Form Pengembalian Barang</button>
-                        <button class="btn btn-royal">Laporan Penyusutan Harian</button>
-                        <button class="btn btn-royal">Laporan Pesanan Expired</button>
-                        <button class="btn btn-royal">Bukti Serah Terima Kardus</button>
+                        <button class="btn btn-action btn-light-red" actionName="PbBatal">{{ $btnPBBatal }}</button>
+                        <button class="btn btn-action btn-light-red" actionName="ListPickingBelumTransit">List Item Picking Belum Transit</button>
+                        <button class="btn btn-action btn-light-red" actionName="LoppCOD">LOPP - COD</button>
+                        <button class="btn btn-action btn-light-red" actionName="ListPbMaxSerahTerima">List PB Lebih dari Max Serah Terima</button>
+                        <button class="btn btn-action btn-orange" actionName="MasterPickingHH">Master Picker HH</button>
+                        <button class="btn btn-action btn-orange" actionName="ListingDelivery">Listing Delivery</button>
+                        <button class="btn btn-action btn-orange" actionName="MasterPolDeliveryVan">Master No. Pol Delivery Van</button>
+                        <button class="btn btn-action btn-orange" actionName="MasterDriver">Master Driver</button>
+                        <button class="btn btn-action btn-orange" actionName="MasterDeliveryman">Master Deliveryman</button>
+                        <button class="btn btn-action btn-warning" actionName="ReCreateAWB">Re Create AWB</button>
+                        <button class="btn btn-action btn-warning" actionName="MasterAlasanbatalKirim">Master Alasan Batal Kirim</button>
+                        <button class="btn btn-action btn-warning" actionName="BaPengembalianDana">BA Pengembalian Dana</button>
+                        <button class="btn btn-action btn-warning" actionName="BaRusakKemasan">BA Rusak Kemasan</button>
+                        <button class="btn btn-action btn-royal" actionName="CetakFormPengembalianBarang">Cetak Form Pengembalian Barang</button>
+                        <button class="btn btn-action btn-royal" actionName="LaporanPenyusutanHarian">Laporan Penyusutan Harian</button>
+                        <button class="btn btn-action btn-royal" actionName="LaporanPesananExpired">Laporan Pesanan Expired</button>
+                        <button class="btn btn-action btn-royal" actionName="BuktiSerahTerimaKardus">Bukti Serah Terima Kardus</button>
                     </div>
                 </div>
             </div>
@@ -523,7 +616,7 @@
 </div>
 
 <div class="modal fade" role="dialog" id="modal_detail_transaksi" data-keyboard="false" data-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header br">
                 <h5 class="modal-title" style="color: #012970; font-weight: 600">DETAIL TRANSAKSI</h5>
@@ -531,7 +624,7 @@
                 <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="height: 486px!important; overflow: hidden">
                 <ul class="nav nav-tabs" id="tab_detail_transaksi" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="info_trans-tab" data-toggle="tab" data-target="#info_trans" type="button" role="tab" aria-controls="info_trans" aria-selected="true">Info Trans</button>
@@ -550,16 +643,356 @@
                     </li>
                 </ul>
                 <div class="tab-content" id="myTabContent">
-                    <div class="tab-pane fade show active" id="info_trans" role="tabpanel" aria-labelledby="info-trans-tab">Info Trans</div>
-                    <div class="tab-pane fade" id="pengiriman" role="tabpanel" aria-labelledby="Pengiriman-tab">Pengiriman</div>
-                    <div class="tab-pane fade" id="pembayaran" role="tabpanel" aria-labelledby="Pembayaran-tab">Pembayaran</div>
-                    <div class="tab-pane fade" id="realisasi" role="tabpanel" aria-labelledby="Realisasi-tab">Realisasi</div>
-                    <div class="tab-pane fade" id="reprint_koli" role="tabpanel" aria-labelledby="reprint_koli-tab">Reprint Koli</div>
+                    <div class="tab-pane fade show active" id="info_trans" role="tabpanel" aria-labelledby="info-trans-tab">
+                        <div class="p-3" style="margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important">
+                            <div class="d-flex" style="gap: 20px">
+                                <div class="form-group d-flex align-items-center child-no-radius" style="flex: 5">
+                                    <label for="status_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px w-100px flex-shrink-0">Status : </label>
+                                    <input type="text" class="form-control input-detail-transaksi" disabled id="status_detail_transaksi_tab1">
+                                </div>
+                                <div class="form-group d-flex align-items-center child-no-radius" style="flex: 4">
+                                    <label for="no_po_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px w-100px flex-shrink-0">No. PO : </label>
+                                    <input type="text" class="form-control input-detail-transaksi" disabled id="no_po_detail_transaksi_tab1">
+                                </div>
+                            </div>
+                            <div class="d-flex" style="gap: 20px">
+                                <div class="form-group d-flex align-items-center child-no-radius" style="flex: 5">
+                                    <label for="no_pb_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px w-100px flex-shrink-0">No. PB : </label>
+                                    <input type="text" class="form-control input-detail-transaksi" disabled id="no_pb_detail_transaksi_tab1">
+                                </div>
+                                <div class="form-group d-flex align-items-center child-no-radius" style="flex: 4">
+                                    <label for="tgl_pb_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px w-100px flex-shrink-0">Tgl. PB : </label>
+                                    <input type="date" class="form-control input-detail-transaksi" disabled id="tgl_pb_detail_transaksi_tab1">
+                                </div>
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="kode_member_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px w-100px flex-shrink-0">Member : </label>
+                                <div class="child-no-radius d-flex flex-row w-100">
+                                    <input type="text" class="form-control input-detail-transaksi" style="width: 170px" disabled id="kode_member_detail_transaksi_tab1">
+                                    <input type="text" class="form-control input-detail-transaksi" style="width: 100%" disabled id="nama_member_detail_transaksi_tab1">
+                                </div>
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="no_member_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px flex-shrink-0" style="width: 170px">No. HP Member : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="no_member_detail_transaksi_tab1">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="no_penerima_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px flex-shrink-0" style="width: 170px">No. HP Penerima : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="no_penerima_detail_transaksi_tab1">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="email_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px w-100px flex-shrink-0">Email : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="email_detail_transaksi_tab1">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="alamat_detail_transaksi_tab1" class="detail-info text-nowrap bg-teal h-38px w-100px flex-shrink-0">Alamat : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="alamat_detail_transaksi_tab1">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="pengiriman" role="tabpanel" aria-labelledby="Pengiriman-tab">
+                        <div class="p-3" style="margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important">
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="flag_pengiriman_detail_transaksi_tab2" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Pengiriman : </label>
+                                <div class="d-flex flex-row w-100 child-no-radius" style="gap: 20px">
+                                    <input type="text" class="form-control input-detail-transaksi" disabled id="flag_pengiriman_detail_transaksi_tab2">
+                                    <input type="text" class="form-control input-detail-transaksi" disabled id="ekspedisi_pengiriman_detail_transaksi_tab2">
+                                </div>
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="total_ongkir_detail_transaksi_tab2" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Ongkir : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="total_ongkir_detail_transaksi_tab2" style="width: 290px">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="pot_ongkir_detail_transaksi_tab2" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Pot. Ongkir : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="pot_ongkir_detail_transaksi_tab2" style="width: 290px">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="pembayaran" role="tabpanel" aria-labelledby="Pembayaran-tab">
+                        <div class="p-3" style="margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important">
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="kredit_pembayaran_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Pembayaran : </label>
+                                <div class="d-flex flex-row w-100 child-no-radius" style="gap: 20px">
+                                    <input type="text" class="form-control flex-shrink-0 input-detail-transaksi" disabled id="kredit_pembayaran_detail_transaksi_tab3" style="width: 170px">
+                                    <input type="text" class="form-control input-detail-transaksi" disabled id="tipe_pembayaran_detail_transaksi_tab3">
+                                </div>
+                            </div>
+                            <div class="d-flex flex-row" style="gap: 20px">
+                                <div class="form-group d-flex align-items-center child-no-radius">
+                                    <label for="tgl_bayar_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Tgl Bayar : </label>
+                                    <input type="date" class="form-control input-detail-transaksi" disabled id="tgl_bayar_detail_transaksi_tab3" style="width: 170px">
+                                </div>
+                                <div class="form-group d-flex align-items-center child-no-radius" style="flex: 1">
+                                    <label for="no_ref_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">No. Ref : </label>
+                                    <input type="text" class="form-control input-detail-transaksi" disabled id="no_ref_detail_transaksi_tab3">
+                                </div>
+                            </div>
+
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="admin_fee_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-230px flex-shrink-0">Admin Fee : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="admin_fee_detail_transaksi_tab3">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="pembayaranVA_detail_transaksi_tab3" id="lbl_pembayaranVA_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-230px flex-shrink-0">Pembayaran VAMANDIRI : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="pembayaranVA_detail_transaksi_tab3">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="pembayaran_saldo_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-230px flex-shrink-0">Pembayaran Saldo : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="pembayaran_saldo_detail_transaksi_tab3">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="pembayaran_poin_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-230px flex-shrink-0">Pembayaran Poin : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="pembayaran_poin_detail_transaksi_tab3">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="total_pembayaran_detail_transaksi_tab3" class="detail-info text-nowrap bg-teal h-38px w-230px flex-shrink-0">Total Pembayaran : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="total_pembayaran_detail_transaksi_tab3">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="realisasi" role="tabpanel" aria-labelledby="Realisasi-tab">
+                        <div class="d-flex px-2" style="margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important; gap: 25px">
+                            <div class="p-2" style="flex: 1">
+                                <div class="detail-info bg-royal h-38px mt-3 mb-2">ORDER</div>
+                                <div class="pt-3 pb-0 px-3 d-flex flex-column" style="gap: 10px">
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="qty_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Item : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="qty_order_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="dpp_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">DPP : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="dpp_order_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="ppn_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">PPN : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="ppn_order_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="diskon_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Diskon : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="diskon_order_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="cashback_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Cashback : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="cashback_order_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="ongkir_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Ongkir : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="ongkir_order_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="kupon_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Kupon : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="kupon_order_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="total_order_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Total : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="total_order_detail_transaksi_tab4">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-2" style="flex: 1">
+                                <div class="detail-info bg-royal h-38px mt-3 mb-2">REALISASI</div>
+                                <div class="pt-3 pb-0 px-3 d-flex flex-column" style="gap: 10px">
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="qty_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Item : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="qty_real_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="dpp_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">DPP : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="dpp_real_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="ppn_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">PPN : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="ppn_real_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="diskon_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Diskon : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="diskon_real_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="cashback_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Cashback : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="cashback_real_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="ongkir_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Ongkir : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="ongkir_real_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="kupon_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Kupon : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="kupon_real_detail_transaksi_tab4">
+                                    </div>
+                                    <div class="form-group d-flex align-items-center child-no-radius m-0">
+                                        <label for="total_real_detail_transaksi_tab4" class="detail-info text-nowrap bg-teal h-30px w-100px flex-shrink-0">Total : </label>
+                                        <input type="text" class="form-control h-30px input-detail-transaksi" disabled id="total_real_detail_transaksi_tab4">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="reprint_koli" role="tabpanel" aria-labelledby="reprint_koli-tab">
+                        <div class="p-3 d-flex flex-column align-items-center" style="gap: 3px; margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important">
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="tgl_trans_detail_transaksi_tab5" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Tanggal Trans : </label>
+                                <input type="date" class="form-control input-detail-transaksi" disabled id="tgl_trans_detail_transaksi_tab5" style="width: 290px">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="no_trans_detail_transaksi_tab5" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Nomor Trans : </label>
+                                <input type="text" class="form-control input-detail-transaksi" disabled id="no_trans_detail_transaksi_tab5" style="width: 290px">
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius">
+                                <label for="no_urut_detail_transaksi_tab5" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Nomor Urut : </label>
+                                <input type="text" class="form-control input-detail-transaksi" id="no_urut_detail_transaksi_tab5" style="width: 290px">
+                            </div>
+                            <button class="btn btn-primary btn-lg mt-2" style="width: 246px; height: 45px; margin-bottom: 16px">Reprint</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalSimpanPembatalanPB();">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_pilih_jalur_picking" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">Pilih Jalur Picking</h5>
+            </div>
+            <div class="modal-body">
+                <div class="form-group d-flex align-items-center justify-content-center m-0 modal-form-group" id="form_group_jalur_picking">
+                    <label class="modal-label">
+                        <input type="radio" name="input_jalur_picking" value="1" checked/>
+                        <span>DPD</span>
+                    </label>
+                    <label class="modal-label">
+                        <input type="radio" name="input_jalur_picking" value="2"/>
+                        <span>HandHeld</span>
+                    </label>
+                    <button class="btn btn-primary modal-button" style="margin-left: 35px; margin-right: 18px;" onclick="actionSendHandheld(true)">OK</button>
+                    <button class="btn btn-secondary modal-button" data-dismiss="modal" aria-label="Close">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_pilih_jalur_picking" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">Pilih Jalur Picking</h5>
+            </div>
+            <div class="modal-body">
+                <div class="form-group d-flex align-items-center justify-content-center m-0 modal-form-group" id="form_group_jalur_picking">
+                    <label class="modal-label">
+                        <input type="radio" name="input_jalur_picking" value="1" checked/>
+                        <span>DPD</span>
+                    </label>
+                    <label class="modal-label">
+                        <input type="radio" name="input_jalur_picking" value="2"/>
+                        <span>HandHeld</span>
+                    </label>
+                    <button class="btn btn-primary modal-button" style="margin-left: 35px; margin-right: 18px;" onclick="actionSendHandheld(true)">OK</button>
+                    <button class="btn btn-secondary modal-button" data-dismiss="modal" aria-label="Close">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_ekspedisi" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">Hitung Ongkos Kirim</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="position: static!important">
+                    <div class="d-flex justify-content-between flex-column position-relative pb-5" style="gap: 15px">
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group child-no-radius m-0">
+                            <label for="pengiriman_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Pengiriman : </label>
+                            <select class="form-control" id="pengiriman_modal_ekspedisi" style="width: 275px">
+                                <option value="TEAM DELIVERY IGR" selected>TEAM DELIVERY IGR</option>
+                                <option value="EKSPEDISI">EKSPEDISI</option>
+                            </select>
+                        </div>
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group child-no-radius m-0">
+                            <label for="nama_ekspedisi_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Nama Ekspedisi : </label>
+                            <div class="d-flex child-no-radius w-100" style="gap: 15px">
+                                <select class="form-control" id="nama_ekspedisi_modal_ekspedisi" style="flex: 1">
+                                </select>
+                                <input type="text" class="form-control" style="flex: 1" id="txt_nama_modal_ekspedisi">
+                            </div>
+                        </div>
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group child-no-radius m-0">
+                            <label for="jarak_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Jarak : </label>
+                            <input type="text" class="form-control" id="jarak_modal_ekspedisi" style="width: 275px">
+                        </div>
+                        <div class="position-absolute d-flex align-items-center flex-column" id="img_gratis_ongkir_modal_ekspedisi" style="right: 27px; bottom: -11px;">
+                            <img src="{{ asset("img\checklist.png") }}" alt="checklist" style="width: 65px">
+                            <p style="color: black;"><b>FREE ONGKIR</b></p>
+                        </div>
+                    </div>
+                    <textarea id="rincian_biaya_modal_ekspedisi" rows="4" class="form-control"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="float-right mt-4 d-flex">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px">Confirm</button>
+                    <input type="number" class="form-control" style="margin: 0 15px; width: 180px; height: 42px" id="kg_berat_modal_ekspedisi">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px" onclick="actionAdditionalHitungUlang()">Calculate</button>
+                    <button type="button" style="width: 180px; margin-left: 15px" class="btn btn-lg btn-secondary" data-dismiss="modal">CANCEL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_stk" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">BUKTI SERAH TERIMA KARDUS</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between">
+                    <div class="form-group d-flex flex-row" style="gap: 9px;width: 75%;align-items: center;justify-content: center;margin: auto;">
+                        <div class="detail-edit-pb detail-info bg-teal" style="width: 200px;height: 38px;">History STK</div>
+                        <select class="form-control" id="select_history_stk">
+                        </select>
+                        <label for="cek_history_stk" class="checkbox-label checkbox-label-sm d-flex align-items-center" style="width: unset!important;z-index: 1000;gap: 10px;height: 38px">
+                            <input type="checkbox" id="cek_history_stk" onclick="$(this).val(this.checked ? 1 : 0)" value="0" style="height: 38px;">
+                            Check History
+                        </label>
+                    </div>
+                </div>
+                <div class="table-responsive position-relative" style="margin-top: 18px;">
+                    <table class="table table-center table-striped table-hover datatable-dark-primary w-100" id="tb_bukti_stk">
+                        <thead>
+                            <tr>
+                                <th>No. PB</th>
+                                <th>Tgl. PB</th>
+                                <th>Kode Member</th>
+                                <th>Cetak</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalCetakSTK();">Cetak</button>
             </div>
         </div>
     </div>
@@ -585,6 +1018,7 @@
 
 @push('page-script')
 <script src="{{ asset("js/project/klikIGRKeyDown.js") }}"></script>
+<script src="{{ asset("js/project/klikIGRButton.js") }}"></script>
 <script>
     var isFunctionRunning = false;
     let statusSiapPicking = "{{ $statusSiapPicking }}";
@@ -694,6 +1128,10 @@
                 "className": "text-center"
             }).draw();
         }
+
+        $('#tb tbody').on('click', '.btn-detail', function() {
+            detailTransaksi($(this));
+        });
         
         $(document).keydown(function(event) {
             if ((event.key.startsWith("F") && !isNaN(event.key.substring(1))) || event.key === "Delete") {
@@ -707,7 +1145,7 @@
                 }
                 var functionName = "action_" + event.key.toLowerCase();
                 if (["F4", "F5", "F6", "F7", "F12", "Delete"].includes(event.key.toLowerCase())) {
-                    if (typeof window[functionName] === 'function' && tb.row(".select-r").data().no_trans !== null) {
+                    if (typeof window[functionName] === 'function' && tb.row(".select-r").data().no_trans !== null && tb.row(".select-r").data().no_trans !== '') {
                         isFunctionRunning = true; 
                         window[functionName]();
                         setTimeout(function() {
@@ -726,6 +1164,29 @@
         }
     });
 
+    $(".btn-action").on('click', function(event) {
+        if (isFunctionRunning || isModalShowing()) {
+            return;
+        }
+        if (tb.row(".select-r").data() === undefined && $(this).attr("actionName") !== "BuktiSerahTerimaKardus") {
+            Swal.fire('Peringatan!', 'Pilih Data Terlebih Dahulu..!', 'warning');
+            return;
+        }
+        if (!["BuktiSerahTerimaKardus"].includes($(this).attr("actionName"))) {
+            if( tb.row(".select-r").data().no_trans == null && tb.row(".select-r").data().no_trans == ''){
+                Swal.fire('Peringatan!', 'Data Tidak Memiliki No. Trans..!', 'warning');
+                return;
+            }
+        }
+        var functionName = "action" + $(this).attr("actionName");
+        if (typeof window[functionName] === 'function') {
+            isFunctionRunning = true; 
+            window[functionName]();
+            setTimeout(function() {
+                isFunctionRunning = false;
+            }, 300);
+        }
+    });
 
     // LIST PLU BERMASALAH DIAMBIL DARI MANA ?
     $("#cek_item_bermasalah").on("change", function(){
@@ -748,7 +1209,6 @@
             $(this).val(0);
         }
     });
-
 });
 </script>
 @endpush

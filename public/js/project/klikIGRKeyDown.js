@@ -286,8 +286,8 @@ function actionAdditionalSimpanPembatalanPB(){
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire('Success!', response.message,'success').then(function(){
-                // $("#modal_pembatalan_pb").modal("hide");
-                // $("#tb_pembatalan_pb tbody").empty();
+                $("#modal_pembatalan_pb").modal("hide");
+                $("#tb_pembatalan_pb tbody").empty();
             });
         }, 
         error: function(jqXHR, textStatus, errorThrown) {

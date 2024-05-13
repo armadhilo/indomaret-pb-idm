@@ -52,6 +52,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
         Route::get('/', [KlikIgrController::class, 'index']);
         Route::get('/datatables/{tanggal_trans}/{statusSiapPicking}/{statusSiapPacking}', [KlikIgrController::class, 'datatables']);
         Route::post('/password-manager', [KlikIgrController::class, 'passwordManager']);
+        Route::post('/detail-transaksi', [KlikIgrController::class, 'detailTransaksi']);
         
         Route::group(['prefix' => 'action'], function(){
             Route::get("/f1-download-excel", [KlikIgrController::class, 'actionF1DownloadCSV']);
@@ -60,6 +61,14 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post("/f4-cetak-item-batal", [KlikIgrController::class, 'actionF4PrintItemBatal']);
             Route::post("/f10-hitung-ulang", [KlikIgrController::class, 'actionF10HitungUlang']);
             Route::get('/delete-alasan-pembatalan-pb', [KlikIgrController::class, 'getAlasanPembatalanPB']);
+
+            Route::post("/HitungUlang", [KlikIgrController::class, 'actionHitungUlang']);
+
+            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12', 'BuktiSerahTerimaKardus'];
+
+            foreach ($buttonKeys as $key) {
+                Route::post("/$key", [KlikIgrController::class, "action$key"]);
+            }
             
             $functionKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12', 'delete'];
 
