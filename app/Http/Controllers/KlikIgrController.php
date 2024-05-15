@@ -2152,20 +2152,37 @@ class KlikIgrController extends Controller
 
     //* btnStruk_Click
     public function actionDraftStruk(Request $request){
-        $itemReal = $this->cekItemRealisasi($request->no_trans, $request->nopb);
-        // if(!isset($request->no_trans)){
-        //     return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        // }
 
-        // if(strtolower($request->status) != 'set ongkir'){
-        //     return ApiFormatter::error(400, 'Bukan Data Yang Siap Draft Struk!');
-        // }
+        DB::beginTransaction();
+        try{
 
-        // if($itemReal == 0){
-        //     return ApiFormatter::error(400, 'Tidak Ada Data Realisasi!');
-        // }
+            $itemReal = $this->cekItemRealisasi($request->no_trans, $request->nopb);
+            // if(!isset($request->no_trans)){
+            //     return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+            // }
 
-        return $this->draftStruk($request->kode_web, $request->selectedRow["kode_member"], $request->selectedRow["no_trans"], $request->selectedRow["no_pb"], $request->selectedRow["tgl_pb"], $request->tanggal_trans, $request->selectedRow["free_ongkir"], $request->selectedRow["tipe_kredit"], $request->selectedRow["flagbayar"], $request->selectedRow["tipe_bayar"], $request->selectedRow["tipe_kredit"], $request->selectedRow);
+            // if(strtolower($request->status) != 'set ongkir'){
+            //     return ApiFormatter::error(400, 'Bukan Data Yang Siap Draft Struk!');
+            // }
+
+            // if($itemReal == 0){
+            //     return ApiFormatter::error(400, 'Tidak Ada Data Realisasi!');
+            // }
+
+            return $this->draftStruk($request->kode_web, $request->selectedRow["kode_member"], $request->selectedRow["no_trans"], $request->selectedRow["no_pb"], $request->selectedRow["tgl_pb"], $request->tanggal_trans, $request->selectedRow["free_ongkir"], $request->selectedRow["tipe_kredit"], $request->selectedRow["flagbayar"], $request->selectedRow["tipe_bayar"], $request->selectedRow["tipe_kredit"], $request->selectedRow);
+
+            dd('done comment commit');
+
+            DB::commit();
+            return ApiFormatter::success(200, 'Proses Draft Struk Berhasil');
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            return ApiFormatter::error(400, $message);
+        }
     }
 
     //* btnPembayaranVA_Click
@@ -5493,7 +5510,8 @@ class KlikIgrController extends Controller
         $zipFileName = tempnam(sys_get_temp_dir(), 'zip');
         $zip = new ZipArchive();
         if ($zip->open($zipFileName, ZipArchive::CREATE) !== TRUE) {
-            return response()->json(['error' => 'Unable to create Zip file'], 500);
+            $message = 'Unable to create Zip file';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
         // Add each file to the Zip archive
@@ -5844,7 +5862,6 @@ class KlikIgrController extends Controller
         $transKlik = [];
 
         if($kdWeb != 'WebMM'){
-            //! DONE || IRVAN
             $memberOK = $this->validasiDataMember($noTrans, $dtTrans);
         }
 
