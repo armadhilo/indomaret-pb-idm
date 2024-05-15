@@ -1048,13 +1048,13 @@
                         </div>
                         <div class="d-flex flex-column align-items-center" style="width: 100%; gap: 15px">
                             <div style="height: 50px">
-                                <h3 style="color: black; font-weight: bold">Rp. 0</h3>
+                                <h3 style="color: black; font-weight: bold">Rp. <span id="ammount_modal_pembayaran_va">0</span></h3>
                             </div>
                             <div style="height: 50px">
-                                <h3 style="color: black; font-weight: bold">XXXX</h3>
+                                <h3 style="color: black; font-weight: bold"><span id="no_va_modal_pembayaran_va">XXXX</span></h3>
                             </div>
                             <div style="height: 50px">
-                                <h3 style="color: black; font-weight: bold">Pembayaran Belum Diterima</h3>
+                                <h3 style="color: black; font-weight: bold"><span id="status_modal_pembayaran_va">Pembayaran Belum Diterima</span></h3>
                             </div>
                         </div>
                     </div>
@@ -1062,7 +1062,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalCetakSTK();">Cetak</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-info d-none mx-2" onclick="actionAdditionaCekPaymentChangeStatus()" id="btn_refresh_modal_pembayaran_va">Refresh</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" id="btn_proses_modal_pembayaran_va">Cetak</button>
             </div>
         </div>
     </div>
@@ -1309,29 +1310,31 @@
     });
 });
 
-function connectToWebService(url, method, data = null){
-    var dataValue = null;
-    $.ajax({
-        url: currentURL + `/connect`,
-        type: "POST",
-        data: {
-            url: url, // The URL to send the request to
-            method: method, // or 'GET'
-            data: data // The data to send
-        },
-        success: function(response) {
-            var jsonResponse = JSON.parse(response);
+async function connectToWebService(url, method, data = null) {
 
+    try {
+        const response = await $.ajax({
+            url: currentURL + `/connect`,
+            type: "POST",
+            data: {
+                url: url,
+                method: method,
+                data: data
+            }
+        });
 
-            console.log(jsonResponse);
-        },
-        error: function(xhr, status, error) {
-            console.error(error);
+        const jsonResponse = JSON.parse(response);
+
+        if (jsonResponse.response_code === 200) {
+            return jsonResponse.data;
+        } else {
+            Swal.fire("Peringatan!", "Api Error");
+            return null;
         }
-    });
-    console.log(dataValue);
-
-    return dataValue;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
 }
 </script>
 @endpush
