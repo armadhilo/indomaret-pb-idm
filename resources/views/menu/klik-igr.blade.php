@@ -998,6 +998,104 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_pembayaran_va" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">Pembayaran Virtual Account</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between">
+                    <div class="d-flex flex-column">
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group">
+                            <label for="no_pb_modal_pembayaran_va" class="detail-info">No. PB : </label>
+                            <input type="text" class="form-control" disabled id="no_pb_modal_pembayaran_va">
+                        </div>
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group">
+                            <label for="tgl_pb_modal_pembayaran_va" class="detail-info">Tgl. PB : </label>
+                            <input type="text" class="form-control" disabled id="tgl_pb_modal_pembayaran_va">
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group">
+                            <label for="no_trans_modal_pembayaran_va" class="detail-info">No. Trans : </label>
+                            <input type="text" class="form-control" disabled id="no_trans_modal_pembayaran_va">
+                        </div>
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group">
+                            <label for="bank_modal_pembayaran_va" class="detail-info">Bank : </label>
+                            <select id="bank_modal_pembayaran_va" class="form-control"></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="d-flex flex-row w-100">
+                        <div class="d-flex flex-column" style="gap: 15px; width: 340px;">
+                            <div class="d-flex justify-content-between" style="color: black; font-weight: bold; font-size: 1.4rem">
+                                <p>Total Bayar</p>
+                                <p>:</p>
+                            </div>
+                            <div class="d-flex justify-content-between" style="color: black; font-weight: bold; font-size: 1.4rem">
+                                <p>No. Virtual Account</p>
+                                <p>:</p>
+                            </div>
+                            <div class="d-flex justify-content-between" style="color: black; font-weight: bold; font-size: 1.4rem">
+                                <p>Status</p>
+                                <p>:</p>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column align-items-center" style="width: 100%; gap: 15px">
+                            <div style="height: 50px">
+                                <h3 style="color: black; font-weight: bold">Rp. 0</h3>
+                            </div>
+                            <div style="height: 50px">
+                                <h3 style="color: black; font-weight: bold">XXXX</h3>
+                            </div>
+                            <div style="height: 50px">
+                                <h3 style="color: black; font-weight: bold">Pembayaran Belum Diterima</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalCetakSTK();">Cetak</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_periode_pesanan" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">INPUT PRIODE PESANAN</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body" style="margin: auto">
+                <div class="d-flex justify-content-between">
+                    <div class="d-flex flex-column">
+                        <div class="form-group d-flex align-items-center validasi-struk-form-group">
+                            <label for="date_awal_modal_periode_pesanan" class="detail-info">Priode : </label>
+                            <input type="date" class="form-control" id="date_awal_modal_periode_pesanan">
+                            <label for="date_akhir_modal_periode_pesanan" class="detail-info" style="margin-left: 15px; width: 95px">S/D : </label>
+                            <input type="date" class="form-control" id="date_akhir_modal_periode_pesanan">
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center">
+                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalPesananExpired();">Cetak</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_password_manager" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #2f4f4f!important">
@@ -1168,11 +1266,11 @@
         if (isFunctionRunning || isModalShowing()) {
             return;
         }
-        if (tb.row(".select-r").data() === undefined && $(this).attr("actionName") !== "BuktiSerahTerimaKardus") {
+        if (tb.row(".select-r").data() === undefined && !["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang"].includes($(this).attr("actionName"))) {
             Swal.fire('Peringatan!', 'Pilih Data Terlebih Dahulu..!', 'warning');
             return;
         }
-        if (!["BuktiSerahTerimaKardus"].includes($(this).attr("actionName"))) {
+        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang"].includes($(this).attr("actionName"))) {
             if( tb.row(".select-r").data().no_trans == null && tb.row(".select-r").data().no_trans == ''){
                 Swal.fire('Peringatan!', 'Data Tidak Memiliki No. Trans..!', 'warning');
                 return;
@@ -1210,6 +1308,31 @@
         }
     });
 });
+
+function connectToWebService(url, method, data = null){
+    var dataValue = null;
+    $.ajax({
+        url: currentURL + `/connect`,
+        type: "POST",
+        data: {
+            url: url, // The URL to send the request to
+            method: method, // or 'GET'
+            data: data // The data to send
+        },
+        success: function(response) {
+            var jsonResponse = JSON.parse(response);
+
+
+            console.log(jsonResponse);
+        },
+        error: function(xhr, status, error) {
+            console.error(error);
+        }
+    });
+    console.log(dataValue);
+
+    return dataValue;
+}
 </script>
 @endpush
 

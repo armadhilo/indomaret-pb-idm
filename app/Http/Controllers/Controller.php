@@ -38,10 +38,6 @@ class Controller extends BaseController
         return true;
     }
 
-    //! NOTE IPAN
-    //! INI MINDAH FUNCTION DARI DSPB ROTI
-    //! KARENA DIGUNAKAN DI KLIK IGR JUGA
-    //! BISA DI CEK AJA COMPATIBLE ENGGA
     public function writeCSV($tempDir, $nameFile, $data){
         $fileContent = Excel::raw(new GeneralExcelExport($data), \Maatwebsite\Excel\Excel::CSV);
         file_put_contents($tempDir . '/zip/' . $nameFile . ".csv", $fileContent);

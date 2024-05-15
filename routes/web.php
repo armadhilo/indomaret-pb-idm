@@ -53,6 +53,8 @@ Route::get('/logout', [LoginController::class, 'logout']);
         Route::get('/datatables/{tanggal_trans}/{statusSiapPicking}/{statusSiapPacking}', [KlikIgrController::class, 'datatables']);
         Route::post('/password-manager', [KlikIgrController::class, 'passwordManager']);
         Route::post('/detail-transaksi', [KlikIgrController::class, 'detailTransaksi']);
+        Route::post('/connect', [KlikIgrController::class, 'connectToWebservice']);
+
         
         Route::group(['prefix' => 'action'], function(){
             Route::get("/f1-download-excel", [KlikIgrController::class, 'actionF1DownloadCSV']);
@@ -64,7 +66,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
             Route::post("/HitungUlang", [KlikIgrController::class, 'actionHitungUlang']);
 
-            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12', 'BuktiSerahTerimaKardus'];
+            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'f5', 'f6', 'f7', 'f8', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 
             foreach ($buttonKeys as $key) {
                 Route::post("/$key", [KlikIgrController::class, "action$key"]);
