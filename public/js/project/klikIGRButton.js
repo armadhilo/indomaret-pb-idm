@@ -106,11 +106,31 @@ function actionAdditionalPembayaranVaChangeButton(){
 function actionAdditionaCekPaymentChangeStatus(){
     var no_trx = $("#no_pb_modal_pembayaran_va").val().substring(0, 6);
     var data = "trxid=" + no_trx + "";
+    //! BELUM SELESAI (UNAUTHORIZED)
+    // (async () => {
+    //     var dataValue = await connectToWebService($("#btn_refresh_modal_pembayaran_va").attr("urlCekPaymentChangeStatus"), "POST", data);
+    //     if (dataValue) {
+    //         console.log(dataValue);
+    //         $("#status_modal_pembayaran_va")
+    //     }
+    // })();
+}
+
+function actionAdditionalCreatePaymentChange(){
+    var trxid = $("#no_pb_modal_pembayaran_va").val().substring(0, 6);
+    var amount = $("#ammount_modal_pembayaran_va").text().replace(/,/g, '').trim();
+    var idpayment = $("#bank_modal_pembayaran_va").val();
+    if(idpayment == ''){
+        Swal.fire("Peringatan !", "Mohon Pilih Bank Terlebih Dahulu.", "warning");
+        return;
+    }
+
+    //! BELUM SELESAI (MALAH RETURN TAMPILAN APAKAH HARUS REDIRECT ??)
     (async () => {
-        const dataValue = await connectToWebService($("#btn_refresh_modal_pembayaran_va").attr("urlCekPaymentChangeStatus"), "POST", data);
+        var data = "trxid=" + trxid + "&amount=" + amount + "&idpayment=" + idpayment;
+        var dataValue = await connectToWebService($("#btn_proses_modal_pembayaran_va").attr("urlCreatePaymentChange"), "POST", data);
         if (dataValue) {
-            console.log(dataValue);
-            $("#status_modal_pembayaran_va")
+
         }
     })();
 }
@@ -282,6 +302,7 @@ function actionPembayaranVA(){
             $("#no_trans_modal_pembayaran_va").val(data.request.no_trans);
             $("#ammount_modal_pembayaran_va").text(data.dt[0].total_bayar);
             $("#btn_refresh_modal_pembayaran_va").attr("urlCekPaymentChangeStatus", data.urlCekPaymentChangeStatus);
+            $("#btn_proses_modal_pembayaran_va").attr("urlCreatePaymentChange", data.urlCreatePaymentChange);
             if(data.data_transaksi.length > 0){
                 $("#no_va_modal_pembayaran_va").text(data.data_transaksi[0].tva_nomorva);
                 $("#status_modal_pembayaran_va").text(data.data_transaksi[0].status);
@@ -298,7 +319,7 @@ function actionPembayaranVA(){
                 $("#no_va_modal_pembayaran_va").text("XXXX");
                 $("#status_modal_pembayaran_va").text("Pembayaran Belum Diterima");
                 (async () => {
-                    const dataValue = await connectToWebService(data.urlMasterPayment, "POST");
+                    var dataValue = await connectToWebService(data.urlMasterPayment, "POST");
                     if (dataValue) {
                         const $selectElement = $('#bank_modal_pembayaran_va');
                         dataValue.forEach(item => {
@@ -309,6 +330,50 @@ function actionPembayaranVA(){
                 })();
             }
             $("#modal_pembayaran_va").modal("show");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionKonfirmasiPembayaran(){
+    var selectedRow = tb.row(".select-r").data();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/KonfirmasiPembayaran`,
+        type: "POST",
+        data: { no_trans: selectedRow.no_trans, status: selectedRow.status, nopb: selectedRow.no_pb, kode_member: selectedRow.kode_member },
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire("Success", "Pembayaran Terkonfirmasi", "success");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionSales(){
+    var selectedRow = tb.row(".select-r").data();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/Sales`,
+        type: "POST",
+        data: { no_trans: selectedRow.no_trans, status: selectedRow.status, nopb: selectedRow.no_pb, tipe_bayar: selectedRow.tipe_bayar, tanggal_pb: selectedRow.tgl_pb, kode_web: selectedRow.kodeweb, kode_member: selectedRow.kode_member, tipe_kredit: selectedRow.tipe_kredit, tanggal_trans: $("#tanggal_trans").val() },
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire("Success", "Pembayaran Terkonfirmasi", "success");
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({

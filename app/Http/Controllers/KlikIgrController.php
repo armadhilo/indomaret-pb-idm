@@ -2210,33 +2210,33 @@ class KlikIgrController extends Controller
     }
 
     //* btnKonfirmasiBayar_Click_1
-    public function actionKonfirmasiPembayaran($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_memberigr){
-        if(!isset($dgv_notrans)){
+    public function actionKonfirmasiPembayaran(Request $request){
+        if(!isset($request->no_trans)){
             return ApiFormatter::error(400, 'Pilih Data Dahulu!');
         }
 
-        if(strtolower($dgv_status) != 'konfirmasi pembayaran'){
+        if(strtolower($request->status) != 'konfirmasi pembayaran'){
             return ApiFormatter::error(400, 'Bukan Data Yang Siap Konfirmasi Pembayaran!');
         }
 
-        $this->konfirmasiBayar($dgv_nopb, $dgv_memberigr, $dgv_notrans);
+        $this->konfirmasiBayar($request->nopb, $request->kode_member, $request->no_trans);
     }
 
     //* btnSales_Click
-    public function actionSales($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_tipebayar, $dgv_tglpb, $dgv_kodeweb, $dgv_memberigr, $dgv_tipe_kredit, $dtTrans){
-        $trxid = substr($dgv_nopb, 0, 6);
+    public function actionSales(Request $request){
+        $trxid = substr($request->nopb, 0, 6);
 
-        if(!isset($dgv_notrans)){
+        if(!isset($request->no_trans)){
             return ApiFormatter::error(400, 'Pilih Data Dahulu!');
         }
 
-        if($dgv_status == 'Siap Struk'){
+        if($request->status == 'Siap Struk'){
 
-            if($dgv_tipebayar == 'COD'){
+            if($request->tipe_bayar == 'COD'){
                 return ApiFormatter::error(400, 'Pembayaran Transaksi COD menggunakan Program POS !');
 
-            }elseif($dgv_tipebayar == 'COD-VA'){
-                if($this->CheckTransaksiVALunas($trxid, $dgv_tglpb) == false){
+            }elseif($request->tipe_bayar == 'COD-VA'){
+                if($this->CheckTransaksiVALunas($trxid, $request->tanggal_pb) == false){
                     return ApiFormatter::error(400, 'Pembayaran Transaksi Virtual Account belum lunas !');
                 }
 
@@ -2244,12 +2244,11 @@ class KlikIgrController extends Controller
 
             }else{
                 PrintStruk:
-
-                $this->InsertTransaksi($dgv_kodeweb, $dgv_nopb, $dgv_memberigr,$dgv_notrans, $dgv_tglpb, $dgv_tipe_kredit, $dtTrans, $dgv_tipebayar);
+                $this->InsertTransaksi($request->kode_web, $request->nopb, $request->kode_member,$request->no_trans, $request->tanggal_pb, $request->tipe_kredit, $request->tanggal_trans, $request->tipe_bayar);
             }
 
         }else{
-            if($dgv_status == 'Selesai Struk'){
+            if($request->status == 'Selesai Struk'){
                 return ApiFormatter::error(400, 'Sudah Selesai Struk!');
             }else{
                 return ApiFormatter::error(400, 'Belum Siap Struk!, Barang masih dipacking');

@@ -1063,7 +1063,7 @@
             <div class="modal-footer">
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-info d-none mx-2" onclick="actionAdditionaCekPaymentChangeStatus()" id="btn_refresh_modal_pembayaran_va">Refresh</button>
-                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" id="btn_proses_modal_pembayaran_va">Cetak</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalCreatePaymentChange()" id="btn_proses_modal_pembayaran_va">Cetak</button>
             </div>
         </div>
     </div>

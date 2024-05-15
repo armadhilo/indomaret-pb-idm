@@ -66,7 +66,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
             Route::post("/HitungUlang", [KlikIgrController::class, 'actionHitungUlang']);
 
-            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'f5', 'f6', 'f7', 'f8', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
+            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'f7', 'f8', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 
             foreach ($buttonKeys as $key) {
                 Route::post("/$key", [KlikIgrController::class, "action$key"]);
