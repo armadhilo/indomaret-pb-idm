@@ -2226,34 +2226,34 @@ class KlikIgrController extends Controller
     public function actionSales(Request $request){
         $trxid = substr($request->nopb, 0, 6);
 
-        if(!isset($request->no_trans)){
-            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        }
+        // if(!isset($request->no_trans)){
+        //     return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+        // }
 
-        if($request->status == 'Siap Struk'){
+        // if($request->status == 'Siap Struk'){
 
-            if($request->tipe_bayar == 'COD'){
-                return ApiFormatter::error(400, 'Pembayaran Transaksi COD menggunakan Program POS !');
+        //     if($request->tipe_bayar == 'COD'){
+        //         return ApiFormatter::error(400, 'Pembayaran Transaksi COD menggunakan Program POS !');
 
-            }elseif($request->tipe_bayar == 'COD-VA'){
-                if($this->CheckTransaksiVALunas($trxid, $request->tanggal_pb) == false){
-                    return ApiFormatter::error(400, 'Pembayaran Transaksi Virtual Account belum lunas !');
-                }
+        //     }elseif($request->tipe_bayar == 'COD-VA'){
+        //         if($this->CheckTransaksiVALunas($trxid, $request->tanggal_pb) == false){
+        //             return ApiFormatter::error(400, 'Pembayaran Transaksi Virtual Account belum lunas !');
+        //         }
 
-                goto PrintStruk;
+        //         goto PrintStruk;
 
-            }else{
-                PrintStruk:
+        //     }else{
+        //         PrintStruk:
                 $this->InsertTransaksi($request->kode_web, $request->nopb, $request->kode_member,$request->no_trans, $request->tanggal_pb, $request->tipe_kredit, $request->tanggal_trans, $request->tipe_bayar);
-            }
+        //     }
 
-        }else{
-            if($request->status == 'Selesai Struk'){
-                return ApiFormatter::error(400, 'Sudah Selesai Struk!');
-            }else{
-                return ApiFormatter::error(400, 'Belum Siap Struk!, Barang masih dipacking');
-            }
-        }
+        // }else{
+        //     if($request->status == 'Selesai Struk'){
+        //         return ApiFormatter::error(400, 'Sudah Selesai Struk!');
+        //     }else{
+        //         return ApiFormatter::error(400, 'Belum Siap Struk!, Barang masih dipacking');
+        //     }
+        // }
     }
 
     //! btnCetakSJ_Click
@@ -4675,18 +4675,18 @@ class KlikIgrController extends Controller
         $query .= " AND obi_kdstation IS NOT NULL ";
         $dtCek = DB::select($query);
 
-        if(count($dtCek) > 0){
-            $query = '';
-            $query .= " UPDATE tbtr_obi_h  ";
-            $query .= " SET obi_recid = '6' ";
-            $query .= " WHERE obi_nopb = '" . $dgv_nopb . "' ";
-            $query .= " AND obi_kdmember = '" . $dgv_memberigr . "' ";
-            $query .= " AND obi_notrans = '" . $dgv_notrans . "' ";
-            DB::update($query);
+        // if(count($dtCek) > 0){
+        //     $query = '';
+        //     $query .= " UPDATE tbtr_obi_h  ";
+        //     $query .= " SET obi_recid = '6' ";
+        //     $query .= " WHERE obi_nopb = '" . $dgv_nopb . "' ";
+        //     $query .= " AND obi_kdmember = '" . $dgv_memberigr . "' ";
+        //     $query .= " AND obi_notrans = '" . $dgv_notrans . "' ";
+        //     DB::update($query);
 
-            $message = "PB " . $dgv_nopb . " Sudah Pernah Distruk.";
-            throw new HttpResponseException(ApiFormatter::error(500, $message));
-        }
+        //     $message = "PB " . $dgv_nopb . " Sudah Pernah Distruk.";
+        //     throw new HttpResponseException(ApiFormatter::error(400, $message));
+        // }
 
         try{
             $kodeigr = session('KODECABANG');
@@ -4707,22 +4707,15 @@ class KlikIgrController extends Controller
                     $this->updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr);
                 }
 
-                $tempDir = storage_path('print-nota-new/' . Carbon::now()->format('Ymd_His'));
-                if (!File::exists($tempDir)) {
-                    File::makeDirectory($tempDir);
-                } else {
-                    return ApiFormatter::error(400, "Harap Tunggu 30 detik, lalu ulang Print Nota New");
-                }
-
                 //! dummy
                 $selectedRow = [];
 
                 if(session('flagSPI') == true){
                     //! BELUM SELESAI
-                    $this->PrintNotaNewKlikSPI('N','STRUK', 'SPI', $dgv_tipe_kredit, $selectedRow, $tempDir);
+                    $this->PrintNotaNewKlikSPI('N','STRUK', 'SPI', $dgv_tipe_kredit, $selectedRow);
                 }else{
                     //! BELUM SELESAI
-                    $this->PrintNotaNewKlikSPI('N','STRUK', 'KLIK', $dgv_tipe_kredit, $selectedRow, $tempDir);
+                    $this->PrintNotaNewKlikSPI('N','STRUK', 'KLIK', $dgv_tipe_kredit, $selectedRow);
                 }
 
                 if($dgv_tipebayar == 'COD-VA'){
