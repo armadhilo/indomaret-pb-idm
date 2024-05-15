@@ -98,6 +98,23 @@ function actionAdditionalHitungUlang(){
     });
 }
 
+function actionAdditionalPembayaranVaChangeButton(){
+    $("#btn_proses_modal_pembayaran_va").addClass("d-none");
+    $("#btn_refresh_modal_pembayaran_va").removeClass("d-none");
+}
+
+function actionAdditionaCekPaymentChangeStatus(){
+    var no_trx = $("#no_pb_modal_pembayaran_va").val().substring(0, 6);
+    var data = "trxid=" + no_trx + "";
+    (async () => {
+        const dataValue = await connectToWebService($("#btn_refresh_modal_pembayaran_va").attr("urlCekPaymentChangeStatus"), "POST", data);
+        if (dataValue) {
+            console.log(dataValue);
+            $("#status_modal_pembayaran_va")
+        }
+    })();
+}
+
 function detailTransaksi(element){
     var selectedRow = tb.row($(element).closest('tr')).data();
     $('#modal_loading').modal('show');
@@ -259,11 +276,39 @@ function actionPembayaranVA(){
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
             var data = response.data;
+            $("#bank_modal_pembayaran_va").empty();
             $("#no_pb_modal_pembayaran_va").val(data.request.nopb);
             $("#tgl_pb_modal_pembayaran_va").val(data.request.tanggal_pb);
             $("#no_trans_modal_pembayaran_va").val(data.request.no_trans);
-            var banks = connectToWebService(data.urlMasterPayment, "POST");
-            console.log(banks);
+            $("#ammount_modal_pembayaran_va").text(data.dt[0].total_bayar);
+            $("#btn_refresh_modal_pembayaran_va").attr("urlCekPaymentChangeStatus", data.urlCekPaymentChangeStatus);
+            if(data.data_transaksi.length > 0){
+                $("#no_va_modal_pembayaran_va").text(data.data_transaksi[0].tva_nomorva);
+                $("#status_modal_pembayaran_va").text(data.data_transaksi[0].status);
+                $("#bank_modal_pembayaran_va").append($('<option></option>').val(data.data_transaksi[0].tva_bank.id).text(data.data_transaksi[0].tva_bank.payment_type));
+                $("#bank_modal_pembayaran_va").attr("disabled", true);
+                if(data.data_transaksi[0].status.toUpperCase() == "PEMBAYARAN SUDAH DITERIMA"){
+                    actionAdditionalPembayaranVaChangeButton();
+                    $("#btn_refresh_modal_pembayaran_va").attr("disabled", true);
+                } else {
+                    changeButton();
+                }
+            } else{
+                $("#bank_modal_pembayaran_va").attr("disabled", false);
+                $("#no_va_modal_pembayaran_va").text("XXXX");
+                $("#status_modal_pembayaran_va").text("Pembayaran Belum Diterima");
+                (async () => {
+                    const dataValue = await connectToWebService(data.urlMasterPayment, "POST");
+                    if (dataValue) {
+                        const $selectElement = $('#bank_modal_pembayaran_va');
+                        dataValue.forEach(item => {
+                            const $option = $('<option></option>').val(item.id).text(item.payment_type);
+                            $selectElement.append($option);
+                        });
+                    }
+                })();
+            }
+            $("#modal_pembayaran_va").modal("show");
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({

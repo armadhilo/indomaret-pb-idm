@@ -2186,6 +2186,11 @@ class KlikIgrController extends Controller
             }
             $urlData = DB::select($sql);
 
+            $trxid = substr($request->nopb, 0, 6);
+
+            $query = "SELECT * FROM tbtr_transaksi_va WHERE tva_trxid = '" . $trxid . "'";
+            $data['data_transaksi'] = DB::select($query);
+
             $urlCODVA = $urlData[0]->ws_url;
             $data["urlMasterPayment"] = $urlCODVA . "/getmasterpayment";
             $data["urlCreatePaymentChange"] = $urlCODVA . "/createpaymentchange";
