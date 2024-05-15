@@ -4792,7 +4792,9 @@ class KlikIgrController extends Controller
         $sql .= "       COALESCE(hdr.obi_pointbonus, 0) point_bonus, ";
         $sql .= "       COALESCE(obi_tipebayar,'x') tipe_bayar, ";
         $sql .= "       ROUND(sat_gram / COALESCE(sat_pcs,1)) konversi, ";
-        $sql .= "       TO_CHAR(COALESCE(obi_draftstruk,CURRENT_TIMESTAMP),'DD-MM-YYYY HH24:MI:SS') tgldsp ";
+        $sql .= "        TO_CHAR(COALESCE(obi_draftstruk,CURRENT_TIMESTAMP),'DD-MM-YYYY HH24:MI:SS') tgldsp, ";
+        $sql .= "        TO_CHAR(COALESCE(obi_createdt,CURRENT_TIMESTAMP),'DD-MM-YYYY HH24:MI:SS') tglcreate, ";
+        $sql .= "        COALESCE(amm_noawb,'-') noawb ";
         $sql .= "FROM tbtr_obi_h hdr ";
         $sql .= "JOIN tbtr_obi_d dtl ";
         $sql .= "  ON hdr.obi_notrans = dtl.obi_notrans ";
@@ -4886,11 +4888,11 @@ class KlikIgrController extends Controller
         //* CASHBACK LANGSUNG
         $query = '';
         $query .= "SELECT COALESCE(SUBSTR(ch.cbh_namapromosi, 1, 20), h.kode_promo) NAMA, ";
-        $query .= "       h.prdcd PRDCD, ";
-        $query .= "       h.kelipatan KELIPATAN, ";
-        $query .= "       h.reward_per_promo REWARD_PER_PROMO, ";
-        $query .= "       h.cashback_real REWARD, ";
-        $query .= "       0 flag ";
+        $query .= " h.prdcd PRDCD, ";
+        $query .= " h.kelipatan KELIPATAN, ";
+        $query .= " h.reward_per_promo REWARD_PER_PROMO, ";
+        $query .= " h.cashback_real REWARD, ";
+        $query .= " 0 flag ";
         $query .= " FROM promo_klikigr h ";
         $query .= " LEFT JOIN tbtr_cashback_hdr ch ";
         $query .= " ON h.kode_promo = ch.cbh_kodepromosi ";
@@ -4904,7 +4906,8 @@ class KlikIgrController extends Controller
 
 
         //* CASHBACK GABUNGAN
-        $query = "SELECT COALESCE(SUBSTR(ch.cbh_namapromosi, 1, 20), h.kode_promo) AS NAMA, ";
+        $query = '';
+        $query .= "SELECT COALESCE(SUBSTR(ch.cbh_namapromosi, 1, 20), h.kode_promo) AS NAMA, ";
         $query .= "h.cashback_real AS REWARD ";
         $query .= "FROM promo_klikigr AS h ";
         $query .= "LEFT JOIN tbtr_cashback_hdr AS ch ";
@@ -4915,14 +4918,13 @@ class KlikIgrController extends Controller
         $query .= "AND h.kode_member = '" . $selectedRow['kode_member'] . "' ";
         $query .= "AND h.no_trans = '" . $selectedRow['no_trans'] . "' ";
         $query .= "AND h.no_pb = '" . $selectedRow['no_pb'] . "' ";
-
         $dtGabungan = DB::select($query);
 
-
         //* GIFT
+        $query = '';
         $query .= " SELECT COALESCE(gh.gfh_namapromosi, h.kode_promo) KODE, ";
-        $query .= "        h.id_tipe TIPE, ";
-        $query .= "        h.gift_real GIFT ";
+        $query .= " h.id_tipe TIPE, ";
+        $query .= " h.gift_real GIFT ";
         $query .= " FROM promo_klikigr h ";
         $query .= " LEFT JOIN tbtr_gift_hdr gh ";
         $query .= " ON h.kode_promo = gh.gfh_kodepromosi ";
@@ -4950,7 +4952,6 @@ class KlikIgrController extends Controller
         $query .= " ORDER BY h.id_tipe DESC, h.kode_promo ASC ";
         $dtPoin = DB::select($query);
 
-
         //* Payment
         $query = '';
         $query .= " SELECT tipe_bayar, total, admin_fee ";
@@ -4975,7 +4976,6 @@ class KlikIgrController extends Controller
         $dtChecker = DB::select($query);
 
         $splitTrans = explode("/", $dt[0]->obi_nopb);
-        
 
         //* TXT
         $str = "";
@@ -4986,12 +4986,12 @@ class KlikIgrController extends Controller
         }
 
         if (!is_null($dt[0]->obi_nostruk)) {
-            $dtCashier = $this->getDetailCashier($selectedRow['dgv_notrans'], $selectedRow['no_pb']);
+            $dtCashier = $this->getDetailCashier($selectedRow['no_trans'], $selectedRow['no_pb']);
             $str .= "No.SP   :" . $dtCashier[0]->jh_cashierid . "/" . $dtCashier[0]->jh_cashierstation . "/" . $dtCashier[0]->jh_transactionno . str_pad("", 22, " ") . PHP_EOL;
         }
 
         $str .= str_pad("", 22, " ") . "No.PO  :" . $dt[0]->nopo . PHP_EOL;
-        $str .= str_pad("", 22, " ") . "Trx Id  :TRX" . str_pad($splitTrans[0], 10, " ") . "Checker:" . $dtChecker[0]["checker"] . PHP_EOL;
+        $str .= str_pad("", 22, " ") . "Trx Id  :TRX" . str_pad($splitTrans[0], 10, " ") . "Checker:" . $dtChecker[0]->checker . PHP_EOL;
         $str .= "Tgl.PB  :" . $dt[0]->tglcreate . PHP_EOL;
         if (!is_null($dt[0]->obi_nostruk)) {
             $str .= "Tgl.SP  :" . date("d-m-Y H:i:s", strtotime($dt[0]->obi_tglstruk)) . str_pad("", 22, " ") . PHP_EOL;
@@ -5180,7 +5180,7 @@ class KlikIgrController extends Controller
             }
         }
 
-        $nominal_voucher = $this->getNominalVoucher($selectedRow['dgv_notrans'], $selectedRow['dgv_member']);
+        $nominal_voucher = $this->getNominalVoucher($selectedRow['no_trans'], $selectedRow['kode_member']);
 
         $total = round($hargajual - $totaldiskon, 0, PHP_ROUND_HALF_UP);
         $hargajual -= $andahemat;
@@ -5444,9 +5444,9 @@ class KlikIgrController extends Controller
             $str3 .= "========================================" . PHP_EOL;
         }
 
-        if (!is_null($dt[0]->OBI_NOSTRUK)) {
-            $str3 .= str_pad("No.SP  :" . $dt[0]->OBI_NOSTRUK, 20, " ", STR_PAD_RIGHT) .
-                    str_pad("Tgl.SP  :" . date("d-m-Y", strtotime($dt[0]->OBI_TGLSTRUK)), 20, " ", STR_PAD_LEFT) . PHP_EOL;
+        if (!is_null($dt[0]->obi_nostruk)) {
+            $str3 .= str_pad("No.SP  :" . $dt[0]->obi_nostruk, 20, " ", STR_PAD_RIGHT) .
+                    str_pad("Tgl.SP  :" . date("d-m-Y", strtotime($dt[0]->obi_tglstruk)), 20, " ", STR_PAD_LEFT) . PHP_EOL;
         }
 
         $str3 .= "Kode/Nama Member : " . $dt[0]->obi_kdmember . "/" . substr($dt[0]->amm_namapenerima, 0, 14) . PHP_EOL;
@@ -5473,17 +5473,17 @@ class KlikIgrController extends Controller
             }
         }
 
-        
+
         // If Directory.Exists("C:\TEMP") = False Then
         //     Directory.CreateDirectory("C:\TEMP")
         // End If
-        
+
         // Dim SW As New StreamWriter("C:\TEMP\STRUK_" & notrx & ".TXT", False)
-        
+
         //! END KARENA INI BUAT FILE BARU -> $str3
 
         //! SETELAH INI ADA ENCRPYPT UNTUK QR CODE DI SKIP BINGUNG (BELUM SELESAI)
-        
+
         $nama_file = "HITUNGULANG_" . $notrx .'.txt';
 
         $textContent = $str . $str3;
@@ -5523,15 +5523,15 @@ class KlikIgrController extends Controller
 
     private function getDetailCashier($dgv_notrans, $dgv_nopb){
         $query = '';
-        $query .= "SELECT jh_cashierid, jh_cashierstation, jh_transactionno";
-        $query .= "FROM TBTR_JUALHEADER, TBTR_OBI_H";
-        $query .= "WHERE jh_transactionno = obi_nostruk";
-        $query .= "AND DATE_TRUNC('DAY',jh_transactiondate) = DATE_TRUNC('DAY',OBI_TGLSTRUK)";
-        $query .= "AND jh_cashierid = OBI_CASHIERID";
-        $query .= "AND jh_cashierstation = obi_kdstation";
-        $query .= "AND jh_cus_kodemember = obi_kdmember";
-        $query .= "AND obi_notrans = '" . $dgv_notrans . "'";
-        $query .= "AND obi_nopb = '" . $dgv_nopb . "'";
+        $query .= "SELECT jh_cashierid, jh_cashierstation, jh_transactionno ";
+        $query .= "FROM TBTR_JUALHEADER, TBTR_OBI_H ";
+        $query .= "WHERE jh_transactionno = obi_nostruk ";
+        $query .= "AND DATE_TRUNC('DAY',jh_transactiondate) = DATE_TRUNC('DAY',OBI_TGLSTRUK) ";
+        $query .= "AND jh_cashierid = OBI_CASHIERID ";
+        $query .= "AND jh_cashierstation = obi_kdstation ";
+        $query .= "AND jh_cus_kodemember = obi_kdmember ";
+        $query .= "AND obi_notrans = '" . $dgv_notrans . "' ";
+        $query .= "AND obi_nopb = '" . $dgv_nopb . "' ";
         return DB::select($query);
     }
 
@@ -6306,18 +6306,18 @@ class KlikIgrController extends Controller
 
         //! CEK DATA ALAMAT
         $check = DB::select("SELECT * FROM Tbtr_ALAMAT_MM, TBTR_OBI_H WHERE amm_kodemember = obi_kdmember AND amm_nopb = obi_nopb AND amm_notrans = obi_notrans AND amm_tglpb = obi_tglpb AND obi_notrans = ? AND obi_tgltrans = ?", [$noTrans, $dtTrans]);
-        
+
         if(!count($check)){
             throw new HttpResponseException(ApiFormatter::error(400, "Kode alamat tidak terdaftar. Apabila data tidak lengkap, tidak dapat melakukan Draft Struk"));
         }
 
         //! CEK DATA PERSONAL MEMBER
-        $check = DB::select("SELECT * FROM TBMASTER_CUSTOMER, TBTR_OBI_H 
-                            WHERE cus_kodemember = obi_kdmember 
-                            AND obi_notrans = ? 
-                            AND DATE_TRUNC('day', obi_tgltrans) = ?", 
+        $check = DB::select("SELECT * FROM TBMASTER_CUSTOMER, TBTR_OBI_H
+                            WHERE cus_kodemember = obi_kdmember
+                            AND obi_notrans = ?
+                            AND DATE_TRUNC('day', obi_tgltrans) = ?",
                             [$noTrans, Carbon::parse($dtTrans)->format("Y-m-d")]);
-        
+
         if(!count($check)){
             throw new HttpResponseException(ApiFormatter::error(400, "data member untuk no transaksi " . $noTrans . "tidak ditemukan. Silahkan update data member melalui menu MEMBER."));
         }
