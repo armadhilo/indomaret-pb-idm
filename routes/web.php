@@ -48,7 +48,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post('/cetak', [ReturTokoTutupIdmController::class, 'actionCetak']);
         });
     });
-    
+
     Route::group(['prefix' => 'klik-igr'], function(){
         Route::get('/', [KlikIgrController::class, 'index']);
         Route::get('/datatables/{tanggal_trans}/{statusSiapPicking}/{statusSiapPacking}', [KlikIgrController::class, 'datatables']);
@@ -56,10 +56,10 @@ Route::get('/logout', [LoginController::class, 'logout']);
         Route::post('/detail-transaksi', [KlikIgrController::class, 'detailTransaksi']);
         Route::post('/connect', [KlikIgrController::class, 'connectToWebservice']);
 
-        
+
         Route::group(['prefix' => 'action'], function(){
             Route::post("/download-zip", [KlikIgrController::class, 'actionGlobalDownloadZip']);
-            
+
             Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);
             Route::post("/f4-validasi-rak", [KlikIgrFooterController::class, 'actionF4ValidasiRak']);
             Route::post("/f4-item-batal", [KlikIgrFooterController::class, 'actionF4ItemBatal']);
@@ -74,12 +74,16 @@ Route::get('/logout', [LoginController::class, 'logout']);
             foreach ($buttonKeys as $key) {
                 Route::post("/$key", [KlikIgrController::class, "action$key"]);
             }
-            
+
             $functionKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12', 'delete'];
 
             foreach ($functionKeys as $key) {
                 Route::post("/$key", [KlikIgrFooterController::class, "action$key"]);
             }
+
+            //! KEVIN ROUTE
+            Route::post("/action-cetak-surat-jalan", [KlikIgrController::class, 'actionCetakSuratJalan']);
+
         });
     });
 

@@ -183,10 +183,10 @@ class KlikIgrController extends Controller
                 'Content-Type' => 'application/zip',
                 'Content-Disposition' => 'attachment; filename="' . $request->zipName . '"',
             ];
-            File::deleteDirectory(storage_path($request->storagePath) . '/' . session('userid'), false); 
+            File::deleteDirectory(storage_path($request->storagePath) . '/' . session('userid'), false);
             return response($zipContent, 200, $headers);
         } else {
-            File::deleteDirectory(storage_path($request->storagePath) . '/' . session('userid'), false); 
+            File::deleteDirectory(storage_path($request->storagePath) . '/' . session('userid'), false);
             return ApiFormatter::error(400, "Gagal Membuat Zip");
         }
     }
@@ -796,36 +796,69 @@ class KlikIgrController extends Controller
         // }
     }
 
-    //! btnCetakSJ_Click
-    public function actionCetakSuratJalan($dgv_notrans, $dgv_status, $dtTrans, $dgv_freeongkir, $dgv_nopb, $dgv_memberigr, $dgv_kodeWeb, $dgv_flagBayar){
-        if(!isset($dgv_notrans)){
-            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        }
+    //* btnCetakSJ_Click
+    //? butuh request -> selectedRow | tanggal_trans
+    public function actionCetakSuratJalan(Request $request){
 
-        if(!$dgv_status != 'Siap Struk' AND $dgv_status != 'Selesai Struk'){
-            return ApiFormatter::error(400, 'Bukan Data yang Sudah Selesai Struk!');
-        }
+        //! dummy
+        $request->merge(['tanggal_trans' => '2021-06-02 00:00:00']);
 
-        if(session('flagSPI') == true){
-            if($dgv_freeongkir == 'T'){
-                if(session('flagIGR')){
-                    return ApiFormatter::error(400, 'Pesanan diambil di Toko IGR!');
-                }else{
-                    return ApiFormatter::error(400, 'Pesanan diambil di Toko SPI!');
+        DB::beginTransaction();
+        try{
+
+            $selectedRow = $request->selectedRow;
+
+            if(!isset($selectedRow['notrans'])){
+                return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+            }
+
+            if(!$selectedRow['status'] != 'Siap Struk' AND $selectedRow['status'] != 'Selesai Struk'){
+                return ApiFormatter::error(400, 'Bukan Data yang Sudah Selesai Struk!');
+            }
+
+            if(session('flagSPI') == true){
+                if($selectedRow['free_ongkir'] == 'T'){
+                    if(session('flagIGR')){
+                        return ApiFormatter::error(400, 'Pesanan diambil di Toko IGR!');
+                    }else{
+                        return ApiFormatter::error(400, 'Pesanan diambil di Toko SPI!');
+                    }
                 }
             }
-        }
 
-        $koliFound = DB::table('TBTR_PACKING_OBI')
-            ->whereRaw("POBI_NOTRANSAKSI='" & $dgv_notrans & "' and DATE_TRUNC('DAY',pobi_tgltransaksi) = ".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')." ")
-            ->first();
+            $koliFound = DB::table('tbtr_packing_obi')
+                ->where('pobi_notransaksi', $selectedRow['notrans'])
+                ->whereRaw("DATE_TRUNC('DAY',pobi_tgltransaksi) = '".Carbon::parse($request->tanggal_trans)->format('Y-m-d H:i:s')."' ")
+                ->first();
 
-        if(!empty($koliFound)){
-            if(session('flagSPI')){
-                $this->rptSuratJalanSPI($dgv_nopb, $dgv_notrans, $dgv_memberigr, $dtTrans, $dgv_flagBayar);
-            }else{
-                $this->rptSuratJalan($dgv_notrans, $dgv_kodeWeb, $dgv_nopb, $dgv_memberigr, $dgv_freeongkir, $dgv_flagBayar, $dtTrans);
+            if(empty($koliFound)){
+                return ApiFormatter::error(400, 'Tidak ada Data!');
             }
+
+            return $this->rptSuratJalan($selectedRow['notrans'], $selectedRow['kodeweb'], $selectedRow['no_pb'], $selectedRow['kode_member'], $selectedRow['free_ongkir'], $selectedRow['flagbayar'], $request->tanggal_trans);
+            if(session('flagSPI')){
+                $this->rptSuratJalanSPI($selectedRow['no_pb'], $selectedRow['notrans'], $selectedRow['kode_member'], $request->tanggal_trans, $selectedRow['flagbayar']);
+            }else{
+            }
+
+            dd('done comment commit');
+
+            DB::commit();
+
+            return ApiFormatter::success(200, 'success action cetak surat jalan');
+
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
+        }catch(\Exception $e){
+
+            dd($e);
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            return ApiFormatter::error(400, $message);
         }
     }
 
@@ -1446,7 +1479,7 @@ class KlikIgrController extends Controller
             ->header('Content-Disposition', 'attachment; filename="LAPORAN PESANAN EXPIRED.pdf"');
     }
 
-    //! IRPAN | ADA ERROR 
+    //! IRPAN | ADA ERROR
     //! btnSTKardus_Click
     public function actionBuktiSerahTerimaKardus(Request $request){
         if($request->isShowDatatables == true){
@@ -2863,8 +2896,8 @@ class KlikIgrController extends Controller
         }
 
         $query = '';
-        $query .= "select DISTINCT pobi_nocontainer";
-        $query .= "from tbtr_packing_obi join tbtr_obi_h on pobi_notransaksi = obi_notrans and pobi_tgltransaksi = obi_tgltrans";
+        $query .= "select DISTINCT pobi_nocontainer ";
+        $query .= "from tbtr_packing_obi join tbtr_obi_h on pobi_notransaksi = obi_notrans and pobi_tgltransaksi = obi_tgltrans ";
         $query .= "WHERE obi_notrans = '" . $notrans . "'";
         $query .= "AND obi_nopb = '" . $nopb . "'";
         $query .= "ORDER BY pobi_nocontainer ASC ";
@@ -2883,41 +2916,46 @@ class KlikIgrController extends Controller
 
         $query = '';
         $query .= " SELECT ";
-        $query .= "   COALESCE(amm_namapenerima, cus_namamember) nama, ";
-        $query .= "   obi_nopb nopb, ";
-        $query .= "   amm_namaalamat alamat, ";
-        $query .= "   COALESCE(amm_nomorpenerima, amm_hp, cus_tlpmember, cus_hpmember) telp, ";
-        $query .= "   obi_nostruk nostruk, ";
-        $query .= "   obi_tgltrans tgltrans, ";
-        $query .= "   TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgl_pesan, ";
-        $query .= "   TO_CHAR( ";
-        $query .= "    DATE_TRUNC('DAY',COALESCE(obi_mindeliverytime, obi_tglstruk, obi_draftstruk)) +  ";
-        $query .= "    CASE  ";
-        $query .= "     WHEN COALESCE(obi_shippingservice,'X') = 'S'  ";
-        $query .= "      THEN CASE WHEN TO_NUMBER(TO_CHAR(obi_mindeliverytime, 'HH24')) < 12 THEN 0 ELSE 1 END ";
-        $query .= "     WHEN COALESCE(obi_shippingservice,'X') = 'N'  ";
-        $query .= "      THEN CASE WHEN TO_NUMBER(TO_CHAR(obi_mindeliverytime, 'HH24')) < 12 THEN 1 ELSE 2 END ";
-        $query .= "     ELSE 1 ";
-        $query .= "    END, ";
-        $query .= "   'DD-MM-YYYY') tgl_maks_kirim, ";
-        $query .= "   COALESCE(obi_nopo,'-') nopo, ";
-        $query .= "   COALESCE(amm_noawb, 'SJ' || TO_CHAR(obi_tgltrans, 'YYMMDD') || COALESCE(obi_kdstation,'00') || COALESCE(obi_nostruk,'00000')) no_awb, ";
-        $query .= "   CASE WHEN obi_freeongkir = 'T' ";
-        $query .= "    THEN 'AMBIL DI TOKO' ";
-        $query .= "    ELSE COALESCE(obi_kdekspedisi, '-') ";
-        $query .= "   END ekspedisi, ";
-        $query .= "   TRIM(TO_CHAR(COALESCE(obi_ekspedisi, 0),'999,999,999')) ongkir, ";
-        $query .= "   COALESCE(obi_shippingservice,'-') shippingservice ";
+        $query .= " COALESCE(amm_namapenerima, cus_namamember) nama, ";
+        $query .= " obi_nopb nopb, ";
+        $query .= " amm_namaalamat alamat, ";
+        $query .= " COALESCE(amm_nomorpenerima, amm_hp, cus_tlpmember, cus_hpmember) telp, ";
+        $query .= " obi_nostruk nostruk, ";
+        $query .= " obi_tgltrans tgltrans, ";
+        $query .= " TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgl_pesan, ";
+        $query .= " TO_CHAR( ";
+        $query .= " DATE_TRUNC('DAY',COALESCE(obi_mindeliverytime, obi_tglstruk, obi_draftstruk)) +  ";
+        $query .= " CASE  ";
+        $query .= " WHEN COALESCE(obi_shippingservice,'X') = 'S'  ";
+        $query .= " THEN INTERVAL '0 days' + CASE WHEN TO_NUMBER(TO_CHAR(obi_mindeliverytime, 'HH24'), '99') < 12 THEN INTERVAL '0 days' ELSE INTERVAL '1 day' END ";
+        $query .= " WHEN COALESCE(obi_shippingservice,'X') = 'N'  ";
+        $query .= " THEN INTERVAL '0 days' + CASE WHEN TO_NUMBER(TO_CHAR(obi_mindeliverytime, 'HH24'), '99') < 12 THEN INTERVAL '1 day' ELSE INTERVAL '2 days' END ";
+        $query .= " ELSE INTERVAL '1 day' ";
+        $query .= " END, ";
+        $query .= " 'DD-MM-YYYY') tgl_maks_kirim, ";
+        $query .= " COALESCE(obi_nopo,'-') nopo, ";
+        $query .= " COALESCE(amm_noawb, 'SJ' || TO_CHAR(obi_tgltrans, 'YYMMDD') || COALESCE(obi_kdstation,'00') || COALESCE(obi_nostruk,'00000')) no_awb, ";
+        $query .= " CASE WHEN obi_freeongkir = 'T' ";
+        $query .= " THEN 'AMBIL DI TOKO' ";
+        $query .= " ELSE COALESCE(obi_kdekspedisi, '-') ";
+        $query .= " END ekspedisi, ";
+        $query .= " TRIM(TO_CHAR(COALESCE(obi_ekspedisi, 0),'999,999,999')) ongkir, ";
+        $query .= " COALESCE(obi_shippingservice,'-') shippingservice ";
         $query .= " FROM tbtr_obi_h ";
         $query .= " JOIN tbtr_alamat_mm ";
-        $query .= "   ON obi_nopb = amm_nopb ";
-        $query .= "  AND DATE_TRUNC('DAY',obi_tglpb) = DATE_TRUNC('DAY',amm_tglpb) ";
-        $query .= "  AND obi_kdmember = amm_kodemember ";
+        $query .= " ON obi_nopb = amm_nopb ";
+        $query .= " AND DATE_TRUNC('DAY',obi_tglpb) = DATE_TRUNC('DAY',amm_tglpb) ";
+        $query .= " AND obi_kdmember = amm_kodemember ";
         $query .= " JOIN tbmaster_customer ";
-        $query .= "   ON amm_kodemember = cus_kodemember ";
+        $query .= " ON amm_kodemember = cus_kodemember ";
         $query .= " WHERE obi_notrans = '" . $notrans . "' ";
-        $query .= "   AND obi_nopb = '" . $nopb . "' ";
+        $query .= " AND obi_nopb = '" . $nopb . "' ";
         $data['dtDetailSJ'] = DB::select($query);
+
+        return $data;
+
+        //! NOTE KEVIN
+        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
 
         if(str_contains($nopb, '/500/')){
             //* form -> frmSuratJalanGurih
@@ -3038,11 +3076,13 @@ class KlikIgrController extends Controller
         $query .= " AND obi_kdmember = '" . $dgv_memberigr . "' ";
         $dtCek = DB::select($query);
 
+        //! dummy (bisa dicomment untuk run)
         if(count($dtCek) == 0){
             $message = 'Data PB Tidak Ditemukan';
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
+        //! dummy (bisa dicomment untuk run)
         if (strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "KURIR INDOGROSIR") !== false ||
             strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "AMBIL DI STOCK POINT INDOGROSIR") !== false ||
             strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "AMBIL DI TOKO INDOGROSIR") !== false ||
@@ -3133,15 +3173,15 @@ class KlikIgrController extends Controller
         $query .= "WHERE amm_nopb = '" . $dgv_nopb . "' ";
         $query .= " AND amm_notrans = '" . $dgv_notrans . "' ";
         $query .= " AND amm_kodemember = '" . $dgv_memberigr . "' ";
-        $dtDetailSJ = DB::select($query);
+        $data['dtDetailSJ'] = DB::select($query);
 
         $query = '';
-        $query .= "SELECT del_nopol nopol, del_driver driver, del_deliveryman deliveryman";
+        $query .= "SELECT del_nopol nopol, del_driver driver, del_deliveryman deliveryman ";
         $query .= "FROM tbtr_delivery_spi ";
         $query .= "WHERE del_nopb = '" . $dgv_nopb . "' ";
         $query .= " AND del_kodemember = '" . $dgv_memberigr . "' ";
         $query .= " AND del_flagbatal IS NULL ";
-        $_dtDetailSJ2 = DB::select($query);
+        $data['_dtDetailSJ2'] = DB::select($query);
 
         $query = '';
         $query .= " SELECT  ";
@@ -3187,7 +3227,12 @@ class KlikIgrController extends Controller
         $query .= "   GROUP BY prd_deskripsipanjang, prd_unit, d.obi_hargaweb, (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END), ctn_frac ";
         $query .= "   ORDER BY prd_deskripsipanjang ";
         $query .= " ) AS SURATJLANSPI ";
-        $data = DB::select($query);
+        $data['data'] = DB::select($query);
+
+        return $data;
+
+        //! NOTE KEVIN
+        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
 
         //* form -> frmSuratJalanSPI_NEW
 
@@ -3292,8 +3337,8 @@ class KlikIgrController extends Controller
         if (!file_exists($tempDir)) {
             FIle::makeDirectory($tempDir);
         } else {
-            File::deleteDirectory($tempDir, false); 
-            File::makeDirectory($tempDir, 0755, true); 
+            File::deleteDirectory($tempDir, false);
+            File::makeDirectory($tempDir, 0755, true);
         }
 
         $count = DB::select("SELECT MAX(COALESCE(prs_nilaippn,0)/100) FROM tbmaster_perusahaan");
@@ -3428,7 +3473,7 @@ class KlikIgrController extends Controller
         $dtPicking = DB::select($query);
 
         $fileContent = Excel::raw(new GeneralExcelExport($dtPicking), \Maatwebsite\Excel\Excel::CSV);
-        file_put_contents($tempDir . "/" . $nmFilePicking . ".csv", $fileContent);        
+        file_put_contents($tempDir . "/" . $nmFilePicking . ".csv", $fileContent);
 
         //* KUPON
         $query = '';
@@ -4263,11 +4308,11 @@ class KlikIgrController extends Controller
             DB::update($query);
 
             $this->logUpdateStatus($dgv_notrans, $dtOBI_H[0]->obi_tgltrans, $dgv_nopb, "5", "5");
-            
+
             $file_content = $this->WRITE_SSO($dtOBI_D, $dgv_memberigr, $dgv_notrans);
             dd("check");
 
-            //! IRVAN || COMMENT COMMIT 
+            //! IRVAN || COMMENT COMMIT
             // DB::commit();
             return ApiFormatter::success(200, "Success", $file_content);
         } catch (\Exception $e) {
