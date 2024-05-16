@@ -1307,6 +1307,8 @@ class KlikIgrController extends Controller
     }
 
     //! btnBASPI_Click
+    //? tidak butuh request
+    //? tidak perlu DB Transaction karena tidak ada proses create/update
     public function actionBAPengembalianDana(){
         if(session('flagSPI') == false){
             return ApiFormatter::error(400, 'Khusus SPI');
@@ -1392,7 +1394,7 @@ class KlikIgrController extends Controller
             $query .= "FROM temp_barefund_spi ";
             $query .= "JOIN tbtr_obi_h ";
             $query .= "ON obi_nopb = nopb ";
-            $query .= "AND DATE_TRUNC('DAY',obi_tglpb) = TO_DATE(tglpb,'DD-MM-YYYY') ";
+            $query .= "AND DATE(obi_tglpb) = DATE(tglpb) ";
             $query .= "AND obi_kdmember = kodemember ";
             $query .= "WHERE IP = '" . $this->getIP() . "' ";
             DB::insert($query);
@@ -1413,6 +1415,9 @@ class KlikIgrController extends Controller
             return ApiFormatter::error(400, 'BA Pengembalian Dana SPI tidak ditemukan.');
         }
 
+        //! NOTE KEVIN
+        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
+
         //! open report -> rptBA
 
         // rptBA.SetParameterValue("tglBA", tglBA)
@@ -1422,17 +1427,22 @@ class KlikIgrController extends Controller
     }
 
     //! btnBARusakSPI_Click
-    public function actionBARusakKemasan($dgv_status, $dgv_tipebayar){
+    //? butuh request -> selectedRow
+    //? tidak perlu DB Transaction karena tidak ada proses create/update
+    public function actionBARusakKemasan(Request $request){
+
+        $selectedRow = $request->selectedRow;
+
         if(session('flagSPI') == true){
-            if((($dgv_status == 'Siap Struk' OR $dgv_status == 'Selesai Struk') AND $dgv_tipebayar == 'COD') OR ($dgv_status == 'Selesai Struk' AND $dgv_tipebayar <> "COD")){
+            if((($selectedRow['status'] == 'Siap Struk' OR $selectedRow['status'] == 'Selesai Struk') AND $selectedRow['tipe_bayar'] == 'COD') OR ($selectedRow['status'] == 'Selesai Struk' AND $selectedRow['tipe_bayar'] <> "COD")){
                 //! open form -> frmBARusakSPI
                 //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
 
             }else{
-                if(str_contains(strtoupper($dgv_status), 'BATAL')){
+                if(str_contains(strtoupper($selectedRow['status']), 'BATAL')){
                     return ApiFormatter::error(400, 'Transaksi sudah dibatalkan!');
                 }else{
-                    if($dgv_tipebayar == 'COD'){
+                    if($selectedRow['tipe_bayar'] == 'COD'){
                         return ApiFormatter::error(400, 'Transaksi COD belum DSP, Belum dapat Input BA Rusak!');
                     }else{
                         return ApiFormatter::error(400, 'Transaksi belum distruk, Belum dapat Input BA Rusak!');
@@ -1441,13 +1451,13 @@ class KlikIgrController extends Controller
             }
 
         }else{
-            if($dgv_status == 'Siap Struk' AND $dgv_tipebayar == 'COD'){
+            if($selectedRow['status'] == 'Siap Struk' AND $selectedRow['tipe_bayar'] == 'COD'){
                 //! open form -> frmBARusakSPI
                 //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
 
             }else{
-                if($dgv_tipebayar == 'COD'){
-                    $message = $dgv_status == 'Selesai Struk' ? 'Transaksi sudah distruk!' : 'Transaksi COD belum DSP, Belum dapat Input BA Rusak!';
+                if($selectedRow['tipe_bayar'] == 'COD'){
+                    $message = $selectedRow['status'] == 'Selesai Struk' ? 'Transaksi sudah distruk!' : 'Transaksi COD belum DSP, Belum dapat Input BA Rusak!';
                     return ApiFormatter::error(400, $message);
                 }else{
                     return ApiFormatter::error(400, 'Inputan BA RK Khusus Transaksi COD!');
