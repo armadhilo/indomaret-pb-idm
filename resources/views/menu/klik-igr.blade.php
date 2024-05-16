@@ -1336,6 +1336,38 @@ async function connectToWebService(url, method, data = null) {
         return null;
     }
 }
+
+function actionGlobalDownloadZip(storagePath, zipName = 'File.zip'){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/download-zip`,
+        type: "POST",
+        data: {storagePath: storagePath, zipName: zipName},
+        xhrFields: {
+            responseType: 'blob' // Important for binary data
+        },
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            var blob = new Blob([response]);
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = zipName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }, 
+        error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
 </script>
 @endpush
 

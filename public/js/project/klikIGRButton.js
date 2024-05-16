@@ -264,16 +264,9 @@ function actionDraftStruk(){
         url: currentURL + `/action/DraftStruk`,
         type: "POST",
         data: { kode_web: selectedRow.kodeweb, tanggal_trans: $("#tanggal_trans").val(), selectedRow: selectedRow },
-        xhrFields: {
-            responseType: 'blob'
-        },
         success: function(response) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                var blob = new Blob([data], { type: 'application/zip' });
-                var link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.download = 'DRAFT-STRUK.zip';
-                link.click();   
+            // setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            actionGlobalDownloadZip(response.data.pathStorage, "Draft-Struk.zip");
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({
@@ -352,6 +345,11 @@ function actionKonfirmasiPembayaran(){
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire("Success", "Pembayaran Terkonfirmasi", "success");
+            var blob = new Blob([jqXHR.responseJSON.data.content], { type: "text/plain" });
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = jqXHR.responseJSON.data.nama_file;
+            link.click();
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({
@@ -370,10 +368,9 @@ function actionSales(){
     $.ajax({
         url: currentURL + `/action/Sales`,
         type: "POST",
-        data: { no_trans: selectedRow.no_trans, status: selectedRow.status, nopb: selectedRow.no_pb, tipe_bayar: selectedRow.tipe_bayar, tanggal_pb: selectedRow.tgl_pb, kode_web: selectedRow.kodeweb, kode_member: selectedRow.kode_member, tipe_kredit: selectedRow.tipe_kredit, tanggal_trans: $("#tanggal_trans").val() },
+        data: { no_trans: selectedRow.no_trans, status: selectedRow.status, nopb: selectedRow.no_pb, tipe_bayar: selectedRow.tipe_bayar, tanggal_pb: selectedRow.tgl_pb, kode_web: selectedRow.kodeweb, kode_member: selectedRow.kode_member, tipe_kredit: selectedRow.tipe_kredit, tanggal_trans: $("#tanggal_trans").val(), selectedRow: selectedRow },
         success: function(response) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-            Swal.fire("Success", "Pembayaran Terkonfirmasi", "success");
+            actionGlobalDownloadZip(response.data.pathStorage, "SALES.zip");
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({

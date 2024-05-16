@@ -7,6 +7,7 @@ use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\DspbRotiController;
 use App\Http\Controllers\HistoryProdukController;
 use App\Http\Controllers\KlikIgrController;
+use App\Http\Controllers\KlikIgrFooterController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -57,12 +58,14 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
         
         Route::group(['prefix' => 'action'], function(){
-            Route::get("/f1-download-excel", [KlikIgrController::class, 'actionF1DownloadCSV']);
-            Route::post("/f4-validasi-rak", [KlikIgrController::class, 'actionF4ValidasiRak']);
-            Route::post("/f4-item-batal", [KlikIgrController::class, 'actionF4ItemBatal']);
-            Route::post("/f4-cetak-item-batal", [KlikIgrController::class, 'actionF4PrintItemBatal']);
-            Route::post("/f10-hitung-ulang", [KlikIgrController::class, 'actionF10HitungUlang']);
-            Route::get('/delete-alasan-pembatalan-pb', [KlikIgrController::class, 'getAlasanPembatalanPB']);
+            Route::post("/download-zip", [KlikIgrController::class, 'actionGlobalDownloadZip']);
+            
+            Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);
+            Route::post("/f4-validasi-rak", [KlikIgrFooterController::class, 'actionF4ValidasiRak']);
+            Route::post("/f4-item-batal", [KlikIgrFooterController::class, 'actionF4ItemBatal']);
+            Route::post("/f4-cetak-item-batal", [KlikIgrFooterController::class, 'actionF4PrintItemBatal']);
+            Route::post("/f10-hitung-ulang", [KlikIgrFooterController::class, 'actionF10HitungUlang']);
+            Route::get('/delete-alasan-pembatalan-pb', [KlikIgrFooterController::class, 'getAlasanPembatalanPB']);
 
             Route::post("/HitungUlang", [KlikIgrController::class, 'actionHitungUlang']);
 
@@ -75,7 +78,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             $functionKeys = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f12', 'delete'];
 
             foreach ($functionKeys as $key) {
-                Route::post("/$key", [KlikIgrController::class, "action$key"]);
+                Route::post("/$key", [KlikIgrFooterController::class, "action$key"]);
             }
         });
     });
