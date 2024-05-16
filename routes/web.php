@@ -85,6 +85,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post("/action-cetak-surat-jalan", [KlikIgrController::class, 'actionCetakSuratJalan']);
             Route::post("/action-cetak-ikk", [KlikIgrController::class, 'actionCetakIKK']);
             Route::post("/action-list-item-pb-batal", [KlikIgrController::class, 'actionListItemPBBatal']);
+            Route::post("/action-item-picking-belum-transit", [KlikIgrController::class, 'actionItemPickingBelumTransit']);
 
         });
     });

@@ -909,6 +909,8 @@ class KlikIgrController extends Controller
     }
 
     //! btnIntransit_Click
+    //? tidak butuh request
+    //? tidak perlu DB Transaction karena tidak ada proses create/update
     public function actionItemPickingBelumTransit(){
         $query = '';
         $query .= "WITH tbtr_obi AS ( ";
@@ -935,7 +937,7 @@ class KlikIgrController extends Controller
         $query .= "  GROUP BY substr(obi_prdcd, 1,6) || '0' ";
         $query .= "  ORDER BY substr(obi_prdcd, 1,6) || '0' ";
         $query .= ") ";
-        $query .= "SELECT ROWNUM NO, ";
+        $query .= "SELECT row_number() OVER () as NO, ";
         $query .= "       prd_kodedivisi DIV, ";
         $query .= "       prd_kodedepartement DEPT, ";
         $query .= "       prd_kodekategoribarang KAT, ";
@@ -952,6 +954,9 @@ class KlikIgrController extends Controller
         if(count($dtItem) == 0){
             return ApiFormatter::error(400, 'Tidak ada data item belum DSP!');
         }
+
+        //! NOTE KEVIN
+        //? untuk query sudah di check dan aman tinggal lanjut proses buka form
 
         //* buka form -> rptItemBelumDSP
     }
