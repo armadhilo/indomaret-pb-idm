@@ -4397,7 +4397,6 @@ class KlikIgrController extends Controller
         $transKlik = [];
 
         if($kdWeb != 'WebMM'){
-            //! DONE || IRVAN
             $memberOK = $this->validasiDataMember($noTrans, $dtTrans);
         }
 
