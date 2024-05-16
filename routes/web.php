@@ -87,6 +87,8 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post("/action-list-item-pb-batal", [KlikIgrController::class, 'actionListItemPBBatal']);
             Route::post("/action-item-picking-belum-transit", [KlikIgrController::class, 'actionItemPickingBelumTransit']);
             Route::post("/action-listing-delivery", [KlikIgrController::class, 'actionListingDelivery']);
+            Route::post("/action-list-pb-lebih-dari-max-serah-terima", [KlikIgrController::class, 'actionListPBLebihDariMaxSerahTerima']);
+            Route::post("/action-recreate-awb", [KlikIgrController::class, 'actionReCreateAWB']);
 
         });
     });

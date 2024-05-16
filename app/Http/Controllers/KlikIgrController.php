@@ -1012,6 +1012,8 @@ class KlikIgrController extends Controller
     }
 
     //! btnMaxSertim_Click
+    //? tidak butuh request
+    //? tidak perlu DB Transaction karena tidak ada proses create/update
     public function actionListPBLebihDariMaxSerahTerima(){
         $this->cekNotifMaxSerahTerima(true);
     }
@@ -1222,55 +1224,76 @@ class KlikIgrController extends Controller
     }
 
     //! btnReCreateAWB_Click
+    //! NOTE KEVIN
+    //? dihold dulu karena perlu data dari new form
     public function actionReCreateAWB(){
 
-        $query = '';
-        $query .= " SELECT  ";
-        $query .= "   obi_nopb nopb, ";
-        $query .= "   obi_notrans notrans, ";
-        $query .= "   TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgltrans, ";
-        $query .= "   obi_kdmember kdmember, ";
-        $query .= "   obi_tgltrans ";
-        $query .= " FROM tbtr_obi_h  ";
-        $query .= " WHERE COALESCE(obi_recid,'0') IN ('5','6') ";
-        $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE-30) ";
-        $query .= " AND obi_trxidnew IS NULL ";
-        $query .= " AND EXISTS ( ";
-        $query .= "   SELECT sti_pin ";
-        $query .= "   FROM tbtr_serahterima_ipp ";
-        $query .= "   WHERE sti_noorder = obi_trxid ";
-        $query .= "   AND UPPER(sti_tipeproses) = 'TITIP' ";
-        $query .= " ) ";
-        $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC";
-        $dtPB = DB::select($query);
+        DB::beginTransaction();
+        try{
 
-        if(count($dtPB) == 0){
-            return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
-        }
+            $query = '';
+            $query .= " SELECT  ";
+            $query .= "   obi_nopb nopb, ";
+            $query .= "   obi_notrans notrans, ";
+            $query .= "   TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgltrans, ";
+            $query .= "   obi_kdmember kdmember, ";
+            $query .= "   obi_tgltrans ";
+            $query .= " FROM tbtr_obi_h  ";
+            $query .= " WHERE COALESCE(obi_recid,'0') IN ('5','6') ";
+            //! dummy (bisa dicomment untuk run)
+            $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE-30) ";
+            $query .= " AND obi_trxidnew IS NULL ";
+            $query .= " AND EXISTS ( ";
+            $query .= "   SELECT sti_pin ";
+            $query .= "   FROM tbtr_serahterima_ipp ";
+            $query .= "   WHERE sti_noorder = obi_trxid ";
+            $query .= "   AND UPPER(sti_tipeproses) = 'TITIP' ";
+            $query .= " ) ";
+            $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC";
+            $dtPB = DB::select($query);
 
-        //* ADD PILIHAN ALASAN BATAL KIRIM
-        $alasanBtl = DB::select("SELECT ROW_NUMBER() OVER () AS NO, ALASAN FROM (SELECT abk_alasan AS alasan FROM tbmaster_alasan_batal_kirim ORDER BY 1) AS alasan");
-        $alasanBatal = $alasanBtl[0]->alasan;
-
-        //! show form -> FrmReCreateAWB
-        //! nanti mungkin formnya milih dari $dtPB terus ditampung di variable $fRecreateAWB
-
-        $fRecreateAWB = [];
-
-        if(count($fRecreateAWB) == 0){
-            return ApiFormatter::error(400, 'Belum ada PB yang dipilih');
-        }
-
-        foreach($fRecreateAWB as $item){
-            if(session('flagSPI') == true){
-                $this->reCreateAWB_SPI($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
-            }else{
-                $this->reCreateAWB_KLIK($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
+            if(count($dtPB) == 0){
+                return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
             }
+
+            //* ADD PILIHAN ALASAN BATAL KIRIM
+            $alasanBtl = DB::select("SELECT ROW_NUMBER() OVER () AS NO, ALASAN FROM (SELECT abk_alasan AS alasan FROM tbmaster_alasan_batal_kirim ORDER BY 1) AS alasan");
+            $alasanBatal = $alasanBtl[0]->alasan;
+
+            //! show form -> FrmReCreateAWB
+            //! nanti mungkin formnya milih dari $dtPB terus ditampung di variable $fRecreateAWB
+
+            $fRecreateAWB = [];
+
+            if(count($fRecreateAWB) == 0){
+                return ApiFormatter::error(400, 'Belum ada PB yang dipilih');
+            }
+
+            foreach($fRecreateAWB as $item){
+                if(session('flagSPI') == true){
+                    $this->reCreateAWB_SPI($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
+                }else{
+                    $this->reCreateAWB_KLIK($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
+                }
+            }
+
+	        dd('done comment commit');
+            //DB::commit();
+
+            return ApiFormatter::success(200, 'Selesai Proses Re-Create AWB IPP');
+
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
         }
-
-        return ApiFormatter::success(200, 'Selesai Proses Re-Create AWB IPP');
-
     }
 
     //! btnAlasanBatalKirim_Click
@@ -1922,8 +1945,6 @@ class KlikIgrController extends Controller
             $message = "Oops! Something wrong ( $e )";
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
-
-
     }
 
     private function reCreateAWB_KLIK($kdMember, $noTrans, $tglTrans, $noPB, $alasanBatal){
@@ -2619,7 +2640,6 @@ class KlikIgrController extends Controller
 
     }
 
-
     private function cekNotifMaxSerahTerima($flagManual = false){
 
         $query = '';
@@ -2641,10 +2661,6 @@ class KlikIgrController extends Controller
         $query .= "   AND obi_kdekspedisi IS NOT NULL ";
         $query .= "   AND UPPER(obi_kdekspedisi) LIKE '%INDOPAKET%' ";
         $query .= "   AND obi_maxdeliverytime IS NOT NULL ";
-        // '$query .= "   AND TO_DATE( ";
-        // '$query .= "         TO_CHAR(obi_maxdeliverytime,'DD-MM-YYYY') || ' 12:30:00',  ";
-        // '$query .= "         'DD-MM-YYYY HH24:MI:SS' ";
-        // '$query .= "       ) <= NOW() ";
         $query .= "   AND (obi_maxdeliverytime - interval '90' minute) <= NOW() ";
         $query .= "   AND DATE_TRUNC('DAY',obi_tgltrans) >= TO_DATE('01-07-2023','DD-MM-YYYY') ";
         $query .= "   AND sti_tglserahterima IS NULL ";
@@ -2659,10 +2675,19 @@ class KlikIgrController extends Controller
 
         $mydt = DB::select($query);
 
-        if(count($mydt) == 0 AND $flagManual == true){
-            $message = 'Tidak ada data PB yang lebih dari Tgl Max Serah Terima.';
+        if(count($mydt) == 0){
+
+            if($flagManual == true){
+                $message = 'Tidak ada data PB yang lebih dari Tgl Max Serah Terima.';
+            }else{
+                $message = 'Tidak ada data!';
+            }
+
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
+
+        //! NOTE KEVIN
+        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
 
         if(count($mydt) > 0){
             //* form -> LstNotifMaxSerahTerima
