@@ -894,12 +894,18 @@ class KlikIgrController extends Controller
     }
 
     //! btnPBBatal_Click
+    //? tidak butuh request
+    //? tidak perlu DB Transaction karena tidak ada proses create/update
     public function actionListItemPBBatal(){
         if(session('flagSPI') == true){
             $this->cekPBAkanBatal();
         }else{
             $this->cekItemBatal(true);
         }
+
+        //! NOTE KEVIN
+        //? untuk private function cekPBAkanBatal dan cekItemBatal sudah dicek dan aman
+        //? tinggal lanjut ke next form di setiap private functionnya
     }
 
     //! btnIntransit_Click
@@ -2655,13 +2661,13 @@ class KlikIgrController extends Controller
 
     private function cekItemBatal($showFrm){
         $query = '';
-        $query .= "select distinct d.obi_notrans NO_TRANSAKSI, d.obi_tgltrans TGL_TRANSAKSI";
+        $query .= "select distinct d.obi_notrans NO_TRANSAKSI, d.obi_tgltrans TGL_TRANSAKSI ";
         $query .= "from tbtr_obi_d d, tbhistory_obi_batal b ";
-        $query .= "where d.obi_recid = '1'";
-        $query .= "and b.obi_qtyrealisasi > 0";
-        $query .= "and d.obi_notrans = b.obi_notrans";
-        $query .= "and d.obi_tgltrans = b.obi_tgltrans";
-        $query .= "group by d.obi_notrans, d.obi_tgltrans";
+        $query .= "where d.obi_recid = '1' ";
+        $query .= "and b.obi_qtyrealisasi > 0 ";
+        $query .= "and d.obi_notrans = b.obi_notrans ";
+        $query .= "and d.obi_tgltrans = b.obi_tgltrans ";
+        $query .= "group by d.obi_notrans, d.obi_tgltrans ";
         $mydt = DB::select($query);
 
         if($showFrm == true){
