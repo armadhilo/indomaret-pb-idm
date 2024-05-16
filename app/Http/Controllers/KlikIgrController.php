@@ -800,9 +800,6 @@ class KlikIgrController extends Controller
     //? butuh request -> selectedRow | tanggal_trans
     public function actionCetakSuratJalan(Request $request){
 
-        //! dummy
-        $request->merge(['tanggal_trans' => '2021-06-02 00:00:00']);
-
         DB::beginTransaction();
         try{
 
@@ -863,7 +860,11 @@ class KlikIgrController extends Controller
     }
 
     //! btnCetakIIK_Click
-    public function actionCetakIKK($dgv_notrans, $dgv_status, $dgv_nopb, $dgv_kodeWeb, $dgv_tglpb){
+    //? butuh request -> selectedRow
+    //? tidak perlu DB Transaction karena tidak ada proses create/update
+    public function actionCetakIKK(Request $request){
+
+        $selectedRow = $request->selectedRow;
 
         //* Cetak Informasi Koli " & vbCrLf & "No Trans = " & dgv_notrans & " Ini?
 
@@ -871,23 +872,25 @@ class KlikIgrController extends Controller
             return ApiFormatter::error(400, 'Kembali ke list utama!');
         }
 
-        if(!isset($dgv_notrans)){
+        if(!isset($selectedRow['no_trans'])){
             return ApiFormatter::error(400, 'Pilih Data Dahulu!');
         }
 
-        if(!$dgv_status != 'Siap Struk' AND $dgv_status != 'Selesai Struk' AND $dgv_status != 'Konfirmasi Pembayaran'){
+        if(!$selectedRow['status'] != 'Siap Struk' AND $selectedRow['status'] != 'Selesai Struk' AND $selectedRow['status'] != 'Konfirmasi Pembayaran'){
             return ApiFormatter::error(400, 'Bukan Data Yang Siap Struk atau Selesai Struk!');
         }
 
-        $dtBarc = DB::select("SELECT DISTINCT pobi_nocontainer from tbtr_packing_obi join tbtr_obi_h on pobi_notransaksi = obi_notrans and pobi_tgltransaksi = obi_tgltrans WHERE pobi_notransaksi = '" . $dgv_notrans . "' AND obi_nopb = '" . $dgv_nopb . "'");
+        $dtBarc = DB::select("SELECT DISTINCT pobi_nocontainer from tbtr_packing_obi join tbtr_obi_h on pobi_notransaksi = obi_notrans and pobi_tgltransaksi = obi_tgltrans WHERE pobi_notransaksi = '" . $selectedRow['no_trans'] . "' AND obi_nopb = '" . $selectedRow['no_pb'] . "'");
         if(count($dtBarc) == 0){
             return ApiFormatter::error(400, 'Tidak ada Data!');
         }
 
         //! DOWNLOAD DALAM BENTUK ZIP
         foreach($dtBarc as $item){
-            $this->PrintNotaIIK($dgv_notrans, $item->pobi_nocontainer, $dgv_kodeWeb, $dgv_nopb, $dgv_tglpb);
+            $this->PrintNotaIIK($selectedRow['no_trans'], $item->pobi_nocontainer, $selectedRow['kodeweb'], $selectedRow['no_pb'], $selectedRow['tgl_pb']);
         }
+
+        return ApiFormatter::success(200, 'Action cetak IKK berhasil');
     }
 
     //! btnPBBatal_Click
@@ -2704,12 +2707,12 @@ class KlikIgrController extends Controller
         $query .= "       CASE WHEN LENGTH(COALESCE(amm_namapenerima, cus_namamember)) > 30 THEN SUBSTR(COALESCE(amm_namapenerima, cus_namamember),0,27) || '...' ELSE COALESCE(amm_namapenerima, cus_namamember) END nama, ";
         $query .= "       COALESCE(amm_hp, COALESCE(cus_tlpmember, cus_hpmember)) telp, ";
         $query .= "       amm_namaalamat alamat, ";
-        $query .= "       COALESCE(amm_noawb, 'SJ' || TO_CHAR(obi_tgltrans, 'YYMMDD') || COALESCE(obi_kdstation,'00') || COALESCE(obi_nostruk,'00000')) no_awb, ";
+        $query .= "       COALESCE(amm_noawb, 'SJ' || TO_CHAR(obi_tgltrans, 'YYMMDD') || COALESCE(obi_kdstation,'00') || COALESCE(obi_nostruk,'00000')) AS no_awb, ";
 
         if(session('flagIGR') == true AND session('flagSPI') == false){
-            $query .= "       COALESCE(TO_CHAR(obi_notrans), '-') as nopik ";
+            $query .= "       COALESCE(obi_notrans, '-') as nopik ";
         }else{
-            $query .= "       COALESCE(TO_CHAR(obi_nopick), '-') as nopik ";
+            $query .= "       COALESCE(obi_nopick, '-') as nopik ";
         }
         $query .= "FROM tbtr_obi_h ";
         $query .= "JOIN tbtr_alamat_mm ";
@@ -2722,46 +2725,51 @@ class KlikIgrController extends Controller
         $query .= "  AND obi_nopb = '" . $nopb . "' ";
         $dtAlamat = DB::select($query);
 
-        // str &= "           INFORMASI ISI KOLI           " & vbCrLf
-        // str &= "========================================" & vbCrLf
-        // str &= vbNewLine
+        $str = "           INFORMASI ISI KOLI           " . PHP_EOL;
+        $str .= "========================================" . PHP_EOL;
+        $str .= PHP_EOL;
 
-        // str &= "Member :" & _dtAlamat.Rows(0).Item("kdmember").ToString & vbCrLf
-        // str &= "        " & _dtAlamat.Rows(0).Item("nama").ToString & vbCrLf
-        // str &= "No.PB  :" & nopb & vbCrLf
-        // str &= "Tgl.PB :" & tglpb & vbCrLf
-        // str &= vbNewLine
+        $str .= "Member :" . $dtAlamat[0]->kdmember . PHP_EOL;
+        $str .= "        " . $dtAlamat[0]->nama . PHP_EOL;
+        $str .= "No.PB  :" . $nopb . PHP_EOL;
+        $str .= "Tgl.PB :" . $tglpb . PHP_EOL;
+        $str .= PHP_EOL;
 
-        // str &= "Ref. No SJ :" & _dtAlamat.Rows(0).Item("no_awb").ToString & vbCrLf
-        // str &= "No.Pick    :" & _dtAlamat.Rows(0).Item("nopik").ToString & vbCrLf
-        // str &= "No.Koli    :" & noContainer & vbCrLf
-        // str &= vbNewLine
+        $str .= "Ref. No SJ :" . $dtAlamat[0]->no_awb . PHP_EOL;
+        $str .= "No.Pick    :" . $dtAlamat[0]->nopik . PHP_EOL;
+        $str .= "No.Koli    :" . $noContainer . PHP_EOL;
+        $str .= PHP_EOL;
 
-        // str &= "========================================" & vbCrLf
-        // str &= "No.   PLU   Nama Barang          SAT QTY" & vbCrLf
-        // str &= "________________________________________" & vbCrLf
-        // str &= vbNewLine
+        $str .= "========================================" . PHP_EOL;
+        $str .= "No.   PLU   Nama Barang          SAT QTY" . PHP_EOL;
+        $str .= "________________________________________" . PHP_EOL;
+        $str .= PHP_EOL;
 
-        // Dim counter As Integer = 0
-        // For i As Integer = 0 To _dtDetailBrg.Rows.Count - 1
-        //     str &= "" & (counter + 1).ToString.PadLeft(3, " ").ToString & " "
-        //     str &= _dtDetailBrg.Rows(i).Item("plu").ToString & " "
-        //     str &= _dtDetailBrg.Rows(i).Item("desk").ToString.PadRight(20, " ") & " "
-        //     str &= _dtDetailBrg.Rows(i).Item("unit").ToString.PadLeft(3, " ")
-        //     str &= _dtDetailBrg.Rows(i).Item("qty").ToString.PadLeft(4, " ")
-        //     str &= vbNewLine
+        $counter = 0;
+        foreach ($dtDetailBrg as $row) {
+            $str .= str_pad(($counter + 1), 3, " ", STR_PAD_LEFT) . " ";
+            $str .= $row->plu . " ";
+            $str .= str_pad($row->desk, 20, " ", STR_PAD_RIGHT) . " ";
+            $str .= str_pad($row->unit, 3, " ", STR_PAD_LEFT);
+            $str .= str_pad($row->qty, 4, " ", STR_PAD_LEFT);
+            $str .= PHP_EOL;
 
-        //     counter += 1
-        // Next
+            $counter++;
+        }
 
-        // str &= "________________________________________" & vbCrLf
-        // str &= vbNewLine
-        // str &= "Total : " & counter & " item " & vbCrLf
+        $str .= "________________________________________" . PHP_EOL;
+        $str .= PHP_EOL;
+        $str .= "Total : " . $counter . " item " . PHP_EOL;
 
-        // Dim str3 As String = ""
+        $str3 = "";
 
-        // str3 &= "========================================" & vbCrLf
-        // str3 &= vbNewLine
+        $str3 .= "========================================" . PHP_EOL;
+        $str3 .= PHP_EOL;
+
+        return $str;
+
+        //! NOTE KEVIN
+        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
 
         //! ADA CETAK PRINTER CUMA BINGUNG (FR KEVIN) 03/05/2024
     }

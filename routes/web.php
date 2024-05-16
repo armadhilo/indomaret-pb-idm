@@ -83,6 +83,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
             //! KEVIN ROUTE
             Route::post("/action-cetak-surat-jalan", [KlikIgrController::class, 'actionCetakSuratJalan']);
+            Route::post("/action-cetak-ikk", [KlikIgrController::class, 'actionCetakIKK']);
 
         });
     });
