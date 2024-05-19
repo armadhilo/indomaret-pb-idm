@@ -10,57 +10,157 @@ let selectedTable,
     cabang = null;
 
 $(document).ready(function(){
-      $('#scrollContainer').on('scroll', function () {
-         var container = $(this);
-         if (container.scrollTop() + container.innerHeight() >= container[0].scrollHeight) {
-         // Load more data when scrolled to the bottom
-         // view();
-         }
-      });
-      
-      /**
-       * table_plu
-       */
-      // $('#table_plu input[type="checkbox"]').click(function () {
-      //       // Toggle the 'selected' class on the parent row
-      //       $(this).closest('tr').toggleClass('selected-row', this.checked);
-      // });
-      // $('#table_plu tbody').on('click', 'tr', function () {
-
-      //    $(this).toggleClass('selected-row');
-      //    selectedTablePLU = $(this).find('td').map(function (data) {
-      //          return $(this).text();
-      //    }).get();
-      //    $(this).find('input[type="checkbox"]').prop('checked', function (i, oldProp) {
-      //       if ($(this).is(':checked')) {
-      //          addPlu(selectedTablePLU[1],false)
-      //    } else {
-      //          addPlu(selectedTablePLU[1],true)
-      //    }
-      //       return !oldProp;
-      //    });
+       /**
+        * selected voucher
+        */
+       $('#table_pengiriman tbody').on('click', 'tr', function () {
          
+         $('#table_pengiriman tbody tr').removeClass('selected-row');
 
-      // });
+         $(this).addClass('selected-row');
+         
+         $(".print").hide();
+         $(".picking").hide();
+         $(".try").hide();
+         selectedTable = $(this).find('td').map(function (data) {
+               return $(this).text();
+         }).get();
+            // if(selectedTable[1] == "Siap DSPB" ) 
+            // {
+            //    //   show button print
+            //    $(this).find('.print').toggle();
+            // }
+            // if(selectedTable[1] == "Selesai DSPB" ) 
+            // {
+            //    //   show button transfer ulang
+            //    // $(this).find('.try').toggle();
+
+            //    $(this).find('.print').toggle();
+            // }
+
+            // $(this).find('.picking').toggle();
+         // selectedValue(selectedTable[1]);
+
+      });
+
+
+       /**
+        * search voucher
+        */
+     $('#search_pengiriman').on('input', function () {
+            var searchText = $(this).val().toLowerCase();
+
+            $('#table_pengiriman tbody tr').each(function () {
+               var rowText = $(this).text().toLowerCase();
+
+               $(this).toggle(rowText.includes(searchText));
+            });
+      });
 
       $('.select2').select2({
          allowClear: false
       }); 
-      // $("#datepicker").datepicker({
-      //    format: "dd-MM-yyyy",
-      //    autoclose: true,
-      //    todayHighlight: true
-      // });
-      getDataZona();
-      // getDataRak();
-      // $("#by-plu").prop("checked", true);
-      // toggleInput('by-plu')
+      getDataMonitoring();
 
       $(".monitoring-label").hide();
 });
 
+list_kubikasi_pb_idm =()=>{
+   var getTanggal = $(".tanggal").val(),
+       newDate;
+   if (getTanggal !== '') {
+   var dateAr =  getTanggal.split('-');
+         newDate = dateAr[2] + '-' + dateAr[1] + '-' + dateAr[0];
+   }
+
+   var tanggal = newDate?newDate:moment().format('DD-MM-YYYY');
+   let text = 'Cetak List Kubikasi Pb Idm tanggal '+tanggal+' ?';
+
+   Swal.fire({
+      title: text,
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: `Ya`,
+      denyButtonText: `Tidak`,
+  }).then((result) => {
+      /* Read more about isConfirmed, isDenied below */
+      if (result.value) {
+          load = 1;
+          Swal.fire(
+                  'Berhasil',
+                  'success'
+            )
+          window.open(link+'/api/monitoring/download/list_kubikasi_pb_idm?tanggal='+tanggal,'_blank');
+         
+      }
+      /* Read more about isConfirmed, isDenied below */
+  });
+}
+cetak_data_paket_pengiriman_idm =()=>{
+   var getTanggal = $(".tanggal").val(),
+       newDate;
+   if (getTanggal !== '') {
+   var dateAr =  getTanggal.split('-');
+         newDate = dateAr[2] + '-' + dateAr[1] + '-' + dateAr[0];
+   }
+
+   var tanggal = newDate?newDate:moment().format('DD-MM-YYYY');
+   let text = 'Cetak List Paket Pengiriman Pb Idm tanggal '+tanggal+' ?';
+
+   Swal.fire({
+      title: text,
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: `Ya`,
+      denyButtonText: `Tidak`,
+  }).then((result) => {
+      /* Read more about isConfirmed, isDenied below */
+      if (result.value) {
+          load = 1;
+          Swal.fire(
+                  'Berhasil',
+                  'success'
+            )
+          window.open(link+'/api/monitoring/download/list_paket_pengiriman_idm?tanggal='+tanggal,'_blank');
+         
+      }
+      /* Read more about isConfirmed, isDenied below */
+  });
+}
+file_rekon =()=>{
+   var getTanggal = $(".tanggal").val(),
+       newDate;
+   if (getTanggal !== '') {
+      var dateAr =  getTanggal.split('-');
+          newDate = dateAr[2] + '-' + dateAr[1] + '-' + dateAr[0];
+   }
+
+   var tanggal = newDate?newDate:moment().format('DD-MM-YYYY');
+   let text = 'Create File CSV AMS tanggal '+tanggal+' ?';
+
+   Swal.fire({
+      title: text,
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: `Ya`,
+      denyButtonText: `Tidak`,
+  }).then((result) => {
+      /* Read more about isConfirmed, isDenied below */
+      if (result.value) {
+          load = 1;
+          Swal.fire(
+                  'Berhasil',
+                  'success'
+            )
+          window.open(link+'/api/monitoring/download/filerekon?tanggal='+tanggal,'_blank');
+         
+      }
+      /* Read more about isConfirmed, isDenied below */
+  });
+}
+
 download_txt=()=>{
-   $('#downloadBtn').click(function(){
+   // $('#downloadBtn').click(function(){
       var textData = '';
       textData += "ISI KOLI\n";
       textData += "TOKO  : T7G5 - MODERN BOULEVARD\n";
@@ -95,7 +195,7 @@ download_txt=()=>{
       
       // Release the Object URL resource
       window.URL.revokeObjectURL(url);
-    });
+   //  });
 }
 
 toggleInput =(nameClass,deleteVar)=>{
@@ -121,146 +221,99 @@ changePRDCD=(data)=>{
 }
 
 
-getDataZona =()=>{
+getDataMonitoring =(tanggal = null,zona = null,report_qrcode = null,report_zona = null)=>{
    let select = "";
        listDataPLU = [];
-
-   // $('#label-tag').loading('toggle');
-   $.getJSON(link + "/api/monitoring/zona", function(data) {
+       param = tanggal?"tanggal="+tanggal:'';
+       param += report_zona?"&report_zona="+report_zona:'';
+       param += zona?"&zona="+zona:'';
+       param += report_qrcode?"&report_qrcode="+report_qrcode:'';
+     
+   $('#label-tag').loading('toggle');
+   $.getJSON(link + "/api/monitoring/data?"+param, function(data) {
      
       if(data){
-         $.each(data,function(key,value){
+         $.each(data.data_zona,function(key,value){
                select+=` <option value="${value.zon_kode}" >${value.zon_kode}</option>`;
                listDataPLU[value.prdcd] = value;
 
          });
+         $(".siapDspb").html(data.data_card.siapDspb)
+         $(".jmlhPb").html(data.data_card.jmlhPb)
+         $(".sendJalur").html(data.data_card.sendJalur)
+         $(".picking").html(data.data_card.picking)
+         $(".scanning").html(data.data_card.scanning)
+         $(".selesaiLoading").html(data.data_card.selesaiLoading)
+         $(".selesaiDspb").html(data.data_card.selesaiDspb)
+         $(".monitoring-label").show();
+         $(".monitoring-label").html(data.data_card.lblMonitoring)
          $("#zona").append(select);
       }
 
-   })
+   }).fail(function() {
+      $('#label-tag').loading('toggle');
+   }).done(function() {
+      $('#label-tag').loading('toggle');
+   });
 
    // $('#label-tag').loading('toggle');
 
 }
-
-getDataRak =()=>{
+getDataPaketPengirimanIDM =()=>{
    let select = "";
-       listDataRak = [];
+       listDataPLU = [];
+       var getTanggal = $(".tanggal").val(),
+            newDate;
+         if (getTanggal !== '') {
+         var dateAr =  getTanggal.split('-');
+               newDate = dateAr[2] + '-' + dateAr[1] + '-' + dateAr[0];
+         }
 
-   $('#label-tag').loading('toggle');
-   $.getJSON(link + "/api/data/rak", function(data) {
+         var tanggal = newDate?newDate:moment().format('DD-MM-YYYY');
+       param = tanggal?"tanggal="+tanggal:'';
      
-      if(data){
-         $.each(data,function(key,value){
-               select+=` <option value="${value.subrak}" >(${value.subrak})</option>`;
-               listDataRak[value.prdcd] = value;
-
-         });
-         $("#sub-rak").append(select);
-      }
-
-   })
-
-   $('#label-tag').loading('toggle');
-
-}
-
-view =(prdcd = null,rak = null)=>{
-   // reset_selected();
-
-   let select = "",
-       param = "",
-       kategori=null;
-       dataPLU = [];
-
-       kategori = $(".kategori").val();
-       if (prdcd) {
-         param = "prdcd="+prdcd;
-      } else {
-          param = "rak="+rak;
-         
-       }
-       param = param+"&kategori="+kategori;
-
-      $('#label-tag').loading('toggle');
-      $.getJSON(link + "/api/check/data?"+param, function(data) {
-      // list data member
-         $.each(data,function(key,value) {
+   $('#modal_pengiriman').loading('toggle');
+   $.getJSON(link + "/api/monitoring/data/list_paket_pengiriman_idm?"+param, function(data) {
+      field = '';
+      $('#table-content-pengiriman').html('');
+      if(data.data.length > 0){
+         $.each(data.data,function(key,value){
             field+=`
-                     <tr>
+            <tr>
+                  <td>${value.no_pengiriman?value.no_pengiriman:'-'}</td>
+                  <td>${value.kode_toko?value.kode_toko:'-'}</td>
+                  <td>${value.no_pb?value.no_pb:'-'}</td>
+                  <td>${value.tgl_pb?value.tgl_pb:'-'}</td>
+                  <td>${value.no_dspb?value.no_dspb:'-'}</td>
+            </tr>
+         `;
 
-                           <td><input type="checkbox" value="1"></td>
-                           <td scope="row">${value.temp_plu?value.temp_plu:'-'}</td>
-                           <td>${value.temp_recordid?value.temp_recordid:'-'}</td>
-                           <td>${value.temp_subrak?value.temp_subrak:'-'}</td>
-                           <td>${value.prd_deskripsipanjang?value.prd_deskripsipanjang:'-'}</td>
-                           <td>${value.prd_unit?value.prd_unit:'-'}</td>
-                           <td>${value.prd_kodetag?value.prd_kodetag:'-'}</td>
-                     </tr>
-                  `;
-                  dataPLU[value.kode_member] = value;
          });
-      }).fail(function(jqXHR, textStatus, errorThrown) {
-         // Error callback
+
+      console.log(field)
+      }else{
          Swal.fire({
             title: 'Gagal',
-            html: jqXHR.responseJSON.messages,
+            html: 'Data kosong',
             icon: 'warning',
             allowOutsideClick: false,
             onOpen: () => {
                     swal.hideLoading()
             }
         });
+         $('#modal_pengiriman').modal('hide');
+      }
 
-         $('#label-tag').loading('toggle');
-     }).done(function() {
-         $(".list-plu").show();
-         $('#label-tag').loading('toggle');
-         $("#table-content").html(field);
-      }); 
+   }).fail(function() {
+      $('#modal_pengiriman').loading('toggle');
+   }).done(function() {
+      console.log(field !== '')
+      if (field !== '') {
+         $('#table-content-pengiriman').append(field);
+      }
+      $('#modal_pengiriman').loading('toggle');
+   });
 
-}
+   // $('#label-tag').loading('toggle');
 
-// pencarian=()=>{
-//    reset_selected();
-// }
-
-selectedValue =(kode_member)=>{
-   selectedData  = dataPLU[kode_member];
-}
-
-reset_selected=()=>{
-   selectedData  =  [];
-   $('.tombol_edit').prop('disabled',true);
-   $('#table_member tbody tr').removeClass('selected-row');
-   $('.tombol_reset').hide();
-   if (search) {
-      view();
-   }
-
-}
-
-addPlu=(plu,status)=>{
-   console.log(listPLU)
-   if (status) {
-      listPLU.push(plu)
-      
-   } else {
-      // remove array by value
-      Array.prototype.remove = function() {
-         var what, a = arguments, L = a.length, ax;
-         while (L && this.length) {
-             what = a[--L];
-             while ((ax = this.indexOf(what)) !== -1) {
-                 this.splice(ax, 1);
-             }
-         }
-         return this;
-     };
-      listPLU.remove(plu)
-
-      
-   }
-
-   console.log(listPLU)
 }

@@ -215,19 +215,20 @@ class VoucherController extends Controller
                         ->selectRaw("msi_kodedc")
                         ->whereRaw("msi_kodetoko = '$kodetoko'")
                         ->get();
+                        
             if (count($dt) > 0) {
                 $kodeDCIDM = $dt[0]->msi_kodedc;
             }
-
+            
             $dtD = $this->DB_PGSQL
-                       ->table("tbmaster_pbomi")
-                       ->join('',function($join){
+                        ->table("tbmaster_pbomi")
+                        ->join('tbmaster_prodmast',function($join){
                             $join->on("pbo_pluigr","=","prd_prdcd");
-                       })
-                       ->selectRaw("
-                            *' recid,
+                        })
+                        ->selectRaw("
+                            '*' recid,
                             NULL rtype,
-                            $noDspb  docno,
+                            'test'  docno,
                             ROW_NUMBER() OVER() seqno,
                             pbo_nopb picno,
                             NULL picnot,
@@ -257,17 +258,18 @@ class VoucherController extends Controller
                             COALESCE(prd_ppn, 0) ppn_rate,
                             COALESCE(prd_flagbkp1, 'N') BKP,
                             COALESCE(prd_flagbkp2, 'N') SUB_BKP
+                        
+                        ")
+                        ->whereRaw(" PBO_TGLPB::timestamp = '$tglpb'::timestamp ")
+                        ->whereRaw(" pbo_nopb = '$nopb'")
+                        ->whereRaw(" pbo_kodeomi = '$kodetoko'")
+                        ->whereRaw(" pbo_qtyrealisasi > 0")
+                        ->whereRaw(" pbo_recordid = '4'")
+                        ->whereRaw(" pbo_nokoli like '04%'")
+                        ->get();
                        
-                       ")
-                       ->whereRaw(" PBO_TGLPB = TO_DATE(?, 'dd/MM/YYYY') ")
-                       ->whereRaw(" pbo_nopb = '$nopb'")
-                       ->whereRaw(" pbo_kodeomi = '$kodetoko'")
-                       ->whereRaw(" pbo_qtyrealisasi > 0")
-                       ->whereRaw(" pbo_recordid = '4")
-                       ->whereRaw(" pbo_nokoli like '04%'")
-                       ->get();
             if (count($dtD)) {
-                $update_db= $this->update_db($nodspb, $kodetoko,$nopb,$tglpb);
+                $update_db= $this->update_db($noDspb, $kodetoko,$nopb,$tglpb);
                 $nmNpb = "NPV" . $dtD[0]->kirim . $dtD[0]->toko . $tglServer;
 
                 // make csv
@@ -327,7 +329,7 @@ class VoucherController extends Controller
 
 
                 // SIMPAN NAMA NPB
-                $this->simpanDSPB($nmNpb . ".ZIP", $_toko, $_nopb, 0, 0, $noDspb, "V- PBVOUCHER");
+                $this->simpanDSPB($nmNpb . ".ZIP", $kodetoko, $nopb, 0, 0, $noDspb, "V- PBVOUCHER");
 
                 // Caesar_Encrypt_AllNumeric(noDspb & "9999", _tglServer)
                 $npbAspera = $this->DB_PGSQL
@@ -388,8 +390,8 @@ class VoucherController extends Controller
 
                     // create report qr code
                     // if ($checkQR) {
-                    //     // create_qrcode($nmNpb,
-                    //     //             $_toko,
+                    //     // create_qr_code($nmNpb,
+                    //     //             $kodetoko,
                     //     //             $noDspb,
                     //     //             str_replace("-", "/", $dtD[0]->TANGGAL1),
                     //     //             count($dtD),
@@ -417,7 +419,7 @@ class VoucherController extends Controller
             // $labelStatus = "Load Data Pb to Memory";
             // event(new UpdateStatusEvent($labelStatus));
 
-            // $dtD = DB::select($sb->toString(), [$_tglpb, $_nopb, $_toko], 20);
+            // $dtD = DB::select($sb->toString(), [$_tglpb, $nopb, $kodetoko], 20);
 
 
 
@@ -572,14 +574,14 @@ class VoucherController extends Controller
                             ->whereRaw("pbo_kodeomi = ikl_kodeidm ") 
                             ->whereRaw("pbo_nokoli = ikl_nokoli ") 
                             ->whereRaw("PBO_TGLPB::date = '" . $_tglpb . "'::date") 
-                            ->whereRaw("pbo_nopb = '" . $_nopb . "' ") 
-                            ->whereRaw("pbo_kodeomi = '" . $_toko . "' ") 
+                            ->whereRaw("pbo_nopb = '" . $nopb . "' ") 
+                            ->whereRaw("pbo_kodeomi = '" . $kodetoko . "' ") 
                             ->whereRaw("pbo_nokoli like '04%' ") 
                             ->groupBy("ikl_tglbpd","pbo_kodeomi")
                             ->get();
 
                 $namafile = $dtH[0]->gudang . $dtH[0]->toko . date("YmdHis");
-                // $namafile = getFileName($_toko, $noDspb, "NPV");
+                // $namafile = getFileName($kodetoko, $noDspb, "NPV");
                 
                 if (count($dtH) > 0) {
                     //make CSV
@@ -762,8 +764,8 @@ class VoucherController extends Controller
                     $Sql .= "FROM tbtr_header_materai_voucher ";
                     $Sql .= "JOIN tbtr_idmkoli ON hmv_kodetoko = ikl_kodeidm AND hmv_nopb = ikl_nopb AND TO_CHAR(hmv_tglpb,'yyyyMMdd') = ikl_tglpb ";
                     $Sql .= "JOIN tbmaster_pbomi ON hmv_kodetoko = pbo_kodeomi AND hmv_nopb = pbo_nopb AND hmv_tglpb = pbo_tglpb ";
-                    $Sql .= "WHERE hmv_kodetoko = '" . $_toko . "' ";
-                    $Sql .= "AND hmv_nopb = '" . $_nopb . "' ";
+                    $Sql .= "WHERE hmv_kodetoko = '" . $kodetoko . "' ";
+                    $Sql .= "AND hmv_nopb = '" . $nopb . "' ";
                     $Sql .= "AND hmv_tglpb = TO_DATE('" . $_tglpb->format("d-m-Y") . "','dd-MM-yyyy') ";
                     $Sql .= "AND ikl_nokoli LIKE '04%' ORDER BY ikl_nokoli DESC) t LIMIT 1";
                 
@@ -1040,7 +1042,11 @@ class VoucherController extends Controller
         $tglpb = "2023-02-02";
         $header_cetak_custom = 'bellow';
         //Testing
-        $data = $this->dspb_vm($kodetoko,$tglpb,$nopb)
+        // $data = $this->dspb_vm($kodetoko,$tglpb,$nopb);
+        $data_qr = (new QRController)->create_qr_code('2009021701_GSM',$kodetoko,'G1111',);
+        
+        dd('keluar');
+       
         //end testing
         // $data = $this->create_report($kodetoko,$tglpb,$nopb);
         // $data['kodetoko'] = $kodetoko;

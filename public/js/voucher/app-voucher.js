@@ -126,7 +126,7 @@ $(document).ready(function(){
 getVoucherData =(tanggal = null,report_qrcode = null)=>{
    let select = "",
        param = tanggal?"tanggal="+tanggal:'';
-       param += report_qrcode?"&eport_qrcode="+report_qrcode:'';
+       param += report_qrcode?"&report_qrcode="+report_qrcode:'';
        listDataVoucher = [];
        field = '';
    

@@ -59,7 +59,18 @@ Route::middleware(['mylogin'])->group(function () {
         /*  Monitoring */
         Route::prefix('/monitoring')->group(function () {
 
-            Route::get('/zona', [MonitoringController::class, 'load_zona']);
+            Route::get('/data', [MonitoringController::class, 'monitoring_load']);
+            Route::get('/data/list_paket_pengiriman_idm', [MonitoringController::class, 'list_paket_pengiriman_idm']);
+            Route::get('/download/filerekon', [MonitoringController::class, 'csv_rekon']);
+            Route::get('/download/list_kubikasi_pb_idm', [MonitoringController::class, 'cetakk_list_kubikasi_pb_idm']);
+            Route::get('/download/list_paket_pengiriman_idm', [MonitoringController::class, 'cetak_list_paket_pengiriman_idm']);
+
+        });
+        /*  Proses WT */
+        Route::prefix('/proseswt')->group(function () {
+
+            Route::post('/send', [ProsesWTController::class, 'send_file']);
+
         });
         /*  Voucher */
         Route::prefix('/voucher')->group(function () {

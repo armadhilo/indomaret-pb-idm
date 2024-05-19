@@ -6,7 +6,8 @@
 <body>
 
 <header>
-    @if(!isset($header_cetak_custom))
+    
+    @if(!($header_cetak_custom))
         <!-- default -->
         <!-- upper header -->
         <div style="float:left; margin-top: 0px; line-height: 8px !important;">

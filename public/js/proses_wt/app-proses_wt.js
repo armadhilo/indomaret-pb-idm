@@ -1,12 +1,11 @@
 let selectedTable,
     selectedData  =  [],
-    dataPLU =[],
-    listPLU =[],
-    listDataPLU = [],
-    listDataRak = [],
+    selectedToko =[],
+    dataToko =[],
     search  =  false,
     page = 1,
     field = null,
+    formData = null,
     cabang = null;
 
 $(document).ready(function(){
@@ -43,177 +42,97 @@ $(document).ready(function(){
       //    autoclose: true,
       //    todayHighlight: true
       // });
-      getDataZona();
-      // getDataRak();
-      // $("#by-plu").prop("checked", true);
-      // toggleInput('by-plu')
-
-      $(".monitoring-label").hide();
+      
+      $('#form_wt').submit(function(e){
+         e.preventDefault();
+           formData = new FormData(this)
+      })
 });
 
-toggleInput =(nameClass,deleteVar)=>{
+submit_wt =()=>{
 
-   $('#label-tag').loading('toggle');
-   let className = '.'+nameClass;
-   
-   $('.input-form').hide();
-   $('.input-data').prop('disabled',true);
-   $(className).prop('disabled',false);
-   $(className).show();
+   $('#proses-wt').loading('toggle');
+   $('#form_wt').submit()
+   // let csrf = $('meta[name="csrf-token"]').attr('content'),
+   //       file = $("#file").val();
+   //       formWT = new FormData();
+   //    formWT.append('_token', csrf);
+   //    formWT.append("file",file);
 
-   $('#label-tag').loading('toggle');
+      $.ajax({
+            url: link+'/api/proseswt/send',
+            method: 'POST',
+            data: formData,
 
-}
-
-changePRDCD=(data)=>{
-
-   let prdcd = $("#prdcd").val();
-
-   view(prdcd,null);
-   
-}
-
-
-getDataZona =()=>{
-   let select = "";
-       listDataPLU = [];
-
-   // $('#label-tag').loading('toggle');
-   $.getJSON(link + "/api/monitoring/zona", function(data) {
-     
-      if(data){
-         $.each(data,function(key,value){
-               select+=` <option value="${value.zon_kode}" >${value.zon_kode}</option>`;
-               listDataPLU[value.prdcd] = value;
-
-         });
-         $("#zona").append(select);
-      }
-
-   })
-
-   // $('#label-tag').loading('toggle');
-
-}
-
-getDataRak =()=>{
-   let select = "";
-       listDataRak = [];
-
-   $('#label-tag').loading('toggle');
-   $.getJSON(link + "/api/data/rak", function(data) {
-     
-      if(data){
-         $.each(data,function(key,value){
-               select+=` <option value="${value.subrak}" >(${value.subrak})</option>`;
-               listDataRak[value.prdcd] = value;
-
-         });
-         $("#sub-rak").append(select);
-      }
-
-   })
-
-   $('#label-tag').loading('toggle');
-
-}
-
-view =(prdcd = null,rak = null)=>{
-   // reset_selected();
-
-   let select = "",
-       param = "",
-       kategori=null;
-       dataPLU = [];
-
-       kategori = $(".kategori").val();
-       if (prdcd) {
-         param = "prdcd="+prdcd;
-      } else {
-          param = "rak="+rak;
+            success: function (response) {
+            },
+            error: function (xhr) {
+            },
+            cache: false,
+            contentType: false,
+            processData: false,
+            dataType: "json"
+      }).fail(function (e) {
          
-       }
-       param = param+"&kategori="+kategori;
+         $('#proses-wt').loading('toggle');
+      })
+      .done(function (data) {
+         
+         if (data.data.data_toko) {
+         let no = 1;
+            field = null;
 
-      $('#label-tag').loading('toggle');
-      $.getJSON(link + "/api/check/data?"+param, function(data) {
-      // list data member
-         $.each(data,function(key,value) {
-            field+=`
-                     <tr>
-
-                           <td><input type="checkbox" value="1"></td>
-                           <td scope="row">${value.temp_plu?value.temp_plu:'-'}</td>
-                           <td>${value.temp_recordid?value.temp_recordid:'-'}</td>
-                           <td>${value.temp_subrak?value.temp_subrak:'-'}</td>
-                           <td>${value.prd_deskripsipanjang?value.prd_deskripsipanjang:'-'}</td>
-                           <td>${value.prd_unit?value.prd_unit:'-'}</td>
-                           <td>${value.prd_kodetag?value.prd_kodetag:'-'}</td>
-                     </tr>
-                  `;
-                  dataPLU[value.kode_member] = value;
-         });
-      }).fail(function(jqXHR, textStatus, errorThrown) {
-         // Error callback
-         Swal.fire({
-            title: 'Gagal',
-            html: jqXHR.responseJSON.messages,
-            icon: 'warning',
-            allowOutsideClick: false,
-            onOpen: () => {
-                    swal.hideLoading()
-            }
-        });
-
-         $('#label-tag').loading('toggle');
-     }).done(function() {
-         $(".list-plu").show();
-         $('#label-tag').loading('toggle');
-         $("#table-content").html(field);
+            $.each(data.data.data_toko,function(key,value) {
+               field+=`
+                        <tr>
+   
+                              <td>
+                                 ${no++}
+                              </td>
+                              <td>${value.toko?value.toko:'-'}</td>
+                              <td>${value.nama_toko?value.nama_toko:'-'}</td>
+                              <td>${value.hari_bln?value.hari_bln:'-'}</td>
+                              <td>${value.file_wt?value.file_wt:'-'}</td>
+                        </tr>
+                     `;
+                     dataToko[value.toko] = value;
+            });
+   
+            
+            $("#table-content-proseswt").append(field);
+            $('.dpp_idm').val(format_currency(data.data.dpp_idm));
+            $('.ppn_idm').val(format_currency(data.data.ppn_idm));
+            $('.total_idm').val(format_currency(data.data.total_idm));
+            $('.dpp_igr').val(format_currency(data.data.dpp_igr));
+            $('.ppn_igr').val(format_currency(data.data.ppn_igr));
+            $('.total_igr').val(format_currency(data.data.total_igr));
+            $('.retur_fisik').val(format_currency(data.data.retur_fisik));
+            $('.retur_peforma').val(format_currency(data.data.retur_performa));
+         //    $(".rupiah").keyup(function(){
+         //       if ($(".rupiah").val().trim().length === 0) {
+         //               $(".rupiah").val(0);
+         //       }
+         //       if ($('input[name="hargaMRC"]').val().trim().length === 0) {
+         //               $('input[name="hargaMRC"]').val(0);
+         //       }
+         //       var n = parseInt($(this).val().replace(/\D/g, ''), 10);
+         //       $(this).val(n.toLocaleString());
+         //       //do something else as per updated question
+         //   });
+         var selisih = data.data.total_idm - data.data.total_igr;
+         $('.total_selisih').html(format_currency(selisih));
+         
+           
+         }
+         $('#proses-wt').loading('toggle');
       }); 
 
 }
 
-// pencarian=()=>{
-//    reset_selected();
-// }
-
-selectedValue =(kode_member)=>{
-   selectedData  = dataPLU[kode_member];
-}
-
-reset_selected=()=>{
-   selectedData  =  [];
-   $('.tombol_edit').prop('disabled',true);
-   $('#table_member tbody tr').removeClass('selected-row');
-   $('.tombol_reset').hide();
-   if (search) {
-      view();
-   }
+format_currency=(data)=>{
+   var value = data.toLocaleString();
+   n = parseInt(value.replace(/\D/g, ''), 10);
+   return n.toLocaleString();
 
 }
 
-addPlu=(plu,status)=>{
-   console.log(listPLU)
-   if (status) {
-      listPLU.push(plu)
-      
-   } else {
-      // remove array by value
-      Array.prototype.remove = function() {
-         var what, a = arguments, L = a.length, ax;
-         while (L && this.length) {
-             what = a[--L];
-             while ((ax = this.indexOf(what)) !== -1) {
-                 this.splice(ax, 1);
-             }
-         }
-         return this;
-     };
-      listPLU.remove(plu)
-
-      
-   }
-
-   console.log(listPLU)
-}
