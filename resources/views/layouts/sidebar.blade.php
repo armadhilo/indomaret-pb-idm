@@ -51,6 +51,11 @@
             <i class="fa fa-desktop"></i>
             <span>PROSES_WT</span></a>
     </li>
+    <li class="nav-item @if($sub_url == 'retur') active @endif">
+        <a class="nav-link" href="{{ url('/retur') }}">
+            <i class="fa fa-desktop"></i>
+            <span>RETUR</span></a>
+    </li>
      <!-- ================================================================ -->
     <!-- ======================= END ================================== -->
     <!-- ================================================================ -->
