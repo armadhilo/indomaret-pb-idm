@@ -289,9 +289,9 @@
                             <button class="btn btn-action btn-royal w-100" actionName="CetakIIK" style="height: 50px">Cetak IIK</button>
                         </div>
                         <button class="btn btn-action btn-light-red" actionName="PbBatal">{{ $btnPBBatal }}</button>
-                        <button class="btn btn-action btn-light-red" actionName="ListPickingBelumTransit">List Item Picking Belum Transit</button>
+                        <button class="btn btn-action btn-light-red" actionName="ItemPickingBelumTransit">List Item Picking Belum Transit</button>
                         <button class="btn btn-action btn-light-red" actionName="LoppCOD">LOPP - COD</button>
-                        <button class="btn btn-action btn-light-red" actionName="ListPbMaxSerahTerima">List PB Lebih dari Max Serah Terima</button>
+                        <button class="btn btn-action btn-light-red" actionName="ListPBLebihDariMaxSerahTerima">List PB Lebih dari Max Serah Terima</button>
                         <button class="btn btn-action btn-orange" actionName="MasterPickingHH">Master Picker HH</button>
                         <button class="btn btn-action btn-orange" actionName="ListingDelivery">Listing Delivery</button>
                         {{-- <button class="btn btn-action btn-orange" actionName="MasterPolDeliveryVan">Master No. Pol Delivery Van</button>
@@ -312,6 +312,10 @@
                 <div class="card" style="height: calc(100vh - 235px)">
                     <div class="card-shadow">
                         <div class="card-body">
+                            <div class="d-flex" style="gap: 20px;">
+                                <div class="detail-info text-light bg-royal" style="width: 50%; height: 40px; font-weight: bold; font-size: .9rem">No. Trans yang Dipilih : <span id="label_no_trans" style="padding-left: 6px">-</span></div>
+                                <div class="detail-info text-light" style="background: #bf0000 !important; width: 50%; height: 40px; font-weight: bold; font-size: .9rem" id="label_item_batal">*Ada Item Belum Dikembalikan Ke Rak</div>
+                            </div>
                             <div class="table-responsive position-relative">
                                 <table class="table table-striped table-hover datatable-dark-primary w-100" id="tb">
                                     <thead>
@@ -1097,6 +1101,32 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_list_pb_batal" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600" id="modal_list_pb_batal_title">LIST PB BATAL</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive position-relative" style="margin-top: 18px;">
+                    <table class="table table-center table-striped table-hover datatable-dark-primary w-100" id="modal_list_pb_batal_tb">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_password_manager" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #2f4f4f!important">
@@ -1153,6 +1183,7 @@
                 $(row).click(function() {
                     $('#tb tbody tr').removeClass('select-r');
                     $(this).toggleClass("select-r");
+                    $("#label_no_trans").text(tb.row(this).data().no_trans);
                 });
             },
         });
@@ -1267,11 +1298,15 @@
         if (isFunctionRunning || isModalShowing()) {
             return;
         }
-        if (tb.row(".select-r").data() === undefined && !["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang"].includes($(this).attr("actionName"))) {
+        
+        //List Button Action Tidak Perlu Pilih Data
+        if (tb.row(".select-r").data() === undefined && !["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "CetakSuratJalan", "PbBatal", "ItemPickingBelumTransit", "ListPBLebihDariMaxSerahTerima"].includes($(this).attr("actionName"))) {
             Swal.fire('Peringatan!', 'Pilih Data Terlebih Dahulu..!', 'warning');
             return;
         }
-        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang"].includes($(this).attr("actionName"))) {
+        
+        //List Button Action Tidak Perlu No Trans
+        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "PbBatal", "ItemPickingBelumTransit", "ListPBLebihDariMaxSerahTerima"].includes($(this).attr("actionName"))) {
             if( tb.row(".select-r").data().no_trans == null && tb.row(".select-r").data().no_trans == ''){
                 Swal.fire('Peringatan!', 'Data Tidak Memiliki No. Trans..!', 'warning');
                 return;
@@ -1352,6 +1387,37 @@ function actionGlobalDownloadZip(storagePath, zipName = 'File.zip'){
             var link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
             link.download = zipName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }, 
+        error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionGlobalDownloadPdf(fileName){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/download-pdf`,
+        type: "POST",
+        data: {fileName: fileName},
+        xhrFields: {
+            responseType: 'blob' // Important for binary data
+        },
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            var blob = new Blob([response], { type: 'application/pdf' }); // Corrected line
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

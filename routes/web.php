@@ -59,6 +59,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
         Route::group(['prefix' => 'action'], function(){
             Route::post("/download-zip", [KlikIgrController::class, 'actionGlobalDownloadZip']);
+            Route::post("/download-pdf", [KlikIgrController::class, 'actionGlobalDownloadPdf']);
 
             Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);
             Route::post("/f4-validasi-rak", [KlikIgrFooterController::class, 'actionF4ValidasiRak']);
@@ -69,7 +70,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
             Route::post("/HitungUlang", [KlikIgrController::class, 'actionHitungUlang']);
 
-            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'f7', 'f8', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
+            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'CetakSuratJalan', 'CetakIIK', 'PbBatal', 'ItemPickingBelumTransit', 'ListPBLebihDariMaxSerahTerima', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 
             foreach ($buttonKeys as $key) {
                 Route::post("/$key", [KlikIgrController::class, "action$key"]);

@@ -1,3 +1,20 @@
+let tb_periode_pesanan;
+function initialize_datatables_list_pb(data, columnsData, columnsDefsData = []){
+    columnsDefsData.push({ className: 'text-center', targets: "_all" });
+    tb_periode_pesanan = $('#modal_list_pb_batal_tb').DataTable({
+        data: data,
+        language: {
+            emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+        },
+        columnDefs: columnsDefsData,
+        columns: columnsData,
+        ordering: false,
+        pageLength: 5,
+        lengthChange: false,
+        destory: true,
+    });
+}
+
 function actionAdditionalPesananExpired(){
     var date_awal = $("#date_awal_modal_periode_pesanan").val();
     var date_akhir = $("#date_akhir_modal_periode_pesanan").val();
@@ -348,7 +365,7 @@ function actionKonfirmasiPembayaran(){
             var blob = new Blob([jqXHR.responseJSON.data.content], { type: "text/plain" });
             var link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
-            link.download = jqXHR.responseJSON.data.nama_file;
+            link.download = response.data.nama_file;
             link.click();
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
@@ -371,6 +388,167 @@ function actionSales(){
         data: { no_trans: selectedRow.no_trans, status: selectedRow.status, nopb: selectedRow.no_pb, tipe_bayar: selectedRow.tipe_bayar, tanggal_pb: selectedRow.tgl_pb, kode_web: selectedRow.kodeweb, kode_member: selectedRow.kode_member, tipe_kredit: selectedRow.tipe_kredit, tanggal_trans: $("#tanggal_trans").val(), selectedRow: selectedRow },
         success: function(response) {
             actionGlobalDownloadZip(response.data.pathStorage, "SALES.zip");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionCetakSuratJalan(){
+    var selectedRow = tb.row(".select-r").data();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/CetakSuratJalan`,
+        type: "POST",
+        data: { tanggal_trans: $("#tanggal_trans").val(), selectedRow: selectedRow },
+        success: function(response) {
+            actionGlobalDownloadPdf(response.data.nama_file);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionCetakIIK(){
+    var selectedRow = tb.row(".select-r").data();
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Cetak Informasi Koli No Trans = ${selectedRow.no_trans} Ini?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + `/action/CetakIIK`,
+                type: "POST",
+                data: { selectedRow: selectedRow },
+                success: function(response) {
+                    Swal.fire('Success!', response.message,'success');
+                    actionGlobalDownloadZip(response.data.pathStorage, "CETAK-IIK.zip");
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+    });
+}
+
+function actionPbBatal(){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/PbBatal`,
+        type: "POST",
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            var data = response.data;
+            $("#modal_list_pb_batal .modal-dialog").addClass("modal-lg")
+            $("#modal_list_pb_batal .modal-dialog").removeClass("modal-xl")
+            $("#label_item_batal").toggleClass("d-none", !data.labelItemBatal);
+            $(".btn-action[actionname='PbBatal']").toggleClass("d-none", !data.btnPBBatal);
+            $("#label_item_batal").toggleClass("d-none", !data.labelItemBatal);
+            if(data.showForm){
+                $("#modal_list_pb_batal").modal("show");
+                if(data.type == "PB"){
+                    var columnsData = [
+                        { data: 'kodemember', title: 'Kode Member' },
+                        { data: 'nopb', title: 'No. PB' },
+                        { data: 'tglpb', title: 'Tgl PB' },
+                    ]
+                    $("#modal_list_pb_batal_title").text("Daftar PB Yang Sudah Lewat Hari Belum Diproses");
+                } else {
+                    var columnsData = [
+                        { data: 'no_transaksi', title: 'No. Transaksi' },
+                        { data: 'tgl_transaksi', title: 'Tgl. Transaksi' },
+                    ]
+                    $("#modal_list_pb_batal_title").text("Daftar PB Item Batal Yang Belum Dikembalikan ke Rak");
+                }
+                
+                if ($.fn.DataTable.isDataTable('#modal_list_pb_batal_tb')) {
+                    tb_periode_pesanan.clear().draw();
+                    $("#modal_list_pb_batal_tb").dataTable().fnDestroy();
+                    $("#modal_list_pb_batal_tb thead").empty()
+                }
+                initialize_datatables_list_pb(data.data, columnsData)
+            }
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionItemPickingBelumTransit(){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/ItemPickingBelumTransit`,
+        type: "POST",
+        success: function(response) {
+            Swal.fire('Success!', response.message,'success');
+            actionGlobalDownloadPdf(response.data);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionListPBLebihDariMaxSerahTerima(){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/ListPBLebihDariMaxSerahTerima`,
+        type: "POST",
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            if(response.data.showForm){
+                $("#modal_list_pb_batal .modal-dialog").removeClass("modal-lg")
+                $("#modal_list_pb_batal .modal-dialog").addClass("modal-xl")
+                $("#modal_list_pb_batal_title").text("Daftar PB Yang Sudah Lewat Tanggal Max Serah Terima");
+                $("#modal_list_pb_batal").modal("show");
+                var columnsData = [
+                    { data: 'tgl_pb', title: 'Tgl PB' },
+                    { data: 'member', title: 'Member' },
+                    { data: 'no_pb', title: 'No. PB' },
+                    { data: 'no_trans', title: 'No. Trans' },
+                    { data: 'max_serahterima', title: 'Max Serah Terima' },
+                    { data: 'ekspedisi', title: 'Ekspedisi' },
+                ]
+                if ($.fn.DataTable.isDataTable('#modal_list_pb_batal_tb')) {
+                    tb_periode_pesanan.clear().draw();
+                    $("#modal_list_pb_batal_tb").dataTable().fnDestroy();
+                    $("#modal_list_pb_batal_tb thead").empty()
+                }
+                initialize_datatables_list_pb(response.data.data, columnsData)
+            }
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({
