@@ -74,6 +74,12 @@ Route::middleware(['mylogin'])->group(function () {
             Route::post('/send', [ProsesWTController::class, 'send_file']);
 
         });
+        /*  Retur */
+        Route::prefix('/retur')->group(function () {
+
+            Route::get('/data/toko', [ReturController::class, 'get_data_toko']);
+
+        });
         /*  Voucher */
         Route::prefix('/voucher')->group(function () {
 

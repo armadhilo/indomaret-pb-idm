@@ -30,4 +30,13 @@ class ReturController extends Controller
     public function index(){
         return view("menu.retur.index");
     }
+    public function get_data_toko(){
+        $data = $this->DB_PGSQL
+             ->table("tbmaster_tokoigr")
+             ->selectRaw("tko_kodeomi,tko_kodecustomer")
+             ->whereRaw("tko_kodeigr = '".session('KODECABANG')."'")
+             ->whereRaw("tko_namasbu = 'INDOMARET'")
+             ->get();
+        return $data;
+    }
 }

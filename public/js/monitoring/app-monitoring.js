@@ -212,14 +212,6 @@ toggleInput =(nameClass,deleteVar)=>{
 
 }
 
-changePRDCD=(data)=>{
-
-   let prdcd = $("#prdcd").val();
-
-   view(prdcd,null);
-   
-}
-
 
 getDataMonitoring =(tanggal = null,zona = null,report_qrcode = null,report_zona = null)=>{
    let select = "";

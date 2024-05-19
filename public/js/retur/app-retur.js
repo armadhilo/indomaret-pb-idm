@@ -2,6 +2,7 @@ let selectedTable,
     selectedData  =  [],
     selectedToko =[],
     dataToko =[],
+    listToko =[],
     search  =  false,
     page = 1,
     field = null,
@@ -37,6 +38,7 @@ $(document).ready(function(){
       $('.select2').select2({
          allowClear: false
       }); 
+      get_toko()
       // $("#datepicker").datepicker({
       //    format: "dd-MM-yyyy",
       //    autoclose: true,
@@ -49,15 +51,30 @@ $(document).ready(function(){
       })
 });
 
+get_toko=()=>{
+
+      $('#retur_card').loading('toggle');
+      let select = '';
+      $.getJSON(link + "/api/retur/data/toko", function(data) {
+      
+         if(data){
+            $.each(data,function(key,value){
+                  select+=` <option value="${value.tko_kodecustomer}" >${value.tko_kodeomi}-${value.tko_kodecustomer}</option>`;
+                  listToko[value.tko_kodeomi] = value;
+
+            });
+            $("#toko").append(select);
+         }
+      }).fail(function() {
+         $('#retur_card').loading('toggle');
+      }).done(function() {
+         $('#retur_card').loading('toggle');
+      })
+}
+
 submit_wt =()=>{
 
    $('#proses-wt').loading('toggle');
-   $('#form_wt').submit()
-   // let csrf = $('meta[name="csrf-token"]').attr('content'),
-   //       file = $("#file").val();
-   //       formWT = new FormData();
-   //    formWT.append('_token', csrf);
-   //    formWT.append("file",file);
 
       $.ajax({
             url: link+'/api/proseswt/send',

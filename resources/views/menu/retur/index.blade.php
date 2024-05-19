@@ -41,7 +41,7 @@
     <div class="container-fluid">
         <!--  <h4 class="monitoring-label">Example Label <span class="badge badge-secondary monitoring-count">0</span></h4> -->
         <div class="card shadow mb-4">
-            <div class="card-body" id="proses-wt">
+            <div class="card-body" id="retur_card">
             <br>
                 <div class="container mt-5">
                             <div class="row mb-5">
@@ -50,10 +50,10 @@
                                         <form action="{{url('api/proseswt/send')}}" method="post" id="form_wt" class="p-4">
                                             @csrf 
                                             <div class="form-group ">
-                                                <label for="katb">Zona</label>
-                                                <select class="form-control form-control-sm select2" name="zona" id="zona">
-                                                    <option value="" disabled selected>Pilih Zona</option>
-                                                    <option value="all">All</option>
+                                                <label for="katb">Toko</label>
+                                                <select class="form-control form-control-sm select2" name="toko" id="toko">
+                                                    <option value="" disabled selected>Pilih Toko</option>
+                                                    <!-- <option value="all">All</option> -->
                                                 
                                                 </select>
                                             </div>
@@ -148,7 +148,7 @@
         </div>
     </div>
 
-    <script src="{{asset('js/proses_wt/app-proses_wt.js')}}"></script>
+    <script src="{{asset('js/retur/app-retur.js')}}"></script>
 @endsection
 
 
