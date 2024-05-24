@@ -207,7 +207,7 @@ class KlikIgrController extends Controller
         return response($fileContent)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
-        
+
     }
 
     //* function listObi_H
@@ -574,7 +574,7 @@ class KlikIgrController extends Controller
             //         WHERE OBR_BARCODE LIKE '%' || substr('" . $request->tanggal_trans . "', -2) || substr('" . $request->tanggal_trans . "', 3, 2) || substr('" . $request->tanggal_trans . "', 0, 2) || str_pad(substr('" . $selectedRow["notrans"] . "', -4), 4, '0', STR_PAD_LEFT) || '%'
             //         ORDER BY obr_barcode DESC";
         } else {
-            //! IRVAN | COLUMN PICO_CHECKERID TIDAK ADA 
+            //! IRVAN | COLUMN PICO_CHECKERID TIDAK ADA
             $query = "SELECT PICO_BARCODEKOLI AS NO_KOLI,
                         PICO_PRINTERNAME AS NAMA_PRINTER,
                         -- PICO_CHECKERID AS CHECKER_ID,
@@ -853,7 +853,7 @@ class KlikIgrController extends Controller
                 return ApiFormatter::error(400, 'Tidak ada Data!');
             }
 
-            
+
             if(session('flagSPI')){
                 //? DONE
                 $data["nama_file"] = $this->rptSuratJalanSPI($selectedRow['no_pb'], $selectedRow['notrans'], $selectedRow['kode_member'], $request->tanggal_trans, $selectedRow['flagbayar']);
@@ -973,7 +973,7 @@ class KlikIgrController extends Controller
         if(count($dtItem) == 0){
             return ApiFormatter::error(400, 'Tidak ada data item belum DSP!');
         }
-        
+
         $nama_file = "ITEM_BELUM_DSP_" . Carbon::now()->format('Ymd_His') . ".pdf";
         $data["data"] = $dtItem;
         $pdf = PDF::loadView('pdf.klik-igr-item-belum-dsp', $data);
@@ -1075,7 +1075,7 @@ class KlikIgrController extends Controller
         file_put_contents($filePath, $pdf->output());
 
         $data["nama_file"] = $nama_file;
-        
+
         //* form reportnya -> rptOutsCODSPI
         return ApiFormatter::success(200, "Sorting LOPP Berhasil", $data);
 
@@ -1493,7 +1493,7 @@ class KlikIgrController extends Controller
             ->make(true);
     }
 
-    //* KURANG SATU QUERY TUNGGU DIBENERIN 
+    //* KURANG SATU QUERY TUNGGU DIBENERIN
     public function actionBAPengembalianDana(Request $request){
         DB::beginTransaction();
         try{
@@ -1529,23 +1529,12 @@ class KlikIgrController extends Controller
                 $tglBA = Carbon::today()->format('d-m-Y');
 
                 $query = "";
-                $query .= "INSERT INTO tbtr_barefund_spi ( ";
-                $query .= "  brs_tglba, ";
-                $query .= "  brs_noba, ";
-                $query .= "  brs_tipebayar, ";
-                $query .= "  brs_nopb, ";
-                $query .= "  brs_tglpb, ";
-                $query .= "  brs_kodemember, ";
-                $query .= "  brs_nilairefund, ";
-                $query .= "  brs_create_by, ";
-                $query .= "  brs_create_dt ";
-                $query .= ") ";
                 $query .= "SELECT  ";
                 $query .= "  TO_DATE('" . $tglBA . "','DD-MM-YYYY') tglba, ";
                 $query .= "  '" . $seqBA . "' noba, ";
                 $query .= "  tipebayar, ";
                 $query .= "  nopb, ";
-                $query .= "  tglpb::timestamp AS tglpb, ";
+                $query .= "  tglpb, ";
                 $query .= "  kodemember, ";
                 $query .= "  nilairefund, ";
                 $query .= "  '" . session('userid') . "' create_by, ";
@@ -1553,11 +1542,27 @@ class KlikIgrController extends Controller
                 $query .= "FROM temp_barefund_spi ";
                 $query .= "JOIN tbtr_obi_h ";
                 $query .= "ON obi_nopb = nopb ";
-                $query .= "AND DATE(obi_tglpb) = DATE(tglpb::timestamp) ";
+                $query .= "AND TO_CHAR(CAST(obi_tglpb AS DATE), 'DD-MM-YYYY') = tglpb ";
                 $query .= "AND obi_kdmember = kodemember ";
                 $query .= "WHERE IP = '" . $this->getIP() . "' ";
+                $dtGet = DB::select($query);
 
-                DB::insert($query);
+                if(count($dtGet)){
+                    foreach($dtGet as $item){
+                        DB::table('tbtr_barefund_spi')
+                            ->insert([
+                                'brs_tglba' => $item->tglba,
+                                'brs_noba' => $item->noba,
+                                'brs_tipebayar' => $item->tipebayar,
+                                'brs_nopb' => $item->nopb,
+                                'brs_tglpb' => Carbon::parse($item->tglpb)->format('Y-m-d'),
+                                'brs_kodemember' => $item->kodemember,
+                                'brs_nilairefund' => $item->nilairefund,
+                                'brs_create_by' => $item->create_by,
+                                'brs_create_dt' => $item->create_dt,
+                            ]);
+                    }
+                }
             }
 
             $query = '';
@@ -1619,7 +1624,7 @@ class KlikIgrController extends Controller
             // rptBA.SetParameterValue("namaInduk", "INDUK " & NamaIGR)
 
         }catch (\Exception $e) {
-            
+
             DB::rollBack();
             return ApiFormatter::error(400, $e->getMessage());
         }
@@ -2900,10 +2905,10 @@ class KlikIgrController extends Controller
         if(count($mydt) > 0){
             //* form -> LstNotifMaxSerahTerima
             return [
-                "showForm" => $showForm, 
-                "data" => $mydt, 
+                "showForm" => $showForm,
+                "data" => $mydt,
             ];
-            
+
         }
     }
 
@@ -3535,7 +3540,7 @@ class KlikIgrController extends Controller
         $query .= "WHERE amm_nopb = '" . $dgv_nopb . "' ";
         $query .= " AND amm_notrans = '" . $dgv_notrans . "' ";
         $query .= " AND amm_kodemember = '" . $dgv_memberigr . "' ";
-        $data['dtDetailSJ'] = DB::select($query); 
+        $data['dtDetailSJ'] = DB::select($query);
 
         //! TIDAK DIGUNAKAN
         $query = '';
@@ -4797,7 +4802,7 @@ class KlikIgrController extends Controller
             $s .= $dtCus[0]->cus_alamatmember2 . ", " . $dtCus[0]->cus_alamatmember4 . PHP_EOL;
             $s .= "" . PHP_EOL;
         }
-        
+
         foreach ($dtOBI_D as $key => $item) {
             $prodmast = $this->satuanProdmast($item->prdcd);
             if($item->qty > 0){
@@ -5598,7 +5603,7 @@ class KlikIgrController extends Controller
         }
 
         $sukses = $this->sendJalur_SPI($memberigr, $nopb, $notrans, $tglTrans, $noPick, $noSJ);
-        
+
         if($sukses == true){
             $query = '';
             $query .= "UPDATE TBTR_OBI_H SET OBI_RECID = '1', OBI_SENDPICK = NOW(), ";
@@ -6009,7 +6014,7 @@ class KlikIgrController extends Controller
             $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
         }
 
-        $files_content['content'] = "noTXT";   
+        $files_content['content'] = "noTXT";
         $files_content['nama_file'] = "-";
     }
 
@@ -6968,7 +6973,7 @@ class KlikIgrController extends Controller
         $unit = DB::table('tbmaster_prodmast')
                     ->where('prd_prdcd', $plu)
                     ->value('prd_unit');
-        
+
         // Check and convert unit if needed
         if (strtoupper($unit) === 'KG') {
             $unit = 'GR';
