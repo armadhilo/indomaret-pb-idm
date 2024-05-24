@@ -8,6 +8,7 @@ use App\Http\Controllers\StrukController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\ProsesWTController;
 use App\Http\Controllers\ReturController;
+use App\Http\Controllers\RPTController;
 use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,9 @@ Route::middleware(['mylogin'])->group(function () {
     Route::get('/voucher', [VoucherController::class, 'index']);
     Route::get('/proses_wt', [ProsesWTController::class, 'index']);
     Route::get('/retur', [ReturController::class, 'index']);
+    Route::get('/report', [RPTController::class, 'index']);
+    Route::get('/test', [RPTController::class, 'print_cetak_ulang_dsp_test']);
+    Route::get('/test2', [RPTController::class, 'print_cetak_ulang_dsp_test2']);
     
     Route::prefix('/api')->group(function () {
         /*  Monitoring */
@@ -78,6 +82,13 @@ Route::middleware(['mylogin'])->group(function () {
         Route::prefix('/retur')->group(function () {
 
             Route::get('/data/toko', [ReturController::class, 'get_data_toko']);
+
+        });
+        /*  Report */
+        Route::prefix('/report')->group(function () {
+
+            Route::get('/pb/omi', [RPTController::class, 'get_no_pb']);
+            Route::post('/cetak/dsp/ulang', [RPTController::class, 'print_cetak_ulang_dsp']);
 
         });
         /*  Voucher */

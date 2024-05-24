@@ -56,6 +56,11 @@
             <i class="fa fa-desktop"></i>
             <span>RETUR</span></a>
     </li>
+    <li class="nav-item @if($sub_url == 'report') active @endif">
+        <a class="nav-link" href="{{ url('/report') }}">
+            <i class="fa fa-desktop"></i>
+            <span>REPORT</span></a>
+    </li>
      <!-- ================================================================ -->
     <!-- ======================= END ================================== -->
     <!-- ================================================================ -->
