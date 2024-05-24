@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 use ZipArchive;
 
 class KlikIgrController extends Controller
@@ -32,7 +33,8 @@ class KlikIgrController extends Controller
     }
 
     public function index(){
-        // $pdf = PDF::loadView('pdf.klik-igr-item-belum-dsp');
+        // dd(DB::SELECT("SELECT DISTINCT brs_noba noba, TO_CHAR(brs_tglba,'DD-MM-YYYY') tglba FROM tbtr_barefund_spi ORDER BY brs_noba DESC"));
+        // $pdf = PDF::loadView('pdf.klik-igr-ba-dana-spi');
         // return $pdf->stream();
         // $this->createTableIPP_ONL();
         // // $this->getKonversiItemPerishable(true);
@@ -642,23 +644,23 @@ class KlikIgrController extends Controller
                     //? kalo susah form ini tampil diawal aja karena cuma buat dapet variable $pilihan
                     //! open form -> frmOpsiPickSPI
                     if($request->pilihan == 1){
-                        $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
+                        $file_content = $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
                     }elseif($request->pilihan == 2){
-                        $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
+                        $file_content = $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
                     }else{
                         return ApiFormatter::error(400, 'Send Jalur dibatalkan!');
                     }
                 }elseif(str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
-                    $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
+                    $file_content = $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
                 }else{
-                    $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
+                    $file_content = $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
                 }
             }else{
-                $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
+                $file_content = $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
             }
 
             DB::commit();
-            return ApiFormatter::success(200, 'Proses Send HandHelt berhasil');
+            return ApiFormatter::success(200, 'Proses Send HandHelt berhasil', $file_content);
 
         }catch(\Exception $e){
             $response = json_decode($e->getResponse()->getContent(), true);
@@ -766,15 +768,16 @@ class KlikIgrController extends Controller
         // }
     }
 
+    //? DONE
     //* btnKonfirmasiBayar_Click_1
     public function actionKonfirmasiPembayaran(Request $request){
-        // if(!isset($request->no_trans)){
-        //     return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        // }
+        if(!isset($request->no_trans)){
+            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+        }
 
-        // if(strtolower($request->status) != 'konfirmasi pembayaran'){
-        //     return ApiFormatter::error(400, 'Bukan Data Yang Siap Konfirmasi Pembayaran!');
-        // }
+        if(strtolower($request->status) != 'konfirmasi pembayaran'){
+            return ApiFormatter::error(400, 'Bukan Data Yang Siap Konfirmasi Pembayaran!');
+        }
 
         return $this->konfirmasiBayar($request->nopb, $request->kode_member, $request->no_trans);
     }
@@ -1000,9 +1003,9 @@ class KlikIgrController extends Controller
         //* buka form -> rptItemBelumDSP
     }
 
-    //? frmSortingLOPP TIDAK ADA DI VB
+    //? DONE
     //! btnLOPP_Click
-    public function actionLoppCod($kolomSortBy){
+    public function actionLoppCod(Request $request){
 
         //* sebelum itu buka form -> frmSortingLOPP untuk mendapatkan value $kolomSortBy
 
@@ -1026,18 +1029,18 @@ class KlikIgrController extends Controller
             $query .= " AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
         }
 
-        switch ($kolomSortBy) {
+        switch ($request->sortBy1) {
             case "Kode Member":
-                $query .= " ORDER BY obi_kdmember ";
+                $query .= " ORDER BY obi_kdmember " . $request->sortBy2;
                 break;
             case "No PB":
-                $query .= " ORDER BY obi_nopb ";
+                $query .= " ORDER BY obi_nopb " . $request->sortBy2;
                 break;
             case "Tanggal DSP":
-                $query .= " ORDER BY obi_draftstruk ";
+                $query .= " ORDER BY obi_draftstruk " . $request->sortBy2;
                 break;
             case "Nilai DSP":
-                $query .= " ORDER BY dsp_totalbayar ";
+                $query .= " ORDER BY dsp_totalbayar " . $request->sortBy2;
                 break;
             default:
                 $query .= " ORDER BY obi_draftstruk ASC, kode_pesanan ASC, kode_member ASC ";
@@ -1050,18 +1053,42 @@ class KlikIgrController extends Controller
             return ApiFormatter::error(400, 'Tidak ada data LOPP - COD!');
         }
 
+        $myDa['data'] = $myDa;
+
+        $pdf = PDF::loadView('pdf.klik-igr-lopp-cod', $myDa);
+        $filePath = storage_path('temp_pdf');
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        }
+        $filePath = storage_path('temp_pdf') . "/" . session("userid");
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        } else {
+            File::deleteDirectory($filePath, false);
+            File::makeDirectory($filePath, 0755, true);
+        }
+
+        $nama_file = "SORTING_LOPP_" . $request->sortBy1 . "_" . $request->sortBy2 . "_" . Carbon::now()->format('Ymd_His') . ".pdf";
+
+        $filePath = $filePath . "/" . $nama_file;
+
+        file_put_contents($filePath, $pdf->output());
+
+        $data["nama_file"] = $nama_file;
+        
         //* form reportnya -> rptOutsCODSPI
+        return ApiFormatter::success(200, "Sorting LOPP Berhasil", $data);
+
     }
 
     //? DONE
     //! btnMaxSertim_Click
-    //? tidak butuh request
-    //? tidak perlu DB Transaction karena tidak ada proses create/update
     public function actionListPBLebihDariMaxSerahTerima(){
         $data = $this->cekNotifMaxSerahTerima(true);
         return ApiFormatter::success(200, "Success", $data);
     }
 
+    //? BINGUNG FLOW NYA
     //! btnPicker_Click
     public function actionMasterPickerHH(){
         //* show form -> frmPickerKlik
@@ -1340,134 +1367,262 @@ class KlikIgrController extends Controller
         }
     }
 
-    //! btnAlasanBatalKirim_Click
-    public function actionMasterAlasanBatalKirim(){
-        // frmIns.Text = "Master Alasan Batal Kirim"
-        // frmIns.lblTitle.Text = "Master Alasan Batal Kirim"
-        // frmIns.flagMode = "AlasanBatalKirim"
-        // frmIns.ShowDialog()
+    //? DONE
+    //! btnAlasanBatalKirim_Click Datatables
+    public function actionMasterAlasanBatalKirimDatatables($flagMode){
+        if($flagMode == "AlasanBatalKirim"){
+            $tableName = 'TBMASTER_MOBIL_SPI';
+            $sql = "SELECT COUNT(1) FROM information_schema.tables WHERE UPPER(table_name) = 'TBMASTER_MOBIL_SPI'";
+            $exists = DB::select($sql)[0]->count;
 
-        //! open form -> frmMasterData
+            if (!$exists) {
+                Schema::create($tableName, function ($table) {
+                    $table->string('mob_nopol', 30);
+                    $table->string('mob_attribute1', 100);
+                    $table->string('mob_attribute2', 100);
+                    $table->string('mob_create_by', 5);
+                    $table->date('mob_create_dt');
+                    $table->string('mob_modify_by', 5);
+                    $table->date('mob_modify_dt');
+                });
+            }
+
+            $query = "";
+            $query .= "SELECT mob_nopol No_Polisi ";
+            // $query .= "mob_attribute1 Atribut1 ";
+            // $query .= "mob_attribute2 Atribut2 ";
+            $query .= "FROM TBMASTER_MOBIL_SPI ";
+            $query .= "ORDER BY No_Polisi ASC ";
+
+
+            $data = DB::select($query);
+
+            return DataTables::of($data)
+                ->make(true);
+        }
+    }
+
+    public function actionMasterAlasanBatalKirimAdd(Request $request){
+        $sql = "SELECT count(1) FROM TBMASTER_MOBIL_SPI WHERE UPPER(mob_nopol) = UPPER('" . $request->data . "')";
+        $exists = DB::select($sql)[0]->count;
+        if($exists == 0){
+            $query = "";
+            $query .= "INSERT INTO TBMASTER_MOBIL_SPI (MOB_NOPOL, MOB_ATTRIBUTE1, MOB_ATTRIBUTE2, MOB_CREATE_BY, MOB_CREATE_DT) VALUES ('" . $request->data . "', NULL, NULL, 'SYS', NOW() ) ";
+            DB::insert($query);
+            return ApiFormatter::success(200, "Nomor Polisi Berhasil Didaftarkan!");
+        }
+        return ApiFormatter::error(400, "Nomor Polisi Sudah Terdaftar!");
+    }
+
+    public function actionMasterAlasanBatalKirimRemove(Request $request){
+        $query = "";
+        $query .= "DELETE FROM TBMASTER_MOBIL_SPI WHERE UPPER(mob_nopol) = UPPER('" . $request->data . "')";
+        DB::delete($query);
+        return ApiFormatter::success(200, "Nomor Polisi Berhasil Dihapus!");
     }
 
     //! btnBASPI_Click
+    //* CURRENT (WAITING LIST)
     //? tidak butuh request
     //? tidak perlu DB Transaction karena tidak ada proses create/update
-    public function actionBAPengembalianDana(){
-        if(session('flagSPI') == false){
-            return ApiFormatter::error(400, 'Khusus SPI');
+    public function actionBAPengembalianDanaGetHistory(){
+        // if(session('flagSPI') == false){
+        //     return ApiFormatter::error(400, 'Khusus SPI');
+        // }
+
+        $data = DB::SELECT("SELECT DISTINCT brs_noba noba, TO_CHAR(brs_tglba,'DD-MM-YYYY') tglba FROM tbtr_barefund_spi ORDER BY brs_noba DESC");
+        return ApiFormatter::success(200, "Berhasil Mendapatakan Data History", $data);
+    }
+
+    public function actionBAPengembalianDanaDatatables($noba, $isHistory){
+        if($isHistory == 1){
+            $query = "";
+            $query .= "SELECT brs_tipebayar AS tipe_bayar, ";
+            $query .= "brs_nopb AS no_pb, ";
+            $query .= "TO_CHAR(brs_tglpb, 'DD-MM-YYYY') AS tgl_pb, ";
+            $query .= "brs_kodemember AS kode_member, ";
+            $query .= "brs_nilairefund AS total, ";
+            $query .= "1 AS ba ";
+            $query .= "FROM tbtr_barefund_spi ";
+            $query .= "WHERE brs_noba = '" . $noba . "' ";
+            $query .= "ORDER BY brs_tipebayar, brs_tglpb, brs_nopb";
+        } else {
+            $query = '';
+            $query .= " SELECT   ";
+            $query .= "   tipe_bayar tipe_bayar, ";
+            $query .= "   obi_nopb no_pb,  ";
+            $query .= "   TO_CHAR(obi_tglpb,'DD-MM-YYYY') tgl_pb,  ";
+            $query .= "   obi_kdmember kode_member,  ";
+            $query .= "   total, ";
+            $query .= "   0 ba ";
+            $query .= " FROM tbtr_obi_h  ";
+            $query .= " JOIN payment_klikigr ";
+            $query .= " ON kode_igr = obi_kodeigr ";
+            $query .= " AND kode_member = obi_kdmember ";
+            $query .= " AND no_pb = obi_nopb ";
+            $query .= " AND no_trans = obi_notrans ";
+            $query .= " AND DATE_TRUNC('DAY',tgl_trans) = DATE_TRUNC('DAY',obi_tgltrans) ";
+            $query .= " WHERE UPPER(COALESCE(obi_tipebayar, 'X')) <> 'COD'  ";
+            $query .= " AND UPPER(COALESCE(obi_tipebayar, 'X')) <> 'TOP'  ";
+            $query .= " AND COALESCE(obi_recid,'0') LIKE 'B%' ";
+
+            if(session('flagSPI') == true){
+                $query .= " AND UPPER(obi_nopb) LIKE '%SPI%' ";
+            }else{
+                $query .= " AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+            }
+
+            $query .= " AND NOT EXISTS (  ";
+            $query .= "  SELECT brs_nopb  ";
+            $query .= "  FROM tbtr_barefund_spi ";
+            $query .= "  WHERE brs_kodemember = obi_kdmember  ";
+            $query .= "  AND brs_nopb = obi_nopb  ";
+            $query .= "  AND brs_tglpb = obi_tglpb ";
+            $query .= " )  ";
+            $query .= " ORDER BY tipe_bayar, obi_tglpb, obi_nopb ";
         }
 
-        //! open form -> frmBARefundSPI
+        $data = DB::select($query);
 
-        //* Query Tampilan Datagridview
-        $query = '';
-        $query .= " SELECT   ";
-        $query .= "   tipe_bayar tipe_bayar, ";
-        $query .= "   obi_nopb no_pb,  ";
-        $query .= "   TO_CHAR(obi_tglpb,'DD-MM-YYYY') tgl_pb,  ";
-        $query .= "   obi_kdmember kode_member,  ";
-        $query .= "   total, ";
-        $query .= "   0 ba ";
-        $query .= " FROM tbtr_obi_h  ";
-        $query .= " JOIN payment_klikigr ";
-        $query .= " ON kode_igr = obi_kodeigr ";
-        $query .= " AND kode_member = obi_kdmember ";
-        $query .= " AND no_pb = obi_nopb ";
-        $query .= " AND no_trans = obi_notrans ";
-        $query .= " AND DATE_TRUNC('DAY',tgl_trans) = DATE_TRUNC('DAY',obi_tgltrans) ";
-        $query .= " WHERE UPPER(COALESCE(obi_tipebayar, 'X')) <> 'COD'  ";
-        $query .= " AND UPPER(COALESCE(obi_tipebayar, 'X')) <> 'TOP'  ";
-        $query .= " AND COALESCE(obi_recid,'0') LIKE 'B%' ";
-
-        if(session('flagSPI') == true){
-            $query .= " AND UPPER(obi_nopb) LIKE '%SPI%' ";
-        }else{
-            $query .= " AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
-        }
-
-        $query .= " AND NOT EXISTS (  ";
-        $query .= "  SELECT brs_nopb  ";
-        $query .= "  FROM tbtr_barefund_spi ";
-        $query .= "  WHERE brs_kodemember = obi_kdmember  ";
-        $query .= "  AND brs_nopb = obi_nopb  ";
-        $query .= "  AND brs_tglpb = obi_tglpb ";
-        $query .= " )  ";
-        $query .= " ORDER BY tipe_bayar, obi_tglpb, obi_nopb ";
-        $dt = DB::select($query);
-
-        if(count($dt) == 0){
+        if(count($data) == 0){
             return ApiFormatter::error(400, 'Tidak ada Transaksi yang batal..');
         }
 
-        //! action yang ada di form frmBARefundSPI
-        //! dummy variable
-        $isHistory = true;
-        $NoBAHistory = '';
-        $tglBAHistory = '';
+        return DataTables::of($data)
+            ->addIndexColumn()
+            ->make(true);
+    }
 
-        if($isHistory == true){
-            $seqBA = $NoBAHistory;
-            $tglBA = $tglBAHistory;
-        }else{
-            $seqBA = '';
-            $tglBA = DB::select("SELECT TO_CHAR(NOW(), 'YYMM') || LPAD(nextval('seq_ba_refund_spi')::text, 6, '0') as value")[0]->value;
+    //* KURANG SATU QUERY TUNGGU DIBENERIN 
+    public function actionBAPengembalianDana(Request $request){
+        DB::beginTransaction();
+        try{
+            if($request->isHistory == 1){
+                $seqBA = $request->noBA;
+                $tglBA = $request->tglBA;
+            } else {
+                $IP = $this->getIP();
+                DB::delete("DELETE FROM TEMP_BAREFUND_SPI WHERE IP ='" . $IP . "'");
+                foreach ($request->data as $row) {
+                    $query = "";
+                    $query .= "INSERT INTO TEMP_BAREFUND_SPI ( ";
+                    $query .= "TIPEBAYAR, ";
+                    $query .= "NOPB, ";
+                    $query .= "TGLPB, ";
+                    $query .= "KODEMEMBER, ";
+                    $query .= "NILAIREFUND, ";
+                    $query .= "IP) ";
+                    $query .= " VALUES ( ";
+                    $query .= "'" . $row['tipeBayar'] . "', ";
+                    $query .= "'" . $row['noPB'] . "', ";
+                    $query .= "'" . $row['tglPB'] . "', ";
+                    $query .= "'" . $row['kodeMember'] . "', ";
+                    $query .= "'" . $row['nilaiRefund'] . "', ";
+                    $query .= "'" . $IP . "')";
+
+                    DB::insert($query);
+                }
+
+                //!! IRVAN || date/time field value out of range: \"15-03-2021\"\nHINT:  Perhaps you need a different \"datestyle\" setting
+                $seqBA = '';
+                // DB::select("SELECT TO_CHAR(NOW(), 'YYMM') || LPAD(nextval('seq_ba_refund_spi')::text, 6, '0') as value")[0]->value;
+                $tglBA = Carbon::today()->format('d-m-Y');
+
+                $query = "";
+                $query .= "INSERT INTO tbtr_barefund_spi ( ";
+                $query .= "  brs_tglba, ";
+                $query .= "  brs_noba, ";
+                $query .= "  brs_tipebayar, ";
+                $query .= "  brs_nopb, ";
+                $query .= "  brs_tglpb, ";
+                $query .= "  brs_kodemember, ";
+                $query .= "  brs_nilairefund, ";
+                $query .= "  brs_create_by, ";
+                $query .= "  brs_create_dt ";
+                $query .= ") ";
+                $query .= "SELECT  ";
+                $query .= "  TO_DATE('" . $tglBA . "','DD-MM-YYYY') tglba, ";
+                $query .= "  '" . $seqBA . "' noba, ";
+                $query .= "  tipebayar, ";
+                $query .= "  nopb, ";
+                $query .= "  tglpb::timestamp AS tglpb, ";
+                $query .= "  kodemember, ";
+                $query .= "  nilairefund, ";
+                $query .= "  '" . session('userid') . "' create_by, ";
+                $query .= "  NOW() create_dt ";
+                $query .= "FROM temp_barefund_spi ";
+                $query .= "JOIN tbtr_obi_h ";
+                $query .= "ON obi_nopb = nopb ";
+                $query .= "AND DATE(obi_tglpb) = DATE(tglpb::timestamp) ";
+                $query .= "AND obi_kdmember = kodemember ";
+                $query .= "WHERE IP = '" . $this->getIP() . "' ";
+
+                DB::insert($query);
+            }
 
             $query = '';
-            $query .= "INSERT INTO tbtr_barefund_spi ( ";
-            $query .= "  brs_tglba, ";
-            $query .= "  brs_noba, ";
-            $query .= "  brs_tipebayar, ";
-            $query .= "  brs_nopb, ";
-            $query .= "  brs_tglpb, ";
-            $query .= "  brs_kodemember, ";
-            $query .= "  brs_nilairefund, ";
-            $query .= "  brs_create_by, ";
-            $query .= "  brs_create_dt ";
-            $query .= ") ";
-            $query .= "SELECT  ";
-            $query .= "  TO_DATE('" . $tglBA . "','DD-MM-YYYY') tglba, ";
-            $query .= "  '" . $seqBA . "' noba, ";
-            $query .= "  tipebayar, ";
-            $query .= "  nopb, ";
-            $query .= "  TO_DATE(tglpb,'DD-MM-YYYY') tglpb, ";
-            $query .= "  kodemember, ";
-            $query .= "  nilairefund, ";
-            $query .= "  '" . session('userid') . "' create_by, ";
-            $query .= "  NOW() create_dt ";
-            $query .= "FROM temp_barefund_spi ";
-            $query .= "JOIN tbtr_obi_h ";
-            $query .= "ON obi_nopb = nopb ";
-            $query .= "AND DATE(obi_tglpb) = DATE(tglpb) ";
-            $query .= "AND obi_kdmember = kodemember ";
-            $query .= "WHERE IP = '" . $this->getIP() . "' ";
-            DB::insert($query);
+            $query .= " SELECT  ";
+            $query .= "   brs_tipebayar tipeBayar, ";
+            $query .= "   COUNT(DISTINCT brs_nopb) jmlTrans, ";
+            $query .= "   SUM(brs_nilairefund) jmlRefund ";
+            $query .= " FROM tbtr_barefund_spi ";
+            $query .= " WHERE brs_noba = '" . $seqBA . "' ";
+            $query .= " GROUP BY brs_tipebayar ";
+            $query .= " ORDER BY brs_tipebayar ";
+            $dt = DB::select($query);
+
+            if(count($dt) == 0){
+                $message = 'BA Pengembalian Dana SPI tidak ditemukan.';
+                return ApiFormatter::error(400, $message);
+            }
+
+            $data['data'] = $dt;
+            $data['noBA'] = $seqBA;
+            $data['tglBA'] = $tglBA;
+
+            //!! IRVAN || COMMIT COMMENT
+            // DB::commit();
+
+            $pdf = PDF::loadView('pdf.klik-igr-ba-dana-spi', $data);
+
+            $filePath = storage_path('temp_pdf');
+            if (!file_exists($filePath)) {
+                File::makeDirectory($filePath);
+            }
+            $filePath = storage_path('temp_pdf') . "/" . session("userid");
+            if (!file_exists($filePath)) {
+                File::makeDirectory($filePath);
+            } else {
+                File::deleteDirectory($filePath, false);
+                File::makeDirectory($filePath, 0755, true);
+            }
+
+            $nama_file = "BA_PENGEMBALIAN_DANA_SPI_" . Carbon::now()->format('Ymd_His') . ".pdf";
+
+            $filePath = $filePath . "/" . $nama_file;
+
+            file_put_contents($filePath, $pdf->output());
+
+            $response['nama_file'] = $nama_file;
+
+            return ApiFormatter::success(200, "Cetak BA Pengembalian Dana SPI Berhasil!", $response);
+
+
+            //! NOTE KEVIN
+            //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
+
+            //! open report -> rptBA
+
+            // rptBA.SetParameterValue("tglBA", tglBA)
+            // rptBA.SetParameterValue("noBA", seqBA)
+            // rptBA.SetParameterValue("namaSPI", NamaIGR)
+            // rptBA.SetParameterValue("namaInduk", "INDUK " & NamaIGR)
+
+        }catch (\Exception $e) {
+            
+            DB::rollBack();
+            return ApiFormatter::error(400, $e->getMessage());
         }
-
-        $query = '';
-        $query .= " SELECT  ";
-        $query .= "   brs_tipebayar tipeBayar, ";
-        $query .= "   COUNT(DISTINCT brs_nopb) jmlTrans, ";
-        $query .= "   SUM(brs_nilairefund) jmlRefund ";
-        $query .= " FROM tbtr_barefund_spi ";
-        $query .= " WHERE brs_noba = '" . $seqBA . "' ";
-        $query .= " GROUP BY brs_tipebayar ";
-        $query .= " ORDER BY brs_tipebayar ";
-        $dt = DB::select($query);
-
-        if(count($dt) == 0){
-            return ApiFormatter::error(400, 'BA Pengembalian Dana SPI tidak ditemukan.');
-        }
-
-        //! NOTE KEVIN
-        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
-
-        //! open report -> rptBA
-
-        // rptBA.SetParameterValue("tglBA", tglBA)
-        // rptBA.SetParameterValue("noBA", seqBA)
-        // rptBA.SetParameterValue("namaSPI", NamaIGR)
-        // rptBA.SetParameterValue("namaInduk", "INDUK " & NamaIGR)
     }
 
     //! btnBARusakSPI_Click
@@ -1634,8 +1789,6 @@ class KlikIgrController extends Controller
             $query .= "ORDER BY stk_noserahterima DESC ";
             $data["cbSTK"] = DB::select($query);
 
-            dd(DB::SELECT("SELECT * FROM tbtr_serah_terima_kardus LIMIT 5"));
-
             return ApiFormatter::success(200, "success", $data);
         } else {
             dd($request);
@@ -1740,10 +1893,8 @@ class KlikIgrController extends Controller
     private function cetakFormPengembalianBarang(){
         if(session('flagSPI') == true){
             $type = "SPI";
-            //! open form -> rptFPBSPI
         }else{
             $type = "KLIK";
-            //! open form -> rptFPBKlik
         }
 
         $data['type'] = $type;
@@ -4517,9 +4668,9 @@ class KlikIgrController extends Controller
             $query .= "FROM TBTR_OBI_D, TBMASTER_PRODMAST  ";
             $query .= "WHERE OBI_PRDCD = PRD_PRDCD  ";
             $query .= "AND COALESCE(OBI_QTYREALISASI, 0) > 0 ";
-            // $query .= "AND OBI_NOTRANS = '" . $dtOBI_H[0]->obi_notrans . "'  ";
-            // $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = '" . Carbon::parse($dtOBI_H[0]->obi_tgltrans)->format('Y-m-d H:i:s') ."' ";
-            $query .= "ORDER BY OBI_SCAN_DT ASC LIMIT 25";
+            $query .= "AND OBI_NOTRANS = '" . $dtOBI_H[0]->obi_notrans . "'  ";
+            $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = '" . Carbon::parse($dtOBI_H[0]->obi_tgltrans)->format('Y-m-d H:i:s') ."' ";
+            $query .= "ORDER BY OBI_SCAN_DT ASC ";
             $dtOBI_D = DB::select($query);
 
             // dtOBI_D = QueryOra(sb.ToString)
@@ -4631,6 +4782,7 @@ class KlikIgrController extends Controller
     }
 
     private function printNotaSSO($dtOBI_D, $noTrans, $dgv_memberigr){
+        $total = 0;
         $obj = DB::select("SELECT * FROM TBMASTER_PERUSAHAAN");
         $s = chr(27) . "@";
         $s .= str_pad(Str::of($obj[0]->prs_namacabang), 40, " ", STR_PAD_BOTH) . PHP_EOL;
@@ -4645,8 +4797,64 @@ class KlikIgrController extends Controller
             $s .= $dtCus[0]->cus_alamatmember2 . ", " . $dtCus[0]->cus_alamatmember4 . PHP_EOL;
             $s .= "" . PHP_EOL;
         }
+        
+        foreach ($dtOBI_D as $key => $item) {
+            $prodmast = $this->satuanProdmast($item->prdcd);
+            if($item->qty > 0){
+                $newQty = (double) $item->qty;
+                if ($prodmast["unit"] === 'GR') {
+                    $newQty /= 1000;
+                }
+                $s .= substr($item->deskripsi, 0, 33) . ' ' . $prodmast["unit"] . '/' . $prodmast["minItem"] . PHP_EOL;
+                $s .= str_pad((int) $item->qty, 4, ' ', STR_PAD_LEFT) . ' ' . $prodmast["unit"] . ' x @Rp. ';
+                $s .= str_pad(number_format($item->hrgjual, 0, '.', ','), 11, ' ', STR_PAD_LEFT);
+                $s .= str_pad(number_format($item->substotal, 0, '.', ','), 13, ' ', STR_PAD_LEFT) . PHP_EOL;
+                $total += $item->substotal;
 
+            }
+        }
 
+        $s .= str_repeat('-', 40) . PHP_EOL;
+
+        $s .= 'TOTAL : ' . count($dtOBI_D) . ' Item ' . str_pad(number_format($total, 0, '.', ','), 25, ' ', STR_PAD_LEFT) . chr(0x0A) . PHP_EOL;
+        $s .= 'Slip ini tidak berlaku jika terjadi ' . chr(0x0A);
+        $s .= 'pembatalan ' . chr(0x0A) . PHP_EOL;
+
+        return $s;
+
+        //! IRVAN | THERMAL PRINTER MAKSUDNYA GIMANA ?
+        // If SettingMachine.PRINTERTYPE.ToUpper.Contains("THERMAL") Then
+        //     s += Chr(&H1D) & "h" & Chr(50) & Chr(0)
+        //     If SettingMachine.PRINTERTYPE.ToUpper.Contains("KECIL") Then
+        //         s += Chr(&H1D) & "w" & Chr(1) & Chr(0)
+        //     Else
+        //         s += Chr(&H1D) & "w" & Chr(2) & Chr(0)
+        //     End If
+        //     s += Chr(&H1D) & "H" & Chr(2)
+        //     s += Chr(&H1D) & "L" & Chr(80) & Chr(0)
+        //     s &= Chr(&H1D) & "k" & Chr(69) & Chr(9) & NoTrans
+        //     s &= Chr(&H1D) & "V" & Chr(66) & Chr(20) & Chr(0)
+        //     s += Chr(&H1D) & "L" & Chr(1) & Chr(0)
+        //     s &= Chr(27) & "!" & Chr(1)
+        //     s &= "Nama Customer : " & dtCus.Rows(0).Item("CUS_NAMAMEMBER").ToString & vbCrLf
+        //     s += Chr(&H1D) & "h" & Chr(50) & Chr(0)
+        //     If SettingMachine.PRINTERTYPE.ToUpper.Contains("KECIL") Then
+        //         s += Chr(&H1D) & "w" & Chr(1) & Chr(0)
+        //     Else
+        //         s += Chr(&H1D) & "w" & Chr(2) & Chr(0)
+        //     End If
+        //     s += Chr(&H1D) & "H" & Chr(2)
+        //     s += Chr(&H1D) & "L" & Chr(80) & Chr(0)
+        //     s &= Chr(&H1D) & "k" & Chr(69) & Chr(9) & NoTrans
+        //     s += Chr(&H1D) & "L" & Chr(120) & Chr(0)
+        //     If SettingMachine.PRINTERTYPE.ToUpper.Contains("KECIL") Then
+        //         s &= Chr(27) & "!" & Chr(30) & NoTrans & Chr(&HA)
+        //     Else
+        //         s &= Chr(27) & "!" & Chr(112) & NoTrans & Chr(&HA)
+        //     End If
+        //     s &= Chr(&H1D) & "V" & Chr(66) & Chr(20) & Chr(0)
+
+        // End If
     }
 
     private function GetNoTrans(){
@@ -5289,8 +5497,8 @@ class KlikIgrController extends Controller
         $notrans = $dgv_notrans;
         $tglTrans = $dtTrans;
         $memberigr = $dgv_memberigr;
-        $noPick = '';
-        $noSJ = '';
+        $noPick = null;
+        $noSJ = null;
 
         //! TOLAKAN ZONA, JALUR, LOKASI, NOID
         $query = '';
@@ -5389,39 +5597,38 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        DB::beginTransaction();
-        try {
-
-            $sukses = $this->sendJalur_SPI($memberigr, $nopb, $notrans, $tglTrans, $noPick, $noSJ);
-
-            if($sukses == true){
-                $query = '';
-                $query .= "UPDATE TBTR_OBI_H SET OBI_RECID = '1', OBI_SENDPICK = NOW(), ";
-                $query .= " OBI_NOPICK = '" . $noPick . "', OBI_NOSJ = '" . $noSJ . "', OBI_FLAGSENDHH = '1' ";
-                $query .= "WHERE DATE_TRUNC('DAY',OBI_TGLTRANS) = TO_DATE('" . $tglTrans . "','dd-MM-yyyy') ";
-                $query .= "AND OBI_NOPB = '" . $nopb . "' ";
-                $query .= "AND OBI_KDMEMBER = '" . $memberigr . "' ";
-                $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
-                $query .= "AND OBI_RECID IS NULL ";
-                DB::update($query);
-
-                $this->rptPickingList999($tglTrans, $notrans, $nopb, $memberigr, True);
-
-                $this->logUpdateStatus($notrans, $tglTrans, $nopb, "1", "2");
-
-                DB::commit();
-                throw new HttpResponseException(ApiFormatter::success(200, 'Selesai Send Jalur SPI'));
-            }else{
-                throw new HttpResponseException(ApiFormatter::error(400, 'GAGAL Send Jalur SPI'));
-
+        $sukses = $this->sendJalur_SPI($memberigr, $nopb, $notrans, $tglTrans, $noPick, $noSJ);
+        
+        if($sukses == true){
+            $query = '';
+            $query .= "UPDATE TBTR_OBI_H SET OBI_RECID = '1', OBI_SENDPICK = NOW(), ";
+            if (is_null($noPick)) {
+                $query .= "OBI_NOPICK = NULL, ";
+            } else {
+                $query .= "OBI_NOPICK = '" . $noPick . "', ";
             }
 
-        } catch(\Exception $e){
+            if (is_null($noSJ)) {
+                $query .= "OBI_NOSJ = NULL, ";
+            } else {
+                $query .= "OBI_NOSJ = '" . $noSJ . "', ";
+            }
 
-            DB::rollBack();
+            $query .= "  OBI_FLAGSENDHH = '1' ";
+            $query .= "WHERE DATE_TRUNC('DAY',OBI_TGLTRANS) = TO_DATE('" . date('d-m-Y', strtotime($tglTrans)) . "','dd-MM-yyyy') ";
+            $query .= "AND OBI_NOPB = '" . $nopb . "' ";
+            $query .= "AND OBI_KDMEMBER = '" . $memberigr . "' ";
+            $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
+            $query .= "AND OBI_RECID IS NULL ";
+            DB::update($query);
+            $file_content = $this->rptPickingList999($tglTrans, $notrans, $nopb, $memberigr, True);
 
-            $message = "Oops! Something wrong ( $e )";
-            return ApiFormatter::error(400, $message);
+            $this->logUpdateStatus($notrans, $tglTrans, $nopb, "1", "2");
+
+            // DB::commit();
+            return $file_content;
+        }else{
+            throw new HttpResponseException(ApiFormatter::error(400, 'GAGAL Send Jalur SPI'));
         }
     }
 
@@ -5801,6 +6008,9 @@ class KlikIgrController extends Controller
             $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = '".Carbon::parse($dtTrans)->format('Y-m-d H:i:s')."'  ";
             $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
         }
+
+        $files_content['content'] = "noTXT";   
+        $files_content['nama_file'] = "-";
     }
 
     //! PROSES MENGHASILKAN FILE (BELUM SELESAI)
@@ -6751,6 +6961,28 @@ class KlikIgrController extends Controller
         }
 
         return true;
+    }
+
+    private function satuanProdmast($plu){
+        // Query to get PRD_UNIT
+        $unit = DB::table('tbmaster_prodmast')
+                    ->where('prd_prdcd', $plu)
+                    ->value('prd_unit');
+        
+        // Check and convert unit if needed
+        if (strtoupper($unit) === 'KG') {
+            $unit = 'GR';
+        }
+
+        // Query to get PRD_ISIBELI
+        $minItem = DB::table('tbmaster_prodmast')
+                    ->where('prd_prdcd', $plu)
+                    ->value('prd_isibeli');
+
+        return [
+            'unit' => strtoupper($unit),
+            'minItem' => $minItem,
+        ];
     }
 
     private function alterDPDNOIDCTN(){

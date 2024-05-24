@@ -21,6 +21,10 @@
         margin: 0;
     }
 
+    #modal_master_data_tb tbody tr:hover{
+        cursor: pointer;
+    }
+
     .checkbox-table{
         vertical-align: middle;
     }
@@ -290,7 +294,7 @@
                         </div>
                         <button class="btn btn-action btn-light-red" actionName="PbBatal">{{ $btnPBBatal }}</button>
                         <button class="btn btn-action btn-light-red" actionName="ItemPickingBelumTransit">List Item Picking Belum Transit</button>
-                        <button class="btn btn-action btn-light-red" actionName="LoppCOD">LOPP - COD</button>
+                        <button class="btn btn-action btn-light-red" actionName="LoppCod">LOPP - COD</button>
                         <button class="btn btn-action btn-light-red" actionName="ListPBLebihDariMaxSerahTerima">List PB Lebih dari Max Serah Terima</button>
                         <button class="btn btn-action btn-orange" actionName="MasterPickingHH">Master Picker HH</button>
                         <button class="btn btn-action btn-orange" actionName="ListingDelivery">Listing Delivery</button>
@@ -299,7 +303,7 @@
                         <button class="btn btn-action btn-orange" actionName="MasterDeliveryman">Master Deliveryman</button> --}}
                         <button class="btn btn-action btn-warning" actionName="ReCreateAWB">Re Create AWB</button>
                         <button class="btn btn-action btn-warning" actionName="MasterAlasanbatalKirim">Master Alasan Batal Kirim</button>
-                        <button class="btn btn-action btn-warning" actionName="BaPengembalianDana">BA Pengembalian Dana</button>
+                        <button class="btn btn-action btn-warning" actionName="BAPengembalianDana">BA Pengembalian Dana</button>
                         <button class="btn btn-action btn-warning" actionName="BaRusakKemasan">BA Rusak Kemasan</button>
                         <button class="btn btn-action btn-royal" actionName="CetakFormPengembalianBarang">Cetak Form Pengembalian Barang</button>
                         <button class="btn btn-action btn-royal" actionName="LaporanPenyusutanHarian">Laporan Penyusutan Harian</button>
@@ -312,7 +316,7 @@
                 <div class="card" style="height: calc(100vh - 235px)">
                     <div class="card-shadow">
                         <div class="card-body">
-                            <div class="d-flex" style="gap: 20px;">
+                            <div class="d-flex mb-2" style="gap: 20px;">
                                 <div class="detail-info text-light bg-royal" style="width: 50%; height: 40px; font-weight: bold; font-size: .9rem">No. Trans yang Dipilih : <span id="label_no_trans" style="padding-left: 6px">-</span></div>
                                 <div class="detail-info text-light" style="background: #bf0000 !important; width: 50%; height: 40px; font-weight: bold; font-size: .9rem" id="label_item_batal">*Ada Item Belum Dikembalikan Ke Rak</div>
                             </div>
@@ -1066,7 +1070,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-info d-none mx-2" onclick="actionAdditionaCekPaymentChangeStatus()" id="btn_refresh_modal_pembayaran_va">Refresh</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-info d-none mx-2" onclick="actionAdditionalCekPaymentChangeStatus()" id="btn_refresh_modal_pembayaran_va">Refresh</button>
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalCreatePaymentChange()" id="btn_proses_modal_pembayaran_va">Cetak</button>
             </div>
         </div>
@@ -1127,6 +1131,114 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_master_data" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600" id="modal_master_data_title">Listing Delivery</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" hidden id="modal_master_data_flag_mode">
+                <div class="d-flex child-no-radius" style="gap: 20px">
+                    <div class="child-no-radius" style="display: flex;width: 100%;">
+                        <div class="detail-info bg-teal" style="white-space: nowrap;flex-shrink: 0;" id="modal_master_data_label">Nama Driver</div>
+                        <input type="text" class="form-control" id="modal_master_data_input" oninput="$(this).val(onKeyUpUpperCase(this.value))">
+                    </div>
+                    <button class="btn btn-success" style="width: 150px;flex-shrink: 0" onclick="actionAdditionalAddMasterData()">ADD</button>
+                </div>
+                <div class="table-responsive position-relative" style="margin-top: 18px;">
+                    <table class="table table-center table-striped table-hover datatable-dark-primary w-100" id="modal_master_data_tb">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="detail-info bg-danger text-light mt-3" style="font-weight: bold; width: 300px; height: 42px">*DELETE : untuk menghapus data</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_ba_pengembalian_dana" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">BA Pengembalian Dana SPI</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex child-no-radius" style="gap: 20px; width: 520px; margin: auto">
+                    <div class="child-no-radius" style="display: flex;width: 100%;">
+                        <div class="detail-info bg-teal" style="white-space: nowrap;flex-shrink: 0;">History BA</div>
+                        <select id="modal_ba_pengembalian_dana_select" class="form-control">
+
+                        </select>
+                    </div>
+                    <label for="modal_ba_pengembalian_dana_checkbox" class="checkbox-label checkbox-label-sm d-flex align-items-center bg-teal">
+                        <input type="checkbox" id="modal_ba_pengembalian_dana_checkbox" onclick="$(this).val(this.checked ? 1 : 0)" value="0">
+                        Enable History
+                    </label>
+                </div>
+                <div class="table-responsive position-relative" style="margin-top: 18px;">
+                    <table class="table table-center table-striped table-hover datatable-dark-primary w-100" id="modal_ba_pengembalian_dana_tb">
+                        <thead>
+                            <tr>
+                                <th>Tipe Bayar</th>
+                                <th>No. PB</th>
+                                <th>Tgl. PB</th>
+                                <th>Kode Member</th>
+                                <th>Total</th>
+                                <th>BA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary mr-3" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalBAPengembalianDanaPrepCetak()">CETAK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_sorting_lopp" status="" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content" style="border: 0; background: #5f3e69 !important">
+            <div class="modal-body" style="border: 1px solid white; margin: 8px; padding: 15px 19px;">
+                <div class="form-group d-flex align-items-center justify-content-center m-0" style="gap: 20px">
+                    <label for="modal_sorting_lopp_sortby1" style="white-space: nowrap; margin: 0; font-weight: bold; color: white">Sort By : </label>
+                    <div class="d-flex" style="width: 530px; gap: 15px">
+                        <select id="modal_sorting_lopp_sortby1" class="form-control">
+                            <option value="Kode Member" selected>Kode Member</option>
+                            <option value="No PB">No PB</option>
+                            <option value="Tanggal DSP">Tanggal DSP</option>
+                            <option value="Nilai DSP">Nilai DSP</option>
+                        </select>
+                        <select id="modal_sorting_lopp_sortby2" class="form-control">
+                            <option value="ASC">ASC</option>
+                            <option value="DESC">DESC</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" style="box-shadow: unset!important; width: 160px; font-weight: bold" onclick="actionAdditionalLoppCodCetak()">CETAK</button>
+                    <button class="btn btn-secondary" data-dismiss="modal" style="box-shadow: unset!important; width: 160px; font-weight: bold">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_password_manager" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #2f4f4f!important">
@@ -1167,7 +1279,7 @@
             order: [],
             "paging": false,
             "searching": false,
-            "scrollY": "calc(100vh - 400px)",
+            "scrollY": "calc(100vh - 440px)",
             "scrollCollapse": true,
             ordering: false,
             columns: [
@@ -1266,6 +1378,14 @@
         $(document).keydown(function(event) {
             if ((event.key.startsWith("F") && !isNaN(event.key.substring(1))) || event.key === "Delete") {
                 event.preventDefault();
+                if($('#modal_master_data').hasClass('show') && event.key === "Delete"){
+                    if($("#modal_master_data_tb tbody tr").hasClass("select-r")){
+                        actionAdditionalRemoveMasterData();
+                    } else {
+                        return;
+                    }
+                }
+
                 if (isFunctionRunning || isModalShowing()) {
                     return;
                 }
@@ -1300,13 +1420,13 @@
         }
         
         //List Button Action Tidak Perlu Pilih Data
-        if (tb.row(".select-r").data() === undefined && !["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "CetakSuratJalan", "PbBatal", "ItemPickingBelumTransit", "ListPBLebihDariMaxSerahTerima"].includes($(this).attr("actionName"))) {
+        if (tb.row(".select-r").data() === undefined && !["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "CetakSuratJalan", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "MasterAlasanbatalKirim", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
             Swal.fire('Peringatan!', 'Pilih Data Terlebih Dahulu..!', 'warning');
             return;
         }
         
         //List Button Action Tidak Perlu No Trans
-        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "PbBatal", "ItemPickingBelumTransit", "ListPBLebihDariMaxSerahTerima"].includes($(this).attr("actionName"))) {
+        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "MasterAlasanbatalKirim", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
             if( tb.row(".select-r").data().no_trans == null && tb.row(".select-r").data().no_trans == ''){
                 Swal.fire('Peringatan!', 'Data Tidak Memiliki No. Trans..!', 'warning');
                 return;
@@ -1342,6 +1462,13 @@
         if ($(this).val() === '') {
             $(this).val(0);
         }
+    });
+
+    $(document).on('click', function(event) {
+        if (!$(event.target).closest('#modal_master_data_tb tbody tr').length && $('#modal_master_data_tb tbody tr').hasClass('select-r')) {
+            $('#modal_master_data_tb tbody tr').removeClass('select-r');
+        }
+
     });
 });
 

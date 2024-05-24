@@ -1031,7 +1031,7 @@ class Controller extends BaseController
         $query .= " FROM dpd_idm_ora ";
         $query .= " WHERE fmndoc = '" . $PSP_NoPB . "' ";
         $query .= " AND fmkcab = 'SPI0' ";
-        $query .= " AND tglpb = TO_CHAR(TO_DATE('" . $PSP_TglPB . "','DD-MM-YYYY'), 'YYYYMMDD') ";
+        $query .= " AND tglpb = TO_CHAR(TO_DATE('" . date('d-m-Y', strtotime($PSP_TglPB)) . "','DD-MM-YYYY'), 'YYYYMMDD') ";
         $dtCek = DB::select($query);
 
         if(count($dtCek)){
@@ -1040,7 +1040,7 @@ class Controller extends BaseController
         }
 
         if($this->konversi_SPI($noTrans, $tglTrans) == false){
-            return;
+            return true;
         }
 
         //! GET NO PICK

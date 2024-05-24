@@ -179,6 +179,10 @@
             }
             return false;
         };
+
+        function onKeyUpUpperCase(inputValue) {
+            return inputValue.toUpperCase();
+        }
     </script>
     @stack('page-script')
 </body>

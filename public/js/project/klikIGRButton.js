@@ -1,4 +1,5 @@
 let tb_periode_pesanan;
+
 function initialize_datatables_list_pb(data, columnsData, columnsDefsData = []){
     columnsDefsData.push({ className: 'text-center', targets: "_all" });
     tb_periode_pesanan = $('#modal_list_pb_batal_tb').DataTable({
@@ -13,6 +14,47 @@ function initialize_datatables_list_pb(data, columnsData, columnsDefsData = []){
         lengthChange: false,
         destory: true,
     });
+}
+
+function initialize_datatables_master_data(data, columnsData, columnsDefsData = []){
+    columnsDefsData.push({ className: 'text-center', targets: "_all" });
+    modal_master_data_tb = $('#modal_master_data_tb').DataTable({
+        data: data,
+        language: {
+            emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+        },
+        order: [],
+        "paging": false,
+        "searching": false,
+        "scrollY": "calc(100vh - 500px)",
+        "scrollCollapse": true,
+        columnDefs: columnsDefsData,
+        columns: columnsData,
+        ordering: false,
+        destory: true,
+        rowCallback: function(row, data){
+            $(row).click(function() {
+                $('#modal_master_data_tb tbody tr').removeClass('select-r');
+                $(this).toggleClass("select-r");
+            });
+        },
+    });
+}
+
+function getCheckedBAPengembalianDana(){
+    var checkedInputs = [];
+    $('#modal_ba_pengembalian_dana_tb tbody tr td input.checkbox-table:checked').each(function() {
+        var row = $(this).closest('tr');
+        var rowData = {
+            tipeBayar: row.find('td:eq(0)').text(),
+            noPB: row.find('td:eq(1)').text(),
+            tglPB: row.find('td:eq(2)').text(),
+            kodeMember: row.find('td:eq(3)').text(),
+            nilaiRefund: row.find('td:eq(4)').text()
+        };
+        checkedInputs.push(rowData);
+    });
+    return checkedInputs;
 }
 
 function actionAdditionalPesananExpired(){
@@ -120,7 +162,7 @@ function actionAdditionalPembayaranVaChangeButton(){
     $("#btn_refresh_modal_pembayaran_va").removeClass("d-none");
 }
 
-function actionAdditionaCekPaymentChangeStatus(){
+function actionAdditionalCekPaymentChangeStatus(){
     var no_trx = $("#no_pb_modal_pembayaran_va").val().substring(0, 6);
     var data = "trxid=" + no_trx + "";
     //! BELUM SELESAI (UNAUTHORIZED)
@@ -131,6 +173,30 @@ function actionAdditionaCekPaymentChangeStatus(){
     //         $("#status_modal_pembayaran_va")
     //     }
     // })();
+}
+
+function actionAdditionalLoppCodCetak(){
+    if($("#modal_sorting_lopp_sortby1").val() == "" || $("#modal_sorting_lopp_sortby2").val() == ""){
+        Swal.fire("Peringatan!", "Harap Pilih Tipe SortBy Terlebih Dahulu!");
+        return;
+    }
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/LoppCod`,
+        type: "POST",
+        data: { sortBy1: $("#modal_sorting_lopp_sortby1").val(), sortBy2: $("#modal_sorting_lopp_sortby2").val() },
+        success: function(response) {
+            actionGlobalDownloadPdf(response.data.nama_file);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
 }
 
 function actionAdditionalCreatePaymentChange(){
@@ -150,6 +216,243 @@ function actionAdditionalCreatePaymentChange(){
 
         }
     })();
+}
+
+function actionAdditionalQueryDatatablesMasterData(flagMode = ""){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionMasterAlasanBatalKirimDatatables/" + flagMode,
+        type: "GET",
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            
+            if ($.fn.DataTable.isDataTable('#modal_master_data_tb')) {
+                modal_master_data_tb.clear().draw();
+                $("#modal_master_data_tb").dataTable().fnDestroy();
+                $("#modal_master_data_tb thead").empty()
+            }
+
+            var firstObject = response.data[0];
+
+            var newColumns = [];
+
+            for (var property in firstObject) {
+                var firstChar = property.toUpperCase().replace(/_/g, " ");
+
+                newColumns.push({
+                    data: property,
+                    title: firstChar,
+                });
+            }
+
+            initialize_datatables_master_data(response.data, newColumns);
+
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalShowModalMasterData(title = "", labelText = "", flagMode = ""){
+    $("#modal_master_data").modal("show");
+    $("#modal_master_data_title").text(title);
+    $("#modal_master_data_label").text(labelText);
+    $("#modal_master_data_flag_mode").val(flagMode);
+    actionAdditionalQueryDatatablesMasterData(flagMode);
+}
+
+function actionAdditionalAddMasterData(){
+    var inputValue = $("#modal_master_data_input").val();
+    if(inputValue == ""){
+        Swal.fire("Peringatan!", "Harap isi No.Polisi terlebih dahulu");
+        return;
+    }
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Input No.Polisi ${inputValue} ?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + "/action/actionMasterAlasanBatalKirimAdd/",
+                type: "POST",
+                data: { data: inputValue },
+                success: function(response) {
+                    setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+                    Swal.fire("Success!", response.message, "success");
+                    actionAdditionalQueryDatatablesMasterData($("#modal_master_data_flag_mode").val());
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+    });
+}
+
+function actionAdditionalBAPengembalianDanaDatatables(noba, isHistory){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionBAPengembalianDanaDatatables/" + noba + "/" + isHistory,
+        type: "GET",
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            if ($.fn.DataTable.isDataTable('#modal_ba_pengembalian_dana_tb')) {
+                modal_ba_pengembalian_dana_tb.clear().draw();
+                $("#modal_ba_pengembalian_dana_tb").dataTable().fnDestroy();
+                $("#modal_ba_pengembalian_dana_tb thead").empty()
+            }
+
+            modal_ba_pengembalian_dana_tb = $('#modal_ba_pengembalian_dana_tb').DataTable({
+                data: response.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false,
+                "scrollY": "calc(100vh - 500px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "tipe_bayar", title: "Tipe Bayar" },
+                    { data: "no_pb", title: "No. PB" },
+                    { data: "tgl_pb", title: "Tgl. PB" },
+                    { data: "kode_member", title: "Kode Member" },
+                    { data: "total", title: "Total" },
+                    { data: "ba", title: "BA" },
+                ],
+                ordering: false,
+                destory: true,
+                rowCallback: function (row, data) {
+                    $('td:eq(5)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-pengembalian" value="${data.ba}" name="ba-checkbox">`);
+                }
+            });
+
+            if(isHistory == 1){
+                $("#modal_ba_pengembalian_dana_tb tbody tr td input.checkbox-table").attr("checked", true);
+            } else {
+                $("#modal_ba_pengembalian_dana_tb tbody tr td input.checkbox-table").attr("checked", false);
+            }
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#modal_ba_pengembalian_dana_tb')) {
+                modal_ba_pengembalian_dana_tb.clear().draw();
+            }
+        }
+    });
+}
+
+function actionAdditionalBAPengembalianDanaPrepCetak(){
+    var isHistory = $("#modal_ba_pengembalian_dana_checkbox").val();
+    var swalText = isHistory == 0 
+    ? "Yakin akan Melakukan Cetak Pengembalian Dana SPI berdasarkan data yang dipilih ?" 
+    : "Yakin akan Melakukan Cetak Pengembalian Dana SPI berdasarkan History BA ?";
+
+    Swal.fire({
+        title: 'Yakin?',
+        html: swalText,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            if(isHistory == 1){
+                if($("#modal_ba_pengembalian_dana_select").val() !== ""){   
+                    var data = [];
+                    data.push({noBA : $("#modal_ba_pengembalian_dana_select").val()});
+                    data.push({tglBA : $('#modal_ba_pengembalian_dana_select option:selected').attr('date-value')});
+                    actionAdditionalBAPengembalianDanaCetak(isHistory, data);
+                } else {
+                    Swal.fire("Peringatan!", "Belum ada BA yang dipilih!", "warning");
+                    return;
+                }
+            } else {
+                if($('#modal_ba_pengembalian_dana_tb tbody tr td input.checkbox-table:checked').length == 0){
+                    Swal.fire("Peringatan!", "Belum Ada BA yg dipilih!", "warning");
+                    return;
+                }
+                var data = getCheckedBAPengembalianDana();
+                actionAdditionalBAPengembalianDanaCetak(isHistory, data);
+            }
+        }
+    });
+}
+
+function actionAdditionalBAPengembalianDanaCetak(isHistory = 0, params = []){
+
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/BAPengembalianDana",
+        type: "POST",
+        data: { isHistory: isHistory, data: params },
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire("Success!", response.message, "success");
+            actionGlobalDownloadPdf(response.data.nama_file);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalRemoveMasterData(){
+    var selectedRow = modal_master_data_tb.row(".select-r").data();
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Hapus Nomor Polisi ${selectedRow.no_polisi} ?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + "/action/actionMasterAlasanBatalKirimRemove",
+                type: "POST",
+                data: { data: selectedRow.no_polisi },
+                success: function(response) {
+                    setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+                    Swal.fire("Success!", response.message, "success");
+                    actionAdditionalQueryDatatablesMasterData($("#modal_master_data_flag_mode").val());
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+    });
 }
 
 function detailTransaksi(element){
@@ -192,6 +495,13 @@ function actionSendHandheld(DonePilihJalurPicking = false){
             success: function(response) {
                 setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                 Swal.fire('Success!', response.message,'success');
+                if(response.data.content !== "noTXT"){
+                    var blob = new Blob([response.data.content], { type: "text/plain" });
+                    var link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = response.data.nama_file;
+                    link.click();
+                }
             }, error: function(jqXHR, textStatus, errorThrown) {
                 setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                 if(jqXHR.responseJSON.code === 401){
@@ -361,11 +671,11 @@ function actionKonfirmasiPembayaran(){
         data: { no_trans: selectedRow.no_trans, status: selectedRow.status, nopb: selectedRow.no_pb, kode_member: selectedRow.kode_member },
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-            Swal.fire("Success", "Pembayaran Terkonfirmasi", "success");
-            var blob = new Blob([jqXHR.responseJSON.data.content], { type: "text/plain" });
+            Swal.fire("Success", "Konfirmasi Pembayaran Berhasil", "success");
+            var blob = new Blob([response.data], { type: "text/plain" });
             var link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
-            link.download = response.data.nama_file;
+            link.download = "WRITE_SSO.txt";
             link.click();
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
@@ -522,6 +832,12 @@ function actionItemPickingBelumTransit(){
     });
 }
 
+function actionLoppCod(){
+    $("#modal_sorting_lopp").modal("show");
+    $("#modal_sorting_lopp_sortby1").val($('#modal_sorting_lopp_sortby1 option:first').val()).trigger('change');
+    $("#modal_sorting_lopp_sortby2").val($('#modal_sorting_lopp_sortby2 option:first').val()).trigger('change');
+}
+
 function actionListPBLebihDariMaxSerahTerima(){
     $('#modal_loading').modal('show');
     $.ajax({
@@ -561,8 +877,43 @@ function actionListPBLebihDariMaxSerahTerima(){
     });
 }
 
+function actionMasterAlasanbatalKirim(){
+    actionAdditionalShowModalMasterData("Master Alasan Batal Kirim", "No. Polisi", "AlasanBatalKirim");
+}
+
+function actionBAPengembalianDana(){
+    $("#modal_ba_pengembalian_dana_select").empty();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionBAPengembalianDanaGetHistory`,
+        type: "GET",
+        success: function(response) {
+            $("#modal_ba_pengembalian_dana_checkbox").prop("checked", false);
+            actionAdditionalBAPengembalianDanaDatatables(null, 0);
+            
+            if(response.data.length === 0){
+                $("#modal_ba_pengembalian_dana_select").prop("disabled", true);
+                $("#modal_ba_pengembalian_dana_select").append(`<option value="123" date-value="22-22-222">123</option>`);
+            }else{
+                $("#modal_ba_pengembalian_dana_select").prop("disabled", false);
+                response.data.forEach(item => {
+                    $("#modal_ba_pengembalian_dana_select").append(`<option value="${item.noba}" date-value="${item.tglba}">${item.noba}</option>`);
+                });
+            }
+            $("#modal_ba_pengembalian_dana").modal("show");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
 function actionCetakFormPengembalianBarang(){
-    var selectedRow = tb.row(".select-r").data();
     Swal.fire({
         title: 'Yakin?',
         html: `Cetak Form Pengembalian Barang?`,
@@ -575,7 +926,6 @@ function actionCetakFormPengembalianBarang(){
             $.ajax({
                 url: currentURL + `/action/cetakFormPengembalianBarang`,
                 type: "POST",
-                // data: {nopb: selectedRow.no_pb, no_trans: selectedRow.no_trans, kode_member: selectedRow.kode_member, tanggal_trans: $("#tanggal_trans").val()},
                 xhrFields: {
                     responseType: 'blob' // Important for binary data
                 },
@@ -697,8 +1047,40 @@ function actionBuktiSerahTerimaKardus(){
 }
 
 
-
 //? ACTION THAT CORRESPONDING FOR ELEMENT DIRECTLY
+$("#modal_ba_pengembalian_dana_checkbox").change(function(){
+    var noba, isHistory;
+    if($(this).val() == 1){
+        //* isHIstory Checked
+        $("#modal_ba_pengembalian_dana_tb tbody tr td input.checkbox-table").attr("disabled", true);
+        $("#modal_ba_pengembalian_dana_select").attr("disabled", false);
+        if($("#modal_ba_pengembalian_dana_select option").length == 0){
+            Swal.fire("Peringatan!", "Belum Ada History BA Pengembalian Dana SPI!", "warning");
+            return;
+        }
+        if($("#modal_ba_pengembalian_dana_select").val() !== ""){
+            noba = $("#modal_ba_pengembalian_dana_select").val();
+            isHistory = 1;
+        }
+    } else {
+        //* isHIstory Not Checked
+        $("#modal_ba_pengembalian_dana_select").attr("disabled", true);
+        noba = null;
+        isHistory = 0;
+    }
+
+    actionAdditionalBAPengembalianDanaDatatables(noba, isHistory);
+});
+
+$("#modal_ba_pengembalian_dana_select").change(function(){
+    if($("#modal_ba_pengembalian_dana_checkbox").val() == 1){
+        if($("#modal_ba_pengembalian_dana_select").val() !== ""){
+            actionAdditionalBAPengembalianDanaDatatables($("#modal_ba_pengembalian_dana_select").val(), 1);
+            $("#modal_ba_pengembalian_dana_tb tbody tr td input.checkbox-table").prop("checked", true);
+        }
+    }
+});
+
 $("#pengiriman_modal_ekspedisi").change(function(){
     if($(this).val() == "TEAM DELIVERY IGR"){
         $("label#nama_ekspedisi_modal_ekspedisi").text("Nama Ekspedisi");
