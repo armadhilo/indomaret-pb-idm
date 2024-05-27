@@ -60,7 +60,7 @@
             <div class="header">
                 <div style="float: left;">
                     <p style="font-size: .8rem;"><b>{{ strtoupper("PT. INTI CAKRAWALA CITRA") }}</b></p>
-                    <p style="font-size: .8rem;"><b>{{ strtoupper("TOKO IGR / NOMOR IGR") }}</b></p>
+                    <p style="font-size: .8rem;"><b>{{ strtoupper( session('NAMACABANG')) }}</b></p>
                 </div>
                 <div style="float: right">
                     <p>Tanggal Cetak : {{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('d/m/Y') }}</p>
@@ -73,8 +73,8 @@
             <div class="body">
                 <div style="text-align: center; margin-top: 50px">
                     <h2 style="margin: 0 0 10px 0">Bukti Serah Terima Kardus</h2>
-                    <p style="font-size: .8rem; margin-bottom: 3px">No : 21/12/12</p>
-                    <p style="font-size: .8rem; margin-bottom: 3px">Tanggal : 21/12/12</p>
+                    <p style="font-size: .8rem; margin-bottom: 3px">No : {{ $noSTK }}</p>
+                    <p style="font-size: .8rem; margin-bottom: 3px">Tanggal : {{ $tglSTK }}</p>
                 </div>
                 <table border="1" style="border-collapse: collapse; margin-top:10px" class="table-center" cellpadding="2">
                     <thead>
@@ -86,15 +86,17 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @foreach ($data as $key => $item)
                         <tr>
-                            <td colspan="4">NO.PESANAN</td>
+                            <td colspan="4">{{ $item->no_pesanan }}</td>
                         </tr>
                         <tr>
-                            <td>1</td>
-                            <td>0923148</td>
-                            <td>302948</td>
-                            <td>21</td>
-                        </tr>
+                            <td>{{ $key + 1 }}</td>
+                            <td>{{ $item->no_koli }}</td>
+                            <td>{{ $item->no_struk }}</td>
+                            <td>{{ $item->jml_item }}</td>
+                        </tr>   
+                        @endforeach
                     </tbody>
                 </table>
                 <table style="width: 80%; margin: 25px auto" class="table-center">

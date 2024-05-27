@@ -148,7 +148,7 @@
         margin-right: 15px;
     }
 
-    #tab_detail_transaksi .nav-item .nav-link.active{
+    #tab_detail_transaksi .nav-item .nav-link.active, #tab_ba_barang_rusak .nav-item .nav-link.active{
         color: #012970;
         font-weight: bold;
         position: relative;
@@ -952,9 +952,9 @@
             </div>
             <div class="modal-footer">
                 <div class="float-right mt-4 d-flex">
-                    <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px">Confirm</button>
+                    {{-- <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px">Confirm</button>
                     <input type="number" class="form-control" style="margin: 0 15px; width: 180px; height: 42px" id="kg_berat_modal_ekspedisi">
-                    <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px" onclick="actionAdditionalHitungUlang()">Calculate</button>
+                    <button type="button" class="btn btn-primary btn-lg" style="width: 180px" onclick="actionAdditionalHitungUlang()">Calculate</button> --}}
                     <button type="button" style="width: 180px; margin-left: 15px" class="btn btn-lg btn-secondary" data-dismiss="modal">CANCEL</button>
                 </div>
             </div>
@@ -1000,7 +1000,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalCetakSTK();">Cetak</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" onclick="actionAdditionalBuktiSerahTerimaKardusPrepCetak();">Cetak</button>
             </div>
         </div>
     </div>
@@ -1213,6 +1213,51 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_listing_delivery" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">LISTING DELIVERY</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex child-no-radius flex-column" style="gap: 10px; width: 520px; margin: auto">
+                    <div class="child-no-radius" style="display: flex;width: 100%;">
+                        <div class="detail-info bg-teal" style="width: 170px;white-space: nowrap;flex-shrink: 0;">No. PB</div>
+                        <input type="text" id="modal_listing_delivery_nopb" class="form-control" readonly>
+                    </div>
+                    <div class="child-no-radius" style="display: flex;width: 100%;">
+                        <div class="detail-info bg-teal" style="width: 170px;white-space: nowrap;flex-shrink: 0;">No. Pol Mobil</div>
+                        <input type="text" id="modal_listing_delivery_nopol" class="form-control">
+                    </div>
+                    <div class="child-no-radius" style="display: flex;width: 100%;">
+                        <div class="detail-info bg-teal" style="width: 170px;white-space: nowrap;flex-shrink: 0;">Nama Driver</div>
+                        <input type="text" id="modal_listing_delivery_driver" class="form-control">
+                    </div>
+                    <div class="child-no-radius" style="display: flex;width: 100%;">
+                        <div class="detail-info bg-teal" style="width: 170px;white-space: nowrap;flex-shrink: 0;">Nama Deliveryman</div>
+                        <input type="text" id="modal_listing_delivery_deliveryman" class="form-control">
+                    </div>
+                </div>
+                <div class="table-responsive position-relative" style="margin-top: 18px;">
+                    <table class="table table-center table-striped table-hover datatable-dark-primary w-100" id="modal_listing_delivery_tb">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary mr-3" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalBAPengembalianDanaPrepCetak()">CETAK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_sorting_lopp" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #5f3e69 !important">
@@ -1233,6 +1278,154 @@
                     </div>
                     <button class="btn btn-primary" style="box-shadow: unset!important; width: 160px; font-weight: bold" onclick="actionAdditionalLoppCodCetak()">CETAK</button>
                     <button class="btn btn-secondary" data-dismiss="modal" style="box-shadow: unset!important; width: 160px; font-weight: bold">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_ba_barang_rusak" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">BA Barang Rusak</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="height: calc(100vh - 140px)!important; overflow: hidden">
+                <ul class="nav nav-tabs" id="tab_ba_barang_rusak" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="input-ba-rk-tab" data-toggle="tab" data-target="#input-ba-rk" type="button" role="tab" aria-controls="input-ba-rk" aria-selected="true">Input BA-RK</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="draft-ba-rk-tab" data-toggle="tab" data-target="#draft-ba-rk" type="button" role="tab" aria-controls="draft-ba-rk" aria-selected="false">Draft BA-RK</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="history-ba-rk-tab" data-toggle="tab" data-target="#history-ba-rk" type="button" role="tab" aria-controls="history-ba-rk" aria-selected="false">History BA-RK</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="myTabContent" style="height: 100%">
+                    <div class="tab-pane fade show active" id="input-ba-rk" role="tabpanel" aria-labelledby="input-ba-rk-tab" style="height: 100%; padding-bottom: 41px;">
+                        <div class="p-3" style="margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important; height: 100%">
+                            <div class="d-flex flex-column">
+                                <div class="form-group d-flex align-items-center child-no-radius" style="width: 400px">
+                                    <label for="no_pb_ba_barang_rusak_tab1" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">No PB : </label>
+                                    <input type="text" class="form-control" disabled id="no_pb_ba_barang_rusak_tab1">
+                                </div>
+                                <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                    <label for="kode_member_ba_barang_rusak_tab1" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Member : </label>
+                                    <div class="d-flex w-100 child-no-radius" style="gap: 18px; width: 100%">
+                                        <input type="text" class="form-control" disabled id="kode_member_ba_barang_rusak_tab1" style="width: 150px">
+                                        <input type="text" class="form-control" disabled id="nama_member_ba_barang_rusak_tab1" style="width: 100%">
+                                    </div>
+                                </div>
+                                <div class="form-group d-flex align-items-start child-no-radius" style="width: 100%">
+                                    <label for="no_pb_ba_barang_rusak_tab1" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Alasan : </label>
+                                    <textarea id="alasan_ba_barang_rusak_tab1" class="form-control" style="height: 70px; resize: none"></textarea>
+                                </div>
+                            </div>
+                            <div class="table-responsive position-relative">
+                                <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab1">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 170px">PLU</th>
+                                            <th style="width: 440px">Deskripsi</th>
+                                            <th>Frac</th>
+                                            <th>QtyBA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
+                                <button class="btn btn-primary btn-lg w-150px" style="height: 42px">Hitung Ulang</button>
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px">Simpan</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="draft-ba-rk" role="tabpanel" aria-labelledby="draft-ba-rk-tab" style="height: 100%; padding-bottom: 41px;">
+                        <div class="p-3" style="margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important; height: 100%">
+                            <div class="d-flex flex-column">
+                                <div class="form-group d-flex align-items-center child-no-radius" style="width: 400px">
+                                    <label for="no_pb_ba_barang_rusak_tab2" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">No PB : </label>
+                                    <input type="text" class="form-control" disabled id="no_pb_ba_barang_rusak_tab2">
+                                </div>
+                                <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                    <label for="kode_member_ba_barang_rusak_tab2" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Member : </label>
+                                    <div class="d-flex w-100 child-no-radius" style="gap: 18px; width: 100%">
+                                        <input type="text" class="form-control" disabled id="kode_member_ba_barang_rusak_tab2" style="width: 150px">
+                                        <input type="text" class="form-control" disabled id="nama_member_ba_barang_rusak_tab2" style="width: 100%">
+                                    </div>
+                                </div>
+                                <div class="form-group d-flex align-items-start child-no-radius" style="width: 100%">
+                                    <label for="no_pb_ba_barang_rusak_tab2" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Alasan : </label>
+                                    <textarea id="alasan_ba_barang_rusak_tab2" class="form-control" style="height: 70px; resize: none"></textarea>
+                                </div>
+                            </div>
+                            <div class="table-responsive position-relative">
+                                <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab1">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 170px">PLU</th>
+                                            <th style="width: 440px">Deskripsi</th>
+                                            <th>Frac</th>
+                                            <th>QtyBA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px">Approve</button>
+                                <button class="btn btn-danger btn-lg w-150px" style="height: 42px">Batal</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="history-ba-rk" role="tabpanel" aria-labelledby="history-ba-rk-tab" style="height: 100%; padding-bottom: 41px;">
+                        <div class="p-3" style="margin-top: -2px; z-index: 25; position: relative; border: 2px solid #d3d3d3; padding-bottom: 7px!important; height: 100%">
+                            <div class="d-flex flex-column">
+                                <div class="form-group d-flex align-items-center child-no-radius" style="width: 400px">
+                                    <label for="status_ba_barang_rusak_tab3" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Status BA : </label>
+                                    <input type="text" class="form-control" disabled id="status_ba_barang_rusak_tab3">
+                                </div>
+                                <div class="form-group d-flex align-items-center child-no-radius" style="width: 400px">
+                                    <label for="no_pb_ba_barang_rusak_tab3" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">No PB : </label>
+                                    <input type="text" class="form-control" disabled id="no_pb_ba_barang_rusak_tab3">
+                                </div>
+                                <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                    <label for="kode_member_ba_barang_rusak_tab3" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Member : </label>
+                                    <div class="d-flex w-100 child-no-radius" style="gap: 18px; width: 100%">
+                                        <input type="text" class="form-control" disabled id="kode_member_ba_barang_rusak_tab3" style="width: 150px">
+                                        <input type="text" class="form-control" disabled id="nama_member_ba_barang_rusak_tab3" style="width: 100%">
+                                    </div>
+                                </div>
+                                <div class="form-group d-flex align-items-start child-no-radius" style="width: 100%">
+                                    <label for="no_pb_ba_barang_rusak_tab1" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Alasan : </label>
+                                    <textarea id="alasan_ba_barang_rusak_tab1" class="form-control" style="height: 70px; resize: none"></textarea>
+                                </div>
+                            </div>
+                            <div class="table-responsive position-relative">
+                                <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab1">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 170px">PLU</th>
+                                            <th style="width: 440px">Deskripsi</th>
+                                            <th>Frac</th>
+                                            <th>QtyBA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px">Reprint</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1426,7 +1619,7 @@
         }
         
         //List Button Action Tidak Perlu No Trans
-        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "MasterAlasanbatalKirim", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
+        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "ListingDelivery", "MasterAlasanbatalKirim", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
             if( tb.row(".select-r").data().no_trans == null && tb.row(".select-r").data().no_trans == ''){
                 Swal.fire('Peringatan!', 'Data Tidak Memiliki No. Trans..!', 'warning');
                 return;

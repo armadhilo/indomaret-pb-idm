@@ -72,8 +72,11 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::get("/actionMasterAlasanBatalKirimDatatables/{flagMode}", [KlikIgrController::class, 'actionMasterAlasanBatalKirimDatatables']);
             Route::post("/actionMasterAlasanBatalKirimAdd", [KlikIgrController::class, 'actionMasterAlasanBatalKirimAdd']);
             Route::post("/actionMasterAlasanBatalKirimRemove", [KlikIgrController::class, 'actionMasterAlasanBatalKirimRemove']);
+            Route::post("/actionListingDeliveryPrep", [KlikIgrController::class, 'actionListingDeliveryPrep']);
+            Route::get("/actionListingDeliveryDatatables", [KlikIgrController::class, 'actionListingDeliveryDatatables']);
             Route::get("/actionBAPengembalianDanaGetHistory", [KlikIgrController::class, 'actionBAPengembalianDanaGetHistory']);
             Route::get("/actionBAPengembalianDanaDatatables/{noba}/{isHistory}", [KlikIgrController::class, 'actionBAPengembalianDanaDatatables']);
+            Route::get("/actionBuktiSerahTerimaKardusDatatables/{history}", [KlikIgrController::class, 'actionBuktiSerahTerimaKardusDatatables']);
 
             $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'CetakSuratJalan', 'CetakIIK', 'PbBatal', 'ItemPickingBelumTransit', 'LoppCod', 'ListPBLebihDariMaxSerahTerima', 'BAPengembalianDana', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 

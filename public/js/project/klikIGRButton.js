@@ -1,4 +1,23 @@
-let tb_periode_pesanan;
+let tb_periode_pesanan, tb_ba_rusak;
+
+tb_ba_rusak = $('.tb-ba-rusak').DataTable({
+    columnDefs: [
+        { className: 'text-center', targets: [0,1] },
+    ],
+    order: [],
+    "paging": false,
+    "searching": false,
+    "scrollY": "calc(100vh - 440px)",
+    "scrollCollapse": true,
+    ordering: false,
+    data: [],
+    columns: [
+        { data: 'plu' },
+        { data: 'desc' },
+        { data: 'frac' },
+        { data: 'qty' },
+    ],
+});
 
 function initialize_datatables_list_pb(data, columnsData, columnsDefsData = []){
     columnsDefsData.push({ className: 'text-center', targets: "_all" });
@@ -57,6 +76,20 @@ function getCheckedBAPengembalianDana(){
     return checkedInputs;
 }
 
+function getCheckedSerahTerimaKardus(){
+    var checkedInputs = [];
+    $('#tb_bukti_stk tbody tr td input.checkbox-table:checked').each(function() {
+        var row = $(this).closest('tr');
+        var rowData = {
+            noPB: row.find('td:eq(0)').text(),
+            tglPB: row.find('td:eq(1)').text(),
+            kodeMember: row.find('td:eq(2)').text(),
+        };
+        checkedInputs.push(rowData);
+    });
+    return checkedInputs;
+}
+
 function actionAdditionalPesananExpired(){
     var date_awal = $("#date_awal_modal_periode_pesanan").val();
     var date_akhir = $("#date_akhir_modal_periode_pesanan").val();
@@ -93,30 +126,10 @@ function actionAdditionalPesananExpired(){
 
 }
 
-function actionAdditionalCetakSTK(){
-    $('#modal_loading').modal('show');
-    $.ajax({
-        url: currentURL + `/action/BuktiSerahTerimaKardus`,
-        type: "POST",
-        data: {isShowDatatables: false, ckHistory: $("#cek_history_stk").val(), select_history_stk: $("#select_history_stk").val(), tglStkHistory: $("#select_history_stk").find('option:selected').attr("date")},
-        success: function(response) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
-            $("#modal_stk").modal("hide");
-        }, error: function(jqXHR, textStatus, errorThrown) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-            Swal.fire({
-                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                    ? jqXHR.responseJSON.message
-                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                icon: "error"
-            });
-        }
-    });
-}
 
 function actionAdditionalHitungUlang(){
     if($("#txt_nama_modal_ekspedisi").val() == ''){
-        Swal.fire("Peringatan", "Nama Ekspedisi Belum Diinput!");
+        Swal.fire("Peringatan", "Nama Ekspedisi Belum Diinput!", "warning");
         return;
     }
     var kg_berat = $("#kg_berat_modal_ekspedisi").val();
@@ -141,7 +154,7 @@ function actionAdditionalHitungUlang(){
     $.ajax({
         url: currentURL + `/action/HitungUlang`,
         type: "POST",
-        data: {pengiriman: $("#pengiriman_modal_ekspedisi").val(), txtNama: $("txt_nama_modal_ekspedisi").val()},
+        data: {pengiriman: $("#pengiriman_modal_ekspedisi").val(), txtNama: $("txt_nama_modal_ekspedisi").val(), jarak: $("#jarak_modal_ekspedisi").val()},
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
             
@@ -339,7 +352,7 @@ function actionAdditionalBAPengembalianDanaDatatables(noba, isHistory){
                 ordering: false,
                 destory: true,
                 rowCallback: function (row, data) {
-                    $('td:eq(5)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-pengembalian" value="${data.ba}" name="ba-checkbox">`);
+                    $('td:eq(5)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-pengembalian" ${data.ba == 1 ? 'checked' : ''} name="ba-checkbox">`);
                 }
             });
 
@@ -408,8 +421,10 @@ function actionAdditionalBAPengembalianDanaCetak(isHistory = 0, params = []){
         data: { isHistory: isHistory, data: params },
         success: function(response) {
             setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
-            Swal.fire("Success!", response.message, "success");
             actionGlobalDownloadPdf(response.data.nama_file);
+            Swal.fire("Success!", response.message, "success").then(function(){
+                $("#modal_ba_pengembalian_dana").modal("hide");
+            });
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
             Swal.fire({
@@ -450,6 +465,184 @@ function actionAdditionalRemoveMasterData(){
                         icon: "error"
                     });
                 }
+            });
+        }
+    });
+}
+
+function actionAdditionalListingDeliveryDatatables(noPB = 0){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionListingDeliveryDatatables/",
+        type: "GET",
+        data: {no_pb: noPB},
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            if ($.fn.DataTable.isDataTable('#modal_listing_delivery_tb')) {
+                modal_listing_delivery_tb.clear().draw();
+                $("#modal_listing_delivery_tb").dataTable().fnDestroy();
+                $("#modal_listing_delivery_tb thead").empty()
+            }
+
+            modal_listing_delivery_tb = $('#modal_listing_delivery_tb').DataTable({
+                data: response.data.dtData,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false,
+                "scrollY": "calc(100vh - 500px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "no_pb", title: "No. PB" },
+                    { data: "tgl_pb", title: "Tgl. PB" },
+                    { data: "kode_member", title: "Kode Member" },
+                    { data: "kirim", title: "Kirim" },
+                ],
+                ordering: false,
+                destory: true,
+                rowCallback: function (row, data) {
+                    $('td:eq(3)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-listing-delivery" ${data.kirim == 1 ? 'checked' : ''}>`);
+                }
+            });
+
+            $("#modal_listing_delivery_tb tbody tr td input.checkbox-table").attr("checked", false);
+
+            $("#modal_listing_delivery_nopol").val(response.data.headerInfo.nopol).prop("disabled", true);
+            $("#modal_listing_delivery_driver").val(response.data.headerInfo.driver).prop("disabled", true);
+            $("#modal_listing_delivery_deliveryman").val(response.data.headerInfo.delimen).prop("disabled", true);
+
+            $("#modal_listing_delivery").modal("show")
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#tb_bukti_stk')) {
+                tb_bukti_stk.clear().draw();
+            }
+        }
+    });
+}
+
+function actionAdditionalBuktiSerahTerimaKardusDatatables(isHistory = 0){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionBuktiSerahTerimaKardusDatatables/" + isHistory,
+        type: "GET",
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            if ($.fn.DataTable.isDataTable('#tb_bukti_stk')) {
+                tb_bukti_stk.clear().draw();
+                $("#tb_bukti_stk").dataTable().fnDestroy();
+                $("#tb_bukti_stk thead").empty()
+            }
+
+            tb_bukti_stk = $('#tb_bukti_stk').DataTable({
+                data: response.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false,
+                "scrollY": "calc(100vh - 500px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "no_pb", title: "No. PB" },
+                    { data: "tgl_pb", title: "Tgl. PB" },
+                    { data: "kode_member", title: "Kode Member" },
+                    { data: "cetak", title: "Cetak" },
+                ],
+                ordering: false,
+                destory: true,
+                rowCallback: function (row, data) {
+                    $('td:eq(3)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-stk" ${data.cetak == 1 ? 'checked' : ''} name="ba-checkbox">`);
+                }
+            });
+
+            if(isHistory == 1){
+                $("#tb_bukti_stk tbody tr td input.checkbox-table").attr("checked", true);
+            } else {
+                $("#tb_bukti_stk tbody tr td input.checkbox-table").attr("checked", false);
+            }
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#tb_bukti_stk')) {
+                tb_bukti_stk.clear().draw();
+            }
+        }
+    });
+}
+
+function actionAdditionalBuktiSerahTerimaKardusPrepCetak(){
+    var isHistory = $("#cek_history_stk").val();
+    var swalText = isHistory == 0 
+    ? "Yakin akan Melakukan Cetak Serah Terima Kardus berdasarkan data yang dipilih ?" 
+    : "Yakin akan Melakukan Cetak Serah Terima Kardus berdasarkan History STK ?";
+
+    Swal.fire({
+        title: 'Yakin?',
+        html: swalText,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            if(isHistory == 1){
+                if($("#select_history_stk").val() !== ""){   
+                    var data = [];
+                    data.push({noSTK : $("#select_history_stk").val()});
+                    data.push({tglSTK : $('#select_history_stk option:selected').attr('date-value')});
+                    actionAdditionalBuktiSerahTerimaKardusCetak(isHistory, data);
+                } else {
+                    Swal.fire("Peringatan!", "Belum ada History yang dipilih!", "warning");
+                    return;
+                }
+            } else {
+                if($('#tb_bukti_stk tbody tr td input.checkbox-table:checked').length == 0){
+                    Swal.fire("Peringatan!", "Belum Ada Data yg dipilih!", "warning");
+                    return;
+                }
+                var data = getCheckedSerahTerimaKardus();
+                actionAdditionalBuktiSerahTerimaKardusCetak(isHistory, data);
+            }
+        }
+    });
+}
+
+function actionAdditionalBuktiSerahTerimaKardusCetak(isHistory = 0, params = []){
+
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/BuktiSerahTerimaKardus",
+        type: "POST",
+        data: { isHistory: isHistory, data: params, isShowDatatables: 0 },
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            actionGlobalDownloadPdf(response.data.nama_file);
+            Swal.fire("Success!", response.message, "success").then(function(){
+                $("#modal_stk").modal("hide");
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
             });
         }
     });
@@ -881,6 +1074,44 @@ function actionMasterAlasanbatalKirim(){
     actionAdditionalShowModalMasterData("Master Alasan Batal Kirim", "No. Polisi", "AlasanBatalKirim");
 }
 
+function actionListingDelivery(){
+    var selectedRow = tb.row(".select-r").data();
+
+    if(selectedRow.no_pb == ""){
+        Swal.fire("Peringatan!", "Data Tidak Memiliki No. PB", "warning");
+        return;
+    }
+
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Cetak Listing Delivery NoPB ${selectedRow.no_pb} " ?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + `/action/actionListingDeliveryPrep`,
+                type: "POST",
+                data: {selectedRow: selectedRow},
+                success: function(response) {
+                    $("#modal_listing_delivery_nopb").val(selectedRow.no_pb)
+                    actionAdditionalListingDeliveryDatatables(selectedRow.no_pb);
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+    });
+}
+
 function actionBAPengembalianDana(){
     $("#modal_ba_pengembalian_dana_select").empty();
     $('#modal_loading').modal('show');
@@ -893,7 +1124,6 @@ function actionBAPengembalianDana(){
             
             if(response.data.length === 0){
                 $("#modal_ba_pengembalian_dana_select").prop("disabled", true);
-                $("#modal_ba_pengembalian_dana_select").append(`<option value="123" date-value="22-22-222">123</option>`);
             }else{
                 $("#modal_ba_pengembalian_dana_select").prop("disabled", false);
                 response.data.forEach(item => {
@@ -1010,29 +1240,18 @@ function actionBuktiSerahTerimaKardus(){
     $.ajax({
         url: currentURL + `/action/BuktiSerahTerimaKardus`,
         type: "POST",
-        data: {isShowDatatables: true},
+        data: {isShowDatatables: 1},
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
             var data = response.data;
-            $("#tb_bukti_stk tbody").empty();
             $("#select_history_stk").empty();
-            if(data.datatables.length < 1){
-                $("#tb_bukti_stk tbody").append(`<tr>
-                    <td colspan="4">Tidak Ada Data</td>
-                </tr>`)
-            } else {
-                data.datatables.forEach(item => {
-                    $("#tb_bukti_stk tbody").append(`<tr>
-                        <td>${item.no_pb}</td>
-                        <td>${item.tgl_pb}</td>
-                        <td>${item.kode_member}</td>
-                        <td>${item.cetak}</td>
-                    </tr>`)
-                });
-            }
+
+            actionAdditionalBuktiSerahTerimaKardusDatatables('firstQuery');
+
             data.cbSTK.forEach(item => {
-                $("#select_history_stk").append(`<option value="${item.nostk}" date="${item.tglstk}">${item.nostk} - ${item.tglstk}</option>`);
+                $("#select_history_stk").append(`<option value="${item.nostk}" date-value="${item.tglstk}">${item.nostk} - ${item.tglstk}</option>`);
             });
+            $("#select_history_stk").prop("disabled", true);
             $("#modal_stk").modal("show");
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
@@ -1070,6 +1289,30 @@ $("#modal_ba_pengembalian_dana_checkbox").change(function(){
     }
 
     actionAdditionalBAPengembalianDanaDatatables(noba, isHistory);
+});
+
+$("#cek_history_stk").change(function(){
+    var history;
+    if($(this).val() == 1){
+        $("#tb_bukti_stk tbody tr td input.checkbox-stk").attr("disabled", true);
+        $("#select_history_stk").attr("disabled", false);
+        if($("#cek_history_stk option").length == 0){
+            Swal.fire("Peringatan!", "Belum Ada History Serah Terima Kardus!", "warning");
+            return;
+        }
+        history = $("#cek_history_stk").val();
+        actionAdditionalBuktiSerahTerimaKardusDatatables(history);
+    }else {
+        actionAdditionalBuktiSerahTerimaKardusDatatables(0);
+    }
+});
+
+$("#select_history_stk").change(function(){
+    if($("#cek_history_stk").val() == 1){
+        if($("#select_history_stk").val() !== ""){
+            actionAdditionalBuktiSerahTerimaKardusDatatables($("#select_history_stk").val());
+        }
+    }
 });
 
 $("#modal_ba_pengembalian_dana_select").change(function(){

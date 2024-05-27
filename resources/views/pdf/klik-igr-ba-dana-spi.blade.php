@@ -143,13 +143,13 @@
                             @endphp
                             @foreach ($data as $item)
                             <tr>
-                                <td>{{ $item->tipeBayar }}</td>
-                                <td>{{ $item->jmlTrans }}</td>
-                                <td>{{ $item->jmlRefund }}</td>
+                                <td>{{ $item->tipebayar }}</td>
+                                <td>{{ $item->jmltrans }}</td>
+                                <td>{{ $item->jmlrefund }}</td>
                             </tr>
                             @php
-                              $totalTrans = $item->jmlTrans;  
-                              $totalRefund = $item->jmlRefund;  
+                              $totalTrans = $item->jmltrans;  
+                              $totalRefund = $item->jmlrefund;  
                             @endphp
                             @endforeach
                         </tbody>

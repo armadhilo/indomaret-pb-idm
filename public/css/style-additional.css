@@ -80,6 +80,10 @@ table.datatable-dark-primary thead tr{
     color: white!important;
 }
 
+table.datatable-teal thead tr{
+    background-color: #008080!important;
+}
+
 input[type=file], input[type=month], select.form-select{
     height: calc(1.5em + .75rem + 8px)!important;
 }
@@ -195,6 +199,10 @@ select:hover{
     cursor: pointer;
 }
 
+.w-150px{
+    width: 150px;
+}
+
 .checkbox-label{
     background-color: #6E214A;
     color: white;
@@ -205,6 +213,12 @@ select:hover{
     font-weight: 600;
     gap: 15px;
     white-space: nowrap;
+}
+
+#tab_detail_transaksi .nav-item .nav-link.active, #tab_ba_barang_rusak .nav-item .nav-link.active{
+    border-left: 2px solid lightgray;
+    border-top: 2px solid lightgray;
+    border-right: 2px solid lightgray;
 }
 
 .checkbox-label input{
