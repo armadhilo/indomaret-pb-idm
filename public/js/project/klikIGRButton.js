@@ -76,6 +76,21 @@ function getCheckedBAPengembalianDana(){
     return checkedInputs;
 }
 
+function getCheckedListingDelivery(){
+    var checkedInputs = [];
+    $('#modal_listing_delivery_tb tbody tr td input.checkbox-table:checked').each(function() {
+        var row = $(this).closest('tr');    
+        var rowData = {
+            tipeBayar: row.find('td:eq(0)').text(),
+            noPB: row.find('td:eq(1)').text(),
+            tglPB: row.find('td:eq(2)').text(),
+            kodeMember: row.find('td:eq(3)').text(),
+        };
+        checkedInputs.push(rowData);
+    });
+    return checkedInputs;
+}
+
 function getCheckedSerahTerimaKardus(){
     var checkedInputs = [];
     $('#tb_bukti_stk tbody tr td input.checkbox-table:checked').each(function() {
@@ -477,7 +492,7 @@ function actionAdditionalListingDeliveryDatatables(noPB = 0){
         type: "GET",
         data: {no_pb: noPB},
         success: function(response) {
-            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            setTimeout(() => { $('#modal_loading').modal('hide');     }, 500);
             if ($.fn.DataTable.isDataTable('#modal_listing_delivery_tb')) {
                 modal_listing_delivery_tb.clear().draw();
                 $("#modal_listing_delivery_tb").dataTable().fnDestroy();
@@ -492,10 +507,11 @@ function actionAdditionalListingDeliveryDatatables(noPB = 0){
                 order: [],
                 "paging": false,
                 "searching": false,
-                "scrollY": "calc(100vh - 500px)",
+                "scrollY": "calc(100vh - 700px)",
                 "scrollCollapse": true,
                 columnDefs: [{ className: 'text-center', targets: "_all" }],
                 columns: [
+                    { data: "tipe_bayar", title: "Tipe Bayar" },
                     { data: "no_pb", title: "No. PB" },
                     { data: "tgl_pb", title: "Tgl. PB" },
                     { data: "kode_member", title: "Kode Member" },
@@ -504,17 +520,20 @@ function actionAdditionalListingDeliveryDatatables(noPB = 0){
                 ordering: false,
                 destory: true,
                 rowCallback: function (row, data) {
-                    $('td:eq(3)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-listing-delivery" ${data.kirim == 1 ? 'checked' : ''}>`);
+                    $('td:eq(4)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-listing-delivery" ${data.kirim == 1 ? 'checked' : ''}>`);
                 }
             });
 
             $("#modal_listing_delivery_tb tbody tr td input.checkbox-table").attr("checked", false);
 
+            $("#modal_listing_delivery_history").val(response.data.isHistory);
+            $("#modal_listing_delivery_nolist").val(response.data.nolist);
+            $("#modal_listing_delivery_tgllist").val(response.data.tgllist);
+
             $("#modal_listing_delivery_nopol").val(response.data.headerInfo.nopol).prop("disabled", true);
             $("#modal_listing_delivery_driver").val(response.data.headerInfo.driver).prop("disabled", true);
             $("#modal_listing_delivery_deliveryman").val(response.data.headerInfo.delimen).prop("disabled", true);
-
-            $("#modal_listing_delivery").modal("show")
+            $("#modal_listing_delivery .modal-dialog .modal-footer .btn-primary").prop("disabled", false);
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
             Swal.fire({
@@ -526,9 +545,60 @@ function actionAdditionalListingDeliveryDatatables(noPB = 0){
             if ($.fn.DataTable.isDataTable('#tb_bukti_stk')) {
                 tb_bukti_stk.clear().draw();
             }
+            $("#modal_listing_delivery_nopol").val("").prop("disabled", true);
+            $("#modal_listing_delivery_driver").val("").prop("disabled", true);
+            $("#modal_listing_delivery_deliveryman").val("").prop("disabled", true);
+            $("#modal_listing_delivery .modal-dialog .modal-footer .btn-primary").prop("disabled", true);
         }
     });
 }
+
+function actionAdditionalListingDeliveryPrepCetak(){
+    var swalText = "Yakin akan Melakukan Cetak Listing Deliver berdasarkan data yang dipilih ?";
+
+    Swal.fire({
+        title: 'Yakin?',
+        html: swalText,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            if($('#modal_listing_delivery_tb tbody tr td input.checkbox-table:checked').length == 0){
+                Swal.fire("Peringatan!", "Belum Ada Delivery yg dipilih!", "warning");
+                return;
+            }
+            var data = getCheckedListingDelivery();
+            actionAdditionalListingDeliveryCetak(data);
+        }
+    });
+}
+
+function actionAdditionalListingDeliveryCetak(params = []){
+
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/ListingDelivery",
+        type: "POST",
+        data: { isHistory: $("#modal_listing_delivery_history").val(), noList: $("#modal_listing_delivery_nolist").val(), tglList: $("#modal_listing_delivery_tgllist").val(), nopol: $("#modal_listing_delivery_nopol").val(), driver: $("#modal_listing_delivery_driver").val(), deliveryman: $("#modal_listing_delivery_deliveryman").val(), data: params },
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            actionGlobalDownloadPdf(response.data.nama_file);
+            Swal.fire("Success!", response.message, "success").then(function(){
+                $("#modal_listing_delivery").modal("hide");
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
 
 function actionAdditionalBuktiSerahTerimaKardusDatatables(isHistory = 0){
     $('#modal_loading').modal('show');
@@ -1098,6 +1168,7 @@ function actionListingDelivery(){
                 success: function(response) {
                     $("#modal_listing_delivery_nopb").val(selectedRow.no_pb)
                     actionAdditionalListingDeliveryDatatables(selectedRow.no_pb);
+                    $("#modal_listing_delivery").modal("show");
                 }, error: function(jqXHR, textStatus, errorThrown) {
                     setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                     Swal.fire({

@@ -1224,6 +1224,9 @@
             </div>
             <div class="modal-body">
                 <div class="d-flex child-no-radius flex-column" style="gap: 10px; width: 520px; margin: auto">
+                    <input type="text" hidden id="modal_listing_delivery_history" value="0">
+                    <input type="text" hidden id="modal_listing_delivery_nolist" value="0">
+                    <input type="text" hidden id="modal_listing_delivery_tgllist" value="0">
                     <div class="child-no-radius" style="display: flex;width: 100%;">
                         <div class="detail-info bg-teal" style="width: 170px;white-space: nowrap;flex-shrink: 0;">No. PB</div>
                         <input type="text" id="modal_listing_delivery_nopb" class="form-control" readonly>
@@ -1252,7 +1255,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary mr-3" data-dismiss="modal">Close</button>
-                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalBAPengembalianDanaPrepCetak()">CETAK</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalListingDeliveryPrepCetak()">CETAK</button>
             </div>
         </div>
     </div>

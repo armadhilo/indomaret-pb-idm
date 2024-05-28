@@ -33,7 +33,7 @@ class KlikIgrController extends Controller
     }
 
     public function index(){
-        // $pdf = PDF::loadView('pdf.klik-igr-stk');
+        // $pdf = PDF::loadView('pdf.klik-igr-listing-delivery');
         // return $pdf->stream();
         // $this->createTableIPP_ONL();
         // // $this->getKonversiItemPerishable(true);
@@ -1094,8 +1094,8 @@ class KlikIgrController extends Controller
         //* show form -> frmPickerKlik
     }
 
+    //? DONE
     //! btnDelivery_Click_New
-    //? butuh request -> selectedRow
 
     public function actionListingDeliveryPrep(Request $request){
         $selectedRow = $request->selectedRow;
@@ -1147,15 +1147,16 @@ class KlikIgrController extends Controller
         $query .= "            AND SUBSTR(x.sti_pin,2) = SUBSTR(tbtr_serahterima_ipp.sti_pin,2) ";
         $query .= "            AND UPPER(x.sti_tipeproses) IN ('CANCEL','TITIP') ";
         $query .= "       ) ";
-        // $query .= " WHERE UPPER(obi_nopb) LIKE '" . $noPB . "'";
+        $query .= " WHERE UPPER(obi_nopb) LIKE '" . $noPB . "'";
         $dt = DB::select($query);
+
         if(count($dt) > 0){
             if($dt[0]->nolist !== "NEW"){
-                $data["isHistory"] = true;
+                $data["isHistory"] = 1;
                 $noListingHistory = $dt[0]->nolist;
                 $tglListingHistory = $dt[0]->tgllist;
             } else {
-                $data["isHistory"] = false;
+                $data["isHistory"] = 0;
                 $noListingHistory = "";
                 $tglListingHistory = "";
             }
@@ -1173,9 +1174,9 @@ class KlikIgrController extends Controller
             $query .= "LEFT JOIN tbtr_serahterima_ipp ";
             $query .= "  ON sti_codpaymentcode = obi_nopb ";
             $query .= "  AND sti_tipeproses = 'PICKUP' ";
-            // $query .= "WHERE DATE_TRUNC('DAY', sti_tglserahterima) = TO_DATE('" . $headerInfo->tgllist . "', 'DD-MM-YYYY') ";
-            // $query .= "  AND sti_drivername = '" . $headerInfo->driver . "' ";
-            // $query .= "  AND sti_vehicleno = '" . $headerInfo->nopol . "' ";
+            $query .= "WHERE DATE_TRUNC('DAY', sti_tglserahterima) = TO_DATE('" . $headerInfo->tgllist . "', 'DD-MM-YYYY') ";
+            $query .= "  AND sti_drivername = '" . $headerInfo->driver . "' ";
+            $query .= "  AND sti_vehicleno = '" . $headerInfo->nopol . "' ";
             $query .= "  WHERE SUBSTR(obi_recid, 1, 1) <> 'B' ";
             $query .= "  AND NOT EXISTS ( ";
             $query .= "        SELECT x.sti_noawb ";
@@ -1183,7 +1184,8 @@ class KlikIgrController extends Controller
             $query .= "         WHERE x.sti_noawb = tbtr_serahterima_ipp.sti_noawb ";
             $query .= "           AND SUBSTR(x.sti_pin, 2) = SUBSTR(tbtr_serahterima_ipp.sti_pin, 2) ";
             $query .= "           AND UPPER(x.sti_tipeproses) IN ('CANCEL', 'TITIP') ";
-            $query .= "      ) LIMIT 15";
+            $query .= "      ) ";
+
             $dtData = DB::select($query);
 
             $data['headerInfo'] = $headerInfo;
@@ -1202,54 +1204,39 @@ class KlikIgrController extends Controller
         DB::beginTransaction();
         try{
 
-            
+            $IP = $this->getIP();
 
-            //* open form -> frmDeliverySPI_New
+            if(count($request->data) > 0){
+                DB::delete("DELETE FROM TEMP_DELIVERY_SPI WHERE IP ='" . $IP . "'");
+    
+                foreach ($request->data as $row) {
+                    $query = "";
+                    $query .= "INSERT INTO TEMP_DELIVERY_SPI ( ";
+                    $query .= "TIPE_BAYAR, ";
+                    $query .= "NO_PB, ";
+                    $query .= "TGL_PB, ";
+                    $query .= "KODE_MEMBER, ";
+                    $query .= "IP) ";
+                    $query .= " VALUES ( ";
+                    $query .= "'" . $row['tipeBayar'] . "', ";
+                    $query .= "'" . $row['noPB'] . "', ";
+                    $query .= "'" . $row['tglPB'] . "', ";
+                    $query .= "'" . $row['kodeMember'] . "', ";
+                    $query .= "'" . $IP . "')";
+    
+                    DB::insert($query);
+                }
+            }
 
-            // nopol = fDelivery.noPol
-            // driver = fDelivery.driver
-            // deliveryman = fDelivery.deliveryman
+            if($request->isHistory == 1){
+                $noListing = $request->noList;
+                $tglListing = $request->tglList;
+            } else {
+                $noListing = "";
+                $tglListing = Carbon::today()->format('d-m-Y');
 
-            //! dummy variable
-            $nopol = '';
-            $driver = '';
-            $deliveryman = '';
-
-            //* jika ada data $noListing dan $tglListing pada frmDeliverySPI_New
-            // noListing = fDelivery.NoListingHistory
-            // tglListing = fDelivery.TglListingHistory
-
-            // If fDelivery.isHistory Then
-            //     noListing = fDelivery.NoListingHistory
-            //     tglListing = fDelivery.TglListingHistory
-            // Else
-
-
-                $noListing = DB::select("SELECT TO_CHAR(CURRENT_DATE, 'YYMMDD') || LPAD(nextval('seq_list_delivery_spi')::text, 5, '0') as nolisting");
-                $noListing = $noListing[0]->nolisting;
-                $tglListing = Carbon::now();
-
-                $query = '';
-                $query .= "INSERT INTO tbtr_delivery_spi ( ";
-                $query .= "  del_nolisting, ";
-                $query .= "  del_tglkirim, ";
-                $query .= "  del_tipebayar, ";
-                $query .= "  del_kodemember, ";
-                $query .= "  del_namamember, ";
-                $query .= "  del_alamat, ";
-                $query .= "  del_nopb, ";
-                $query .= "  del_tglpb, ";
-                $query .= "  del_nosp, ";
-                $query .= "  del_nilaisp, ";
-                $query .= "  del_nilaicod, ";
-                $query .= "  del_nopol, ";
-                $query .= "  del_driver, ";
-                $query .= "  del_deliveryman, ";
-                $query .= "  del_pincod, ";
-                $query .= "  del_create_by, ";
-                $query .= "  del_create_dt ";
-                $query .= ") ";
-                $query .= "SELECT  ";
+                $query = "";
+                $query .= "SELECT ";
                 $query .= "  '" . $noListing . "' no_kirim, ";
                 $query .= "  DATE_TRUNC('DAY', CURRENT_DATE) tgl_kirim, ";
                 $query .= "  CASE WHEN tipe_bayar = 'COD-POIN' THEN 'POIN' ";
@@ -1258,15 +1245,15 @@ class KlikIgrController extends Controller
                 $query .= "        ( ";
                 $query .= "            SELECT tipe_bayar2 ";
                 $query .= "            FROM ( ";
-                $query .= "                SELECT no_pb, tgl_trans, STRING_AGG(tipe_bayar, ' . ' ORDER BY tipe_bayar) tipe_bayar2 ";
+                $query .= "                SELECT no_pb, tgl_trans, STRING_AGG(tipe_bayar, ' & ' ORDER BY tipe_bayar) tipe_bayar2 ";
                 $query .= "                FROM payment_klikigr ";
                 $query .= "                GROUP BY no_pb, tgl_trans ";
                 $query .= "                ORDER BY tgl_trans DESC ";
-                $query .= "            ) as www";
+                $query .= "            ) AS subquery "; // Added alias for the subquery
                 $query .= "            WHERE no_pb = obi_nopb ";
                 $query .= "                AND TO_CHAR(tgl_trans, 'dd-MM-YYYY') = TO_CHAR(obi_tglpb, 'dd-MM-YYYY') ";
                 $query .= "        ) ";
-                $query .= "  End tipe_bayar, ";
+                $query .= "  END tipe_bayar, ";
                 $query .= "  obi_kdmember kode_member, ";
                 $query .= "  amm_namapenerima nama_member, ";
                 $query .= "  amm_namaalamat alamat, ";
@@ -1275,9 +1262,9 @@ class KlikIgrController extends Controller
                 $query .= "  COALESCE(obi_nostruk,'-') no_sp, ";
                 $query .= "  dsp_totaldsp nilai_sp, ";
                 $query .= "  CASE WHEN tipe_bayar <> 'COD' THEN 0 ELSE dsp_totalbayar END nilai_cod, ";
-                $query .= "  '" . $nopol . "' nopol, ";
-                $query .= "  '" . $driver . "' driver, ";
-                $query .= "  '" . $deliveryman . "' deliveryman, ";
+                $query .= "  '" . $request->nopol . "' nopol, ";
+                $query .= "  '" . $request->driver . "' driver, ";
+                $query .= "  '" . $request->deliveryman . "' deliveryman, ";
                 $query .= "  CASE WHEN obi_tipebayar = 'COD' THEN obi_cod_pincode ELSE '-' END pincod, ";
                 $query .= "  '" . session('userid') . "' create_by, ";
                 $query .= "  NOW() create_dt ";
@@ -1294,12 +1281,37 @@ class KlikIgrController extends Controller
                 $query .= " ON dsp_nopb = no_pb ";
                 $query .= " AND DATE_TRUNC('DAY',dsp_tglpb) = TO_DATE(tgl_pb,'DD-MM-YYYY') ";
                 $query .= " AND dsp_kodemember = kode_member ";
-                $query .= "WHERE ip = '" . $this->getIP() . "' ";
-                DB::insert($query);
+                $query .= "WHERE ip = '" . $IP . "' ";
+                $dtGet = DB::select($query);
+                
+                if(count($dtGet)){
+                    foreach($dtGet as $item){
+                        DB::table('tbtr_delivery_spi')
+                        ->insert([
+                            'del_nolisting' => $item->no_kirim,
+                            'del_tglkirim' => $item->tgl_kirim,
+                            'del_tipebayar' => $item->tipe_bayar,
+                            'del_kodemember' => $item->kode_member,
+                            'del_namamember' => $item->nama_member,
+                            'del_alamat' => $item->alamat,
+                            'del_nopb' => $item->no_pb,
+                            'del_tglpb' => $item->tgl_pb,
+                            'del_nosp' => $item->no_sp,
+                            'del_nilaisp' => $item->nilai_sp ?? 0,
+                            'del_nilaicod' => $item->nilai_cod,
+                            'del_nopol' => $item->nopol,
+                            'del_driver' => $item->driver,
+                            'del_deliveryman' => $item->deliveryman,
+                            'del_pincod' => $item->pincod,
+                            'del_create_by' => $item->create_by,
+                            'del_create_dt' => $item->create_dt ,
+                        ]);
 
-                //* UPDATE TBTR_DSP_SPI
-                $query = '';
-                $query .= "MERGE INTO tbtr_dsp_spi AS t ";
+                    }
+                }
+
+                $query = "";
+                $query .= "MERGE INTO tbtr_dsp_spi AS t "; 
                 $query .= "USING ( ";
                 $query .= "  SELECT DISTINCT ";
                 $query .= "    del_nolisting, ";
@@ -1308,40 +1320,36 @@ class KlikIgrController extends Controller
                 $query .= "    del_kodemember ";
                 $query .= "  FROM tbtr_delivery_spi ";
                 $query .= "  WHERE del_nolisting = '" . $noListing . "' ";
-                $query .= "  AND DATE_TRUNC('DAY',del_tglkirim) = '" . Carbon::parse($tglListing)->format('Y-m-d H:i:s') . "' ";
-                $query .= ") AS s ";
+                $query .= "  AND DATE_TRUNC('DAY', del_tglkirim) = TO_DATE('" . $tglListing . "', 'DD-MM-YYYY') ";
+                $query .= ") s ";
                 $query .= "ON ( ";
-                $query .= "      t.dsp_nopb = s.del_nopb ";
-                $query .= "  AND DATE_TRUNC('DAY', t.dsp_tglpb) = DATE_TRUNC('DAY', s.del_tglpb) ";
-                $query .= "  AND t.dsp_kodemember = s.del_kodemember ";
+                $query .= "       t.dsp_nopb = s.del_nopb ";
+                $query .= "   AND DATE_TRUNC('DAY', t.dsp_tglpb) = DATE_TRUNC('DAY', s.del_tglpb) ";
+                $query .= "   AND t.dsp_kodemember = s.del_kodemember ";
                 $query .= ") ";
                 $query .= "WHEN MATCHED THEN ";
-                $query .= "   UPDATE SET ";
-                $query .= "       dsp_nolisting = s.del_nolisting, ";
-                $query .= "       dsp_modify_by = '" . session('userid') . "', ";
-                $query .= "       dsp_modify_dt = CURRENT_DATE;";
-                DB::insert($query);
-            // End If
+                $query .= "  UPDATE SET dsp_nolisting = s.del_nolisting, "; 
+                $query .= "             dsp_modify_by = '" . session('userid') . "', "; 
+                $query .= "             dsp_modify_dt = CURRENT_DATE "; 
+                DB::statement($query);
+            }
+                
+            $query = "";
+            $query .= "SELECT DISTINCT ";
+            $query .= "  del_tipebayar AS tipebayar, ";
+            $query .= "  del_kodemember AS kode_member, ";
+            $query .= "  del_namamember AS nama_member, ";
+            $query .= "  del_nopb AS kode_pesanan, ";
+            $query .= "  del_alamat AS alamat, ";
+            $query .= "  del_nosp AS no_sp, ";
+            $query .= "  del_nilaisp AS nilai_sp, ";
+            $query .= "  del_nilaicod AS nilai_cod, ";
+            $query .= "  del_pincod AS pin_cod ";
+            $query .= "FROM tbtr_delivery_spi ";
+            $query .= "WHERE del_nolisting = '" . $noListing . "' ";
+            $query .= "AND DATE_TRUNC('DAY', del_tglkirim) = TO_DATE('" . $tglListing . "', 'DD-MM-YYYY') ";
 
-            $query = '';
-            $query .= " SELECT DISTINCT ";
-            $query .= "   del_tipebayar tipebayar, ";
-            $query .= "   del_kodemember kode_member, ";
-            $query .= "   del_namamember nama_member, ";
-            $query .= "   del_nopb kode_pesanan, ";
-            $query .= "   del_alamat alamat, ";
-            $query .= "   del_nopb kode_pesanan, ";
-            $query .= "   del_nosp no_sp, ";
-            $query .= "   del_nilaisp nilai_sp, ";
-            $query .= "   del_nilaicod nilai_cod, ";
-            $query .= "   del_pincod pin_cod ";
-            $query .= " FROM tbtr_delivery_spi ";
-            $query .= " WHERE del_nolisting = '" . $noListing . "' ";
-            $query .= " AND DATE_TRUNC('DAY',del_tglkirim) = '" . Carbon::parse($tglListing)->format('Y-m-d H:i:s') . "' ";
             $dtItem = DB::select($query);
-
-            //! NOTE KEVIN
-            //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
 
             if(count($dtItem) == 0){
                 return ApiFormatter::error(400, 'List Delivery tidak ditemukan.');
@@ -1358,10 +1366,39 @@ class KlikIgrController extends Controller
 
             //* form report -> rptListDeliverySPI
 
-            dd('done comment commit');
+            //!! IRVAN || COMMIT COMMENT
             //DB::commit();
 
-            return ApiFormatter::success(200, 'action Listing Delivery berhasil');
+            $data['noListing'] = $noListing;
+            $data['tglListing'] = $tglListing;
+            $data['nopol'] = $request->nopol;
+            $data['driver'] = $request->driver;
+            $data['deliveryman'] = $request->deliveryman;
+            $data['data'] = $dtItem;
+
+            $pdf = PDF::loadView('pdf.klik-igr-listing-delivery', $data);
+
+            $filePath = storage_path('temp_pdf');
+            if (!file_exists($filePath)) {
+                File::makeDirectory($filePath);
+            }
+            $filePath = storage_path('temp_pdf') . "/" . session("userid");
+            if (!file_exists($filePath)) {
+                File::makeDirectory($filePath);
+            } else {
+                File::deleteDirectory($filePath, false);
+                File::makeDirectory($filePath, 0755, true);
+            }
+
+            $nama_file = "LISTING_DELIVERY_" . Carbon::now()->format('Ymd_His') . ".pdf";
+
+            $filePath = $filePath . "/" . $nama_file;
+
+            file_put_contents($filePath, $pdf->output());
+
+            $response['nama_file'] = $nama_file;
+
+            return ApiFormatter::success(200, "Cetak Listing Delivery berhasil!", $response);
 
         } catch (HttpResponseException $e) {
             // Handle the custom response exception
@@ -1837,7 +1874,7 @@ class KlikIgrController extends Controller
     }
 
     //? DONE
-    //! IRPAN | ADA ERROR
+    //! btnSerahTerimaKardus_Click
     public function actionBuktiSerahTerimaKardus(Request $request){
         if($request->isShowDatatables == 1){
             if(session('flagSPI')){
@@ -1901,7 +1938,6 @@ class KlikIgrController extends Controller
                     $query .= "AND obi_tglpb = TO_DATE(tgl_pb,'DD-MM-YYYY') ";
                     $query .= "AND obi_kdmember = kode_member ";
                     $query .= "WHERE IP = '" . $IP . "' ";
-                    $dtGet = DB::select($query);
                     $dtGet = DB::select($query);
                     if(count($dtGet)){
                         foreach($dtGet as $item){
