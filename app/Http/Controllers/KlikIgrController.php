@@ -699,7 +699,7 @@ class KlikIgrController extends Controller
             $jarak = 0;
             $ongkos = $request->jarak;
         } else {
-            
+
         }
     }
 
@@ -1208,7 +1208,7 @@ class KlikIgrController extends Controller
 
             if(count($request->data) > 0){
                 DB::delete("DELETE FROM TEMP_DELIVERY_SPI WHERE IP ='" . $IP . "'");
-    
+
                 foreach ($request->data as $row) {
                     $query = "";
                     $query .= "INSERT INTO TEMP_DELIVERY_SPI ( ";
@@ -1223,7 +1223,7 @@ class KlikIgrController extends Controller
                     $query .= "'" . $row['tglPB'] . "', ";
                     $query .= "'" . $row['kodeMember'] . "', ";
                     $query .= "'" . $IP . "')";
-    
+
                     DB::insert($query);
                 }
             }
@@ -1283,7 +1283,7 @@ class KlikIgrController extends Controller
                 $query .= " AND dsp_kodemember = kode_member ";
                 $query .= "WHERE ip = '" . $IP . "' ";
                 $dtGet = DB::select($query);
-                
+
                 if(count($dtGet)){
                     foreach($dtGet as $item){
                         DB::table('tbtr_delivery_spi')
@@ -1311,7 +1311,7 @@ class KlikIgrController extends Controller
                 }
 
                 $query = "";
-                $query .= "MERGE INTO tbtr_dsp_spi AS t "; 
+                $query .= "MERGE INTO tbtr_dsp_spi AS t ";
                 $query .= "USING ( ";
                 $query .= "  SELECT DISTINCT ";
                 $query .= "    del_nolisting, ";
@@ -1328,12 +1328,12 @@ class KlikIgrController extends Controller
                 $query .= "   AND t.dsp_kodemember = s.del_kodemember ";
                 $query .= ") ";
                 $query .= "WHEN MATCHED THEN ";
-                $query .= "  UPDATE SET dsp_nolisting = s.del_nolisting, "; 
-                $query .= "             dsp_modify_by = '" . session('userid') . "', "; 
-                $query .= "             dsp_modify_dt = CURRENT_DATE "; 
+                $query .= "  UPDATE SET dsp_nolisting = s.del_nolisting, ";
+                $query .= "             dsp_modify_by = '" . session('userid') . "', ";
+                $query .= "             dsp_modify_dt = CURRENT_DATE ";
                 DB::statement($query);
             }
-                
+
             $query = "";
             $query .= "SELECT DISTINCT ";
             $query .= "  del_tipebayar AS tipebayar, ";
@@ -5212,9 +5212,9 @@ class KlikIgrController extends Controller
 
             if($kdWeb = 'WebMM'){
                 //! BELUM SELESAI (PROCEDURE INI TIDAK ADA)
-                $procedure = DB::select("sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("call sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }else{
-                $procedure = DB::select("sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("call sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }
 
             $status = $procedure[0]->p_Status;
