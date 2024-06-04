@@ -5,6 +5,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MonitoringWebServiceController;
 use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\DspbRotiController;
+use App\Http\Controllers\FormPickerClickController;
 use App\Http\Controllers\HistoryProdukController;
 use App\Http\Controllers\KlikIgrController;
 use App\Http\Controllers\KlikIgrFooterController;
@@ -67,18 +68,45 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post("/f4-cetak-item-batal", [KlikIgrFooterController::class, 'actionF4PrintItemBatal']);
             Route::post("/f10-hitung-ulang", [KlikIgrFooterController::class, 'actionF10HitungUlang']);
             Route::get('/delete-alasan-pembatalan-pb', [KlikIgrFooterController::class, 'getAlasanPembatalanPB']);
-
             Route::post("/HitungUlang", [KlikIgrController::class, 'actionHitungUlang']);
+
+            //* MasterAlasanBatalKirim Additional
             Route::get("/actionMasterAlasanBatalKirimDatatables/{flagMode}", [KlikIgrController::class, 'actionMasterAlasanBatalKirimDatatables']);
             Route::post("/actionMasterAlasanBatalKirimAdd", [KlikIgrController::class, 'actionMasterAlasanBatalKirimAdd']);
             Route::post("/actionMasterAlasanBatalKirimRemove", [KlikIgrController::class, 'actionMasterAlasanBatalKirimRemove']);
+
+            //* MasterPicking Additional
+            Route::post("/actionMasterPickingHHPrep", [KlikIgrController::class, 'actionMasterPickingHHPrep']);
+            Route::get("/actionMasterPickingHHLoadGroup", [FormPickerClickController::class, 'loadGroup']);
+            Route::get("/actionMasterPickingHHFilterRak/{group?}", [FormPickerClickController::class, 'loadKodeRak']);
+            Route::get("/actionMasterPickingHHLoadUser/{group?}", [FormPickerClickController::class, 'loadUserID']);
+            Route::post("/actionMasterPickingHHLoadRakAll", [FormPickerClickController::class, 'actionSelectKodeRak']);
+            Route::get("/actionMasterPickingHHLoadRakUser/{group?}/{user?}", [FormPickerClickController::class, 'actionSelectUserId']);
+            //* ADD GROUP FUNCTION
+            Route::get("/actionMasterPickingHHAddGroup", [FormPickerClickController::class, 'actionAddGroup']);
+            Route::get("/actionMasterPickingFilterGroup", [FormPickerClickController::class, 'actionFilterGroup']);
+            Route::get("/actionMasterPickingLoadUser", [FormPickerClickController::class, 'actionLoadUser']);
+            Route::get("/actionMasterPickingLoadPicking/{group?}", [FormPickerClickController::class, 'actionGroupPicker']);
+
+            Route::post("/actionMasterPickingGroupSimpan", [FormPickerClickController::class, 'actionGroupSimpan']);
+            Route::post("/actionMasterPickingGroupHapus", [FormPickerClickController::class, 'actionGroupHapus']);
+            //* MasterPickingAction
+            Route::post("/actionMasterPickingHHSimpan", [FormPickerClickController::class, 'actionSimpan']);
+            Route::post("/actionMasterPickingHHHapus", [FormPickerClickController::class, 'actionHapus']);
+            
+            //* ListingDelivery Additional
             Route::post("/actionListingDeliveryPrep", [KlikIgrController::class, 'actionListingDeliveryPrep']);
             Route::get("/actionListingDeliveryDatatables", [KlikIgrController::class, 'actionListingDeliveryDatatables']);
+
+            //* ReCreateAWB Additional
+            Route::post("/actionReCreateAWBProses", [KlikIgrController::class, 'actionReCreateAWBProses']);
+
+            //* BAPengembalianDana Additional
             Route::get("/actionBAPengembalianDanaGetHistory", [KlikIgrController::class, 'actionBAPengembalianDanaGetHistory']);
             Route::get("/actionBAPengembalianDanaDatatables/{noba}/{isHistory}", [KlikIgrController::class, 'actionBAPengembalianDanaDatatables']);
             Route::get("/actionBuktiSerahTerimaKardusDatatables/{history}", [KlikIgrController::class, 'actionBuktiSerahTerimaKardusDatatables']);
 
-            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'CetakSuratJalan', 'CetakIIK', 'PbBatal', 'ItemPickingBelumTransit', 'LoppCod', 'ListPBLebihDariMaxSerahTerima', 'BAPengembalianDana', 'ListingDelivery', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
+            $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'CetakSuratJalan', 'CetakIIK', 'PbBatal', 'ItemPickingBelumTransit', 'LoppCod', 'ListPBLebihDariMaxSerahTerima', 'BAPengembalianDana', 'ListingDelivery', 'ReCreateAWB', 'BaRusakKemasan', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 
             foreach ($buttonKeys as $key) {
                 Route::post("/$key", [KlikIgrController::class, "action$key"]);

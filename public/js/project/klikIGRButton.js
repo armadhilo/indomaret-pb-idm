@@ -91,6 +91,78 @@ function getCheckedListingDelivery(){
     return checkedInputs;
 }
 
+function getCheckedMasterPicking(){
+    var checkedInputs = [];
+    $('#modal_master_picking_tb1 tbody tr td input.checkbox-table:checked').each(function() {
+        var row = $(this).closest('tr');    
+        var rowData = {
+            koderak: row.find('td:eq(0)').text(),
+            kodesubrak: row.find('td:eq(1)').text(),
+            pick: row.find('td:eq(2)').text(),
+        };
+        checkedInputs.push(rowData);
+    });
+    return checkedInputs;
+}
+
+function getSelectedMasterPicking2(){
+    var selectedInputs = [];
+    $('#modal_master_picking_tb2 tbody tr.select-r').each(function() {
+        var row = $(this);    
+        var rowData = {
+            urutan: row.find('td:eq(0)').text(),
+            koderak: row.find('td:eq(1)').text(),
+            kodesubrak: row.find('td:eq(2)').text(),
+        };
+        selectedInputs.push(rowData);
+    });
+    return selectedInputs;
+}
+
+function getCheckedMasterPickingGroup(){
+    var checkedInputs = [];
+    $('#modal_master_picking_group_tb1 tbody tr td input.checkbox-table:checked').each(function() {
+        var row = $(this).closest('tr');    
+        var rowData = {
+            id: row.find('td:eq(0)').text(),
+            nama: row.find('td:eq(1)').text(),
+            pick: row.find('td:eq(2)').text(),
+        };
+        checkedInputs.push(rowData);
+    });
+    return checkedInputs;
+}
+
+function getCheckedReCreateAWB(){
+    var checkedInputs = [];
+    $('#modal_re_create_awb_tb tbody tr.select-r').each(function() {
+        var row = $(this);
+        var rowData = {
+            kdmember: row.find('td:eq(0)').text(),
+            notrans: row.find('td:eq(1)').text(),
+            tgltrans: row.find('td:eq(2)').text(),
+            nopb: row.find('td:eq(3)').text(),
+            alasan: row.find('td:eq(4)').text(),
+        };
+        checkedInputs.push(rowData);
+    });
+    return checkedInputs;
+}
+
+function getCheckedMasterPickingGroup2(){
+    var selectedInputs = [];
+    $('#modal_master_picking_group_tb2 tbody tr.select-r').each(function() {
+        var row = $(this);    
+        var rowData = {
+            grup: row.find('td:eq(0)').text(),
+            id: row.find('td:eq(1)').text(),
+            nama: row.find('td:eq(2)').text(),
+        };
+        selectedInputs.push(rowData);
+    });
+    return selectedInputs;
+}
+
 function getCheckedSerahTerimaKardus(){
     var checkedInputs = [];
     $('#tb_bukti_stk tbody tr td input.checkbox-table:checked').each(function() {
@@ -103,6 +175,15 @@ function getCheckedSerahTerimaKardus(){
         checkedInputs.push(rowData);
     });
     return checkedInputs;
+}
+
+function getListRakMasterPicking(){
+    var formattedData = [];
+    if ($.fn.DataTable.isDataTable('#modal_master_picking_tb2')) {
+        var data = modal_master_picking_tb2.data().toArray();
+        formattedData = data.map(item => `${item.koderak}|${item.kodesubrak}`);
+    }
+    return formattedData;
 }
 
 function actionAdditionalPesananExpired(){
@@ -543,7 +624,7 @@ function actionAdditionalListingDeliveryDatatables(noPB = 0){
                 icon: "error"
             });
             if ($.fn.DataTable.isDataTable('#tb_bukti_stk')) {
-                tb_bukti_stk.clear().draw();
+                modal_listing_delivery_tb.clear().draw();
             }
             $("#modal_listing_delivery_nopol").val("").prop("disabled", true);
             $("#modal_listing_delivery_driver").val("").prop("disabled", true);
@@ -575,7 +656,6 @@ function actionAdditionalListingDeliveryPrepCetak(){
 }
 
 function actionAdditionalListingDeliveryCetak(params = []){
-
     $('#modal_loading').modal('show');
     $.ajax({
         url: currentURL + "/action/ListingDelivery",
@@ -599,6 +679,291 @@ function actionAdditionalListingDeliveryCetak(params = []){
     });
 }
 
+function actionAdditionalMasterPickingSimpan(){
+    var data = getCheckedMasterPicking();
+    if(data.length <= 0){
+        Swal.fire("Peringatan!", "Rak Belum Dipilih", "warning");
+        return;
+    }
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionMasterPickingHHSimpan",
+        type: "POST",
+        data: { data: data, userid: $("#modal_master_picking_users").val(), group: $("#modal_master_picking_group").val() },
+        success: function(response) {
+            actionAdditionalMasterPickingHHLoadRakUser(false); //? Datatables
+            actionAdditionalMasterPickingHHLoadRakAll(false); //? Datatables
+            $('#modal_master_picking').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
+            $("#modal_loading").modal("hide");
+            Swal.fire("Success!", "Berhasil Menyimpan Data!", "success");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingHapus(){
+    var data = getSelectedMasterPicking2();
+    if(data.length <= 0){
+        Swal.fire("Peringatan!", "Rak Belum Dipilih", "warning");
+        return;
+    }
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionMasterPickingHHHapus",
+        type: "POST",
+        data: { data: data, userid: $("#modal_master_picking_users").val()},
+        success: function(response) {
+            actionAdditionalMasterPickingHHLoadRakUser(false); //? Datatables
+            actionAdditionalMasterPickingHHLoadRakAll(false); //? Datatables
+            $('#modal_master_picking').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
+            $("#modal_loading").modal("hide");
+            Swal.fire("Success!", response.message, "success");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingAddGroup(){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionMasterPickingHHAddGroup",
+        type: "GET",
+        success: function(response) {
+            $("#modal_master_group_picking").modal("show");
+            $("#modal_title_master_group_picking").text(response.data.lblTitle);
+            setTimeout(() => {
+                actionAdditionalMasterPickingFilterGroup(false); //? Datatables
+            }, 500);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingFilterGroup(disableLoading = true){
+    $('#modal_loading').modal('show');
+    $("#modal_master_group_picking_input").empty();
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingFilterGroup`,
+        type: "GET",
+        async: false,
+        success: function(response) {
+            $("#modal_master_group_picking").attr("data-status", "true");
+
+            $("#modal_master_group_picking_grup").append(`<option value="ALL">ALL</option>`)
+            response.data.data.forEach(item => {
+                $("#modal_master_group_picking_input").append(`<option value="${item.group}">${item.group}</option>`)
+                $("#modal_master_group_picking_grup").append(`<option value="${item.group}">${item.group}</option>`)
+            });
+
+            $("#modal_master_group_picking_input").trigger("change");
+            $("#modal_master_group_picking_grup").trigger("change");
+            actionAdditionalMasterPickingLoadUser(false);
+            actionAdditionalMasterPickingGroupPicking(false);
+            $("#modal_master_group_picking").attr("data-status", "false");
+            $('#modal_loading').modal('hide');
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingLoadUser(disableLoading = true){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingLoadUser`,
+        type: "GET",
+        async: false,
+        success: function(response) {
+            if(disableLoading){
+                setTimeout(() => { $('#modal_loading').modal('hide'); }, 500);
+            }
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_group_tb1')) {
+                modal_master_picking_group_tb1.clear().draw();
+                $("#modal_master_picking_group_tb1").dataTable().fnDestroy();
+                $("#modal_master_picking_group_tb1 thead").empty()
+            }
+
+            modal_master_picking_group_tb1 = $('#modal_master_picking_group_tb1').DataTable({
+                data: response.data.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false,
+                "scrollY": "calc(100vh - 532px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "id", title: "ID" },
+                    { data: "nama", title: "Nama" },
+                    { data: "pick", title: "Pick" },
+                ],
+                ordering: false,
+                destory: true,
+                rowCallback: function (row, data) {
+                    $('td:eq(2)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-master-picking-group-1" ${data.pick == 1 ? 'checked' : ''}>`);
+                }
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_group_tb1')) {
+                modal_master_picking_group_tb1.clear().draw();
+            }
+        }
+    });
+}
+
+function actionAdditionalMasterPickingGroupSimpan(){
+    var inputGroup = $("#modal_master_group_picking_input").val();
+    var data = getCheckedMasterPickingGroup();
+    if(inputGroup == ''){
+        Swal.fire("Peringatan!", "Belum Input Group", "warning");
+        return;
+    }
+    if(data.length <= 0){
+        Swal.fire("Peringatan!", "User Picking Belum Dipilih", "warning");
+        return;
+    }
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionMasterPickingGroupSimpan",
+        type: "POST",
+        data: { data: data, inputGroup: inputGroup},
+        success: function(response) {
+            setTimeout(() => {
+                actionAdditionalMasterPickingFilterGroup(false); //? Datatables
+                $("#modal_loading").modal("hide");
+                Swal.fire("Success!", response.message, "success");
+            }, 500);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingGroupHapus(){
+    var data = getCheckedMasterPickingGroup2();
+    if(data.length <= 0){
+        Swal.fire("Peringatan!", "User Picking Belum Dipilih", "warning");
+        return;
+    }
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionMasterPickingGroupHapus",
+        type: "POST",
+        data: { data: data},
+        success: function(response) {
+            setTimeout(() => {
+                actionAdditionalMasterPickingFilterGroup(false); //? Datatables
+                $("#modal_loading").modal("hide");
+                Swal.fire("Success!", response.message, "success");
+            }, 500);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingGroupPicking(disableLoading = true){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingLoadPicking/${$("#modal_master_group_picking_grup").val()}`,
+        type: "GET",
+        async: false,
+        success: function(response) {
+            if(disableLoading){
+                setTimeout(() => { $('#modal_loading').modal('hide'); }, 500);
+            }
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_group_tb2')) {
+                modal_master_picking_group_tb2.clear().draw();
+                $("#modal_master_picking_group_tb2").dataTable().fnDestroy();
+                $("#modal_master_picking_group_tb2 thead").empty()
+            }
+
+            modal_master_picking_group_tb2 = $('#modal_master_picking_group_tb2').DataTable({
+                data: response.data.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false,
+                "scrollY": "calc(100vh - 532px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "grup", title: "Grup" },
+                    { data: "id", title: "ID" },
+                    { data: "nama", title: "Nama" },
+                ],
+                ordering: false,
+                destory: true,
+                rowCallback: function(row, data){
+                    $(row).click(function() {
+                        $(this).toggleClass("select-r");
+                    });
+                },
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_group_tb2')) {
+                modal_master_picking_group_tb2.clear().draw();
+            }
+        }
+    });
+}
 
 function actionAdditionalBuktiSerahTerimaKardusDatatables(isHistory = 0){
     $('#modal_loading').modal('show');
@@ -821,10 +1186,13 @@ function actionOngkosKirim(){
                 Swal.fire('Success!', response.message,'success');
                 tb.ajax.reload();
             } else if (response.code === 201){
-                if(response.data.flagFree){
-                    $("#img_gratis_ongkir_modal_ekspedisi").removeClass("d-none");
-                } else {
+                console.log(response.data.flagFree);
+                if(response.data.flagFree == false || response.data.flagFree == 'false'){
                     $("#img_gratis_ongkir_modal_ekspedisi").addClass("d-none");
+                    $("#img_gratis_ongkir_modal_ekspedisi").removeClass("d-flex");
+                } else {
+                    $("#img_gratis_ongkir_modal_ekspedisi").removeClass("d-none");
+                    $("#img_gratis_ongkir_modal_ekspedisi").addClass("d-flex");
                 }
                 response.data.namaEkspedisi1.forEach(item => {
                     $("#nama_ekspedisi_modal_ekspedisi").append(`<option value="${item.eks_kodeekspedisi}">${item.eks_namaekspedisi}</option>`);
@@ -1075,6 +1443,38 @@ function actionPbBatal(){
     });
 }
 
+function actionBaRusakKemasan(){
+    var selectedRow = tb.row(".select-r").data();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/BaRusakKemasan`,
+        type: "POST",
+        data: { selectedRow: selectedRow },
+        success: function(response) {
+            let fieldsResponseTemporary = [
+                { id: "no_pb_ba_barang_rusak_tab", value: response.data.selectedRow.no_pb },
+                { id: "kode_member_ba_barang_rusak_tab", value: response.data.selectedRow.kode_member },
+                { id: "nama_member_ba_barang_rusak_tab", value: response.data.selectedRow.nama_member }
+            ];
+            for (let i = 1; i <= 3; i++) {
+                fieldsResponseTemporary.forEach(field => {
+                    $(`#${field.id}${i}`).val(field.value);
+                });
+            }
+            $("#modal_ba_barang_rusak").modal("show");
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
 function actionItemPickingBelumTransit(){
     $('#modal_loading').modal('show');
     $.ajax({
@@ -1144,6 +1544,232 @@ function actionMasterAlasanbatalKirim(){
     actionAdditionalShowModalMasterData("Master Alasan Batal Kirim", "No. Polisi", "AlasanBatalKirim");
 }
 
+function actionMasterPickingHH(){
+    $("#modal_master_picking").modal("show");
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingHHPrep`,
+        type: "POST",
+        success: function(response) {
+            $("#modal_title_master_picking").text(response.data.title);
+            //* LOAD ALL DATA
+            actionAdditionalMasterPickingHHLoadGroup(false);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingHHLoadGroup(disableLoading = true){
+    $('#modal_loading').modal('show');
+    $("#modal_master_picking_group").empty();
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingHHLoadGroup`,
+        type: "GET",
+        async: false,
+        success: function(response) {
+            if(disableLoading){
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            }
+
+            response.data.data.forEach(item => {
+                $("#modal_master_picking_group").append(`<option value="${item.grup}">${item.grup}</option>`)
+            });
+
+            $("#modal_master_picking_group").trigger("change");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingHHFilterRak(disableLoading = true){
+    $('#modal_loading').modal('show');
+    $("#modal_master_picking_kode_rak").empty();
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingHHFilterRak/` + $("#modal_master_picking_group").val(),
+        type: "GET",
+        async: false,
+        success: function(response) {
+
+            if(disableLoading){
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            }
+            $("#modal_master_picking_kode_rak").append(`<option value="ALL" selected>ALL</option>`)
+            response.data.data.forEach(item => {
+                $("#modal_master_picking_kode_rak").append(`<option value="${item.lks_koderak}">${item.lks_koderak}</option>`)
+            });
+            $("#modal_master_picking_kode_rak").trigger("change");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingHHLoadRakAll(disableLoading = true){
+    $('#modal_loading').modal('show');
+    var listRak = getListRakMasterPicking();
+    var dataToSend = {
+        listRak: listRak,
+        group: $("#modal_master_picking_group").val(),
+        kode_rak: $("#modal_master_picking_kode_rak").val()
+    };
+    $.ajax({
+        url: currentURL + "/action/actionMasterPickingHHLoadRakAll/",
+        type: "POST",    
+        contentType: 'application/json',
+        data: JSON.stringify(dataToSend),
+        async: false,
+        success: function(response) {
+            if(disableLoading){
+                setTimeout(() => { $('#modal_loading').modal('hide'); }, 500);
+            }
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_tb1')) {
+                modal_master_picking_tb1.clear().draw();
+                $("#modal_master_picking_tb1").dataTable().fnDestroy();
+                $("#modal_master_picking_tb1 thead").empty()
+            }
+
+            modal_master_picking_tb1 = $('#modal_master_picking_tb1').DataTable({
+                data: response.data.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false,
+                "scrollY": "calc(100vh - 500px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "koderak", title: "Kode Rak" },
+                    { data: "kodesubrak", title: "Kode SubRak" },
+                    { data: "pick", title: "Pick" },
+                ],
+                ordering: false,
+                destory: true,
+                rowCallback: function (row, data) {
+                    $('td:eq(2)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-master-picking-1" onchange="checkboxMasterPickingOnChange()" ${data.pick == 1 ? 'checked' : ''}>`);
+                }
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_tb1')) {
+                modal_master_picking_tb1.clear().draw();
+            }
+        }
+    });
+}
+
+//* action trigger onchange modal_master_picking_group
+function actionAdditionalMasterPickingHHLoadUser(disableLoading = true){
+    $('#modal_loading').modal('show');
+    $("#modal_master_picking_users").empty();
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingHHLoadUser/` + $("#modal_master_picking_group").val(),
+        type: "GET",
+        async: false,
+        success: function(response) {
+
+            if(disableLoading){
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            }
+            $("#modal_master_picking_users").append(`<option value="ALL" selected>ALL</option>`)
+            response.data.data.forEach(item => {
+                $("#modal_master_picking_users").append(`<option value="${item.userid}">${item.user}</option>`)
+            });
+            $("#modal_master_picking_users").trigger("change");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function actionAdditionalMasterPickingHHLoadRakUser(disableLoading = true){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionMasterPickingHHLoadRakUser/${$("#modal_master_picking_group").val()}/${$("#modal_master_picking_users").val()}`,
+        type: "GET",
+        async: false,
+        success: function(response) {
+            if(disableLoading){
+                setTimeout(() => { $('#modal_loading').modal('hide'); }, 500);
+            }
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_tb2')) {
+                modal_master_picking_tb2.clear().draw();
+                $("#modal_master_picking_tb2").dataTable().fnDestroy();
+                $("#modal_master_picking_tb2 thead").empty()
+            }
+
+            modal_master_picking_tb2 = $('#modal_master_picking_tb2').DataTable({
+                data: response.data.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false,
+                "scrollY": "calc(100vh - 532px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "urutan", title: "Urutan" },
+                    { data: "koderak", title: "Kode Rak" },
+                    { data: "kodesubrak", title: "Kode SubRak" },
+                ],
+                ordering: false,
+                destory: true,
+                rowCallback: function(row, data){
+                    $(row).click(function() {
+                        $(this).toggleClass("select-r");
+                    });
+                },
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#modal_master_picking_tb2')) {
+                modal_master_picking_tb2.clear().draw();
+            }
+        }
+    });
+}
+
 function actionListingDelivery(){
     var selectedRow = tb.row(".select-r").data();
 
@@ -1178,6 +1804,92 @@ function actionListingDelivery(){
                         icon: "error"
                     });
                 }
+            });
+        }
+    });
+}
+
+function actionReCreateAWB(){
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/ReCreateAWB`,
+        type: "POST",
+        success: function(response) {
+            $("#modal_re_create_awb").modal("show")
+            setTimeout(() => {
+                if ($.fn.DataTable.isDataTable('#modal_re_create_awb_tb')) {
+                    modal_re_create_awb_tb.clear().draw();
+                    $("#modal_re_create_awb_tb").dataTable().fnDestroy();
+                    $("#modal_re_create_awb_tb thead").empty()
+                }
+    
+                modal_re_create_awb_tb = $('#modal_re_create_awb_tb').DataTable({
+                    data: response.data.data,
+                    language: {
+                        emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                    },
+                    order: [],
+                    "paging": false,
+                    "searching": false,
+                    "scrollY": "calc(100vh - 532px)",
+                    "scrollCollapse": true,
+                    columnDefs: [{ className: 'text-center', targets: "_all" }],
+                    columns: [
+                        { data: "kdmember", title: "KODE MEMBER" },
+                        { data: "notrans", title: "NO. TRANS" },
+                        { data: "tgltrans", title: "TGL TRANS" },
+                        { data: "nopb", title: "NO. PB" },
+                        { data: "tgltrans", title: "ALASAN BATAL", render: function(data, type, row) { return response.data.alasanBatal }},
+                    ],
+                    ordering: false,
+                    destory: true,
+                    rowCallback: function(row, data){
+                        $(row).click(function() {
+                            $(this).toggleClass("select-r");
+                        });
+                    },
+                });
+    
+                $('#modal_loading').modal('hide');
+                // $('#modal_re_create_awb_tb').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
+            }, 500);
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#modal_re_create_awb_tb')) {
+                modal_re_create_awb_tb.clear().draw();
+            }
+        }
+    });
+}
+
+function actionAdditionalReCreateAWBProses(){
+    var data = getCheckedReCreateAWB();
+    if(data.length <= 0){
+        Swal.fire("Peringatan!", "Belum ada PB yang dipilih", "warning");
+        return;
+    }
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + "/action/actionReCreateAWBProses",
+        type: "POST",
+        data: { data: data },
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            $("#modal_re_create_awb").modal("hide")
+            Swal.fire("Success!", response.message, "success");
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
             });
         }
     });
@@ -1403,4 +2115,79 @@ $("#pengiriman_modal_ekspedisi").change(function(){
         $("label#nama_ekspedisi_modal_ekspedisi").text("Jenis Kendaraan");
         $("label#jarak_modal_ekspedisi").text("Jarak");
     }
+});
+
+$("#modal_master_picking_group").change(function(){
+    $("#modal_loading").modal("show");
+    $("#modal_master_picking").attr("data-status", "true");
+    setTimeout(function() {
+        actionAdditionalMasterPickingHHLoadUser(false);
+        actionAdditionalMasterPickingHHFilterRak(false);
+        actionAdditionalMasterPickingHHLoadRakUser(false); //? Datatables
+        actionAdditionalMasterPickingHHLoadRakAll(false); //? Datatables
+        $('#modal_master_picking').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
+        $("#modal_master_picking").attr("data-status", "false");
+        $("#modal_loading").modal("hide");
+    }, 500)
+});
+
+$("#modal_master_picking_kode_rak").change(function(){
+    if($("#modal_master_picking").attr("data-status") == "true"){
+        return;
+    }
+    $("#modal_loading").modal("show");
+    setTimeout(() => {
+        actionAdditionalMasterPickingHHLoadRakAll(false); //? Datatables
+        $('#modal_master_picking').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
+        $("#modal_loading").modal("hide");
+    }, 500);
+});
+
+$("#modal_master_picking_users").change(function(){
+    if($("#modal_master_picking").attr("data-status") == "true"){
+        return;
+    }
+    $("#modal_loading").modal("show");
+    setTimeout(() => {
+        actionAdditionalMasterPickingHHLoadRakUser(false); //? Datatables
+        $('#modal_master_picking').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
+        $("#modal_loading").modal("hide");
+    }, 500);
+});
+
+$("#modal_master_group_picking_grup").change(function(){
+    if($("#modal_master_group_picking").attr("data-status") == "true"){
+        return;
+    }
+    $("#modal_loading").modal("show");
+    setTimeout(() => {
+        actionAdditionalMasterPickingGroupPicking(false); //? Datatables
+        $('#modal_master_group_picking').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
+        $("#modal_loading").modal("hide");
+    }, 500);
+})
+
+$("#modal_master_picking_pick_all").change(function(){
+    if($(this).val() == 1){
+        $(".checkbox-master-picking-1").prop("checked", true);
+    } else {
+        $(".checkbox-master-picking-1").prop("checked", false);
+    }
+});
+
+function checkboxMasterPickingOnChange(){
+    var allChecked = $('.checkbox-master-picking-1').length === $('.checkbox-master-picking-1:checked').length;
+    $('#modal_master_picking_pick_all').prop('checked', allChecked);
+};
+
+$('#modal_master_group_picking').on('hidden.bs.modal', function () {
+    $("#modal_master_picking").removeClass("brightness-blur");
+});
+
+$('#modal_master_group_picking').on('shown.bs.modal', function () {
+    $("#modal_master_picking").addClass("brightness-blur");
+});
+
+$('#modal_master_picking').on('shown.bs.modal', function () {
+    $("#modal_master_picking").removeClass("brightness-blur");
 });

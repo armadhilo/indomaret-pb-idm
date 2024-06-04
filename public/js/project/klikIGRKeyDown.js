@@ -785,15 +785,15 @@ function action_f12(passPasswordManager = false){
 
 function action_delete(passPasswordManager = false){
     var selectedRow = tb.row(".select-r").data();
-    $dgv_status = selectedRow.status;
-    // if ($dgv_status == $statusSiapPicking || 
-    // $dgv_status == "Siap Picking" || 
-    // $dgv_status == $statusSiapPacking || 
-    // $dgv_status == "Set Ongkir" || 
-    // $dgv_status == "Siap Draft Struk" || 
-    // $dgv_status == "Konfirmasi Pembayaran" || 
-    // $dgv_status == "Siap Struk") {
-    //     if(passPasswordManager === true){
+    var dgv_status = selectedRow.status;
+    if (dgv_status == statusSiapPicking || 
+    dgv_status == "Siap Picking" || 
+    dgv_status == statusSiapPacking || 
+    dgv_status == "Set Ongkir" || 
+    dgv_status == "Siap Draft Struk" || 
+    dgv_status == "Konfirmasi Pembayaran" || 
+    dgv_status == "Siap Struk") {
+        if(passPasswordManager === true){
             $('#modal_loading').modal('show');
             $.ajax({
                 url: currentURL + `/action/delete-alasan-pembatalan-pb`,
@@ -846,20 +846,20 @@ function action_delete(passPasswordManager = false){
                 }
             });
             return;
-    //     }
-    //     Swal.fire({
-    //         title: 'Yakin?',
-    //         html: "Anda yakin akan membatalkan Transaksi No." & selectedRow.no_trans & " ?",
-    //         icon: 'info',
-    //         showCancelButton: true,
-    //     })
-    //     .then((result) => {
-    //         if (result.value) {
-    //             showModalPasswordManager('batalin_pb', "isManager");
-    //         }
-    //     });
-    // } else{
-    //     Swal.fire('Peringatan!', 'Bukan data yang bisa dibatalkan!', 'warning');
-    //     return;
-    // }
+        }
+        Swal.fire({
+            title: 'Yakin?',
+            html: "Anda yakin akan membatalkan Transaksi No." & selectedRow.no_trans & " ?",
+            icon: 'info',
+            showCancelButton: true,
+        })
+        .then((result) => {
+            if (result.value) {
+                showModalPasswordManager('batalin_pb', "isManager");
+            }
+        });
+    } else{
+        Swal.fire('Peringatan!', 'Bukan data yang bisa dibatalkan!', 'warning');
+        return;
+    }
 }

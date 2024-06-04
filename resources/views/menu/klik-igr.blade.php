@@ -21,7 +21,7 @@
         margin: 0;
     }
 
-    #modal_master_data_tb tbody tr:hover{
+    #modal_master_data_tb tbody tr:hover, #modal_master_picking_tb2 tbody tr:hover, #modal_master_picking_group_tb2 tbody tr:hover, #modal_re_create_awb_tb tbody tr:hover{
         cursor: pointer;
     }
 
@@ -885,31 +885,7 @@
             </div>
         </div>
     </div>
-</div>
-
-<div class="modal fade" role="dialog" id="modal_pilih_jalur_picking" data-keyboard="false" data-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header br">
-                <h5 class="modal-title" style="color: #012970; font-weight: 600">Pilih Jalur Picking</h5>
-            </div>
-            <div class="modal-body">
-                <div class="form-group d-flex align-items-center justify-content-center m-0 modal-form-group" id="form_group_jalur_picking">
-                    <label class="modal-label">
-                        <input type="radio" name="input_jalur_picking" value="1" checked/>
-                        <span>DPD</span>
-                    </label>
-                    <label class="modal-label">
-                        <input type="radio" name="input_jalur_picking" value="2"/>
-                        <span>HandHeld</span>
-                    </label>
-                    <button class="btn btn-primary modal-button" style="margin-left: 35px; margin-right: 18px;" onclick="actionSendHandheld(true)">OK</button>
-                    <button class="btn btn-secondary modal-button" data-dismiss="modal" aria-label="Close">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+</div>  
 
 <div class="modal fade" role="dialog" id="modal_ekspedisi" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
@@ -942,7 +918,7 @@
                             <label for="jarak_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Jarak : </label>
                             <input type="text" class="form-control" id="jarak_modal_ekspedisi" style="width: 275px">
                         </div>
-                        <div class="position-absolute d-flex align-items-center flex-column" id="img_gratis_ongkir_modal_ekspedisi" style="right: 27px; bottom: -11px;">
+                        <div class="position-absolute d-flex align-items-center flex-column" id="img_gratis_ongkir_modal_ekspedisi" draggable="false" style="right: 27px; bottom: -11px;">
                             <img src="{{ asset("img\checklist.png") }}" alt="checklist" style="width: 65px">
                             <p style="color: black;"><b>FREE ONGKIR</b></p>
                         </div>
@@ -952,9 +928,9 @@
             </div>
             <div class="modal-footer">
                 <div class="float-right mt-4 d-flex">
-                    {{-- <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px">Confirm</button>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px">Confirm</button>
                     <input type="number" class="form-control" style="margin: 0 15px; width: 180px; height: 42px" id="kg_berat_modal_ekspedisi">
-                    <button type="button" class="btn btn-primary btn-lg" style="width: 180px" onclick="actionAdditionalHitungUlang()">Calculate</button> --}}
+                    <button type="button" class="btn btn-primary btn-lg" style="width: 180px" onclick="actionAdditionalHitungUlang()">Calculate</button>
                     <button type="button" style="width: 180px; margin-left: 15px" class="btn btn-lg btn-secondary" data-dismiss="modal">CANCEL</button>
                 </div>
             </div>
@@ -1261,6 +1237,33 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_re_create_awb" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">RE-CREATE AWB</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive position-relative" style="margin-top: 18px;">
+                    <table class="table table-center table-striped table-hover datatable-dark-primary w-100" id="modal_re_create_awb_tb">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary mr-3" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionAdditionalReCreateAWBProses()">PROSES</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_sorting_lopp" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #5f3e69 !important">
@@ -1435,6 +1438,170 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_master_picking" data-status="false" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600" id="modal_title_master_picking">MASTER PICKING KLIK INDOGROSIR</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-5">
+                        <div class="p-4 position-relative" style="border: 2px solid lightgray">
+                            <p style="background: white; position: absolute;top: -16px;left: 15px;font-size: 1.2rem;padding: 0 7px;color: #012970;font-weight: 500;">LIST RAK YANG BELUM DISET</p>
+                            <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                <label for="modal_master_picking_kode_rak" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Kode Rak : </label>
+                                <select id="modal_master_picking_kode_rak" class="form-control"></select>
+                            </div>
+                            <label for="modal_master_picking_pick_all" class="checkbox-label checkbox-label-sm d-flex align-items-center bg-teal">
+                                <input type="checkbox" id="modal_master_picking_pick_all" onclick="$(this).val(this.checked ? 1 : 0)" value="0">
+                                Pick ALL
+                            </label>
+
+                            <div class="table-responsive position-relative" style="margin-top: 1rem">
+                                <table class="table table-striped table-hover datatable-dark-primary w-100" id="modal_master_picking_tb1">
+                                    <thead>
+                                        <tr>
+                                            <th>Kode Rak</th>
+                                            <th>Sub Rak</th>
+                                            <th>Pick</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-lg btn-primary d-none" id="loading_datatable_modal_master_picking_tb1" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" type="button" disabled>
+                                        <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                                        Loading...
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2 flex-column d-flex align-items-center justify-content-center" style="gap: 60px">
+                        <button class="btn btn-lg btn-success" style="width: 130px" onclick="actionAdditionalMasterPickingSimpan()">Simpan >></button>                        
+                        <button class="btn btn-lg btn-danger" style="width: 130px" onclick="actionAdditionalMasterPickingHapus()"><< Hapus</button>                        
+                    </div>
+                    <div class="col-5">
+                        <div class="p-4 position-relative" style="border: 2px solid lightgray">
+                            <p style="background: white; position: absolute;top: -16px;left: 15px;font-size: 1.2rem;padding: 0 7px;color: #012970;font-weight: 500;">LIST RAK PICKING</p>
+                            <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                <label for="modal_master_picking_group" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Group : </label>
+                                <select id="modal_master_picking_group" class="form-control"></select>
+                                <button class="btn btn-success" onclick="actionAdditionalMasterPickingAddGroup()" style="height: 38px;margin-left: 15px;width: 65px;font-weight: 800;font-size: 1.9rem;display: flex;align-items: center;justify-content: center;padding-bottom: 11px;">+</button>
+                            </div>
+                            <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                <label for="modal_master_picking_users" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">User ID : </label>
+                                <select id="modal_master_picking_users" class="form-control"></select>
+                            </div>
+
+                            <div class="table-responsive position-relative" style="margin-top: 1rem">
+                                <div class="bg-teal" style="color: white;font-weight: 700;font-size: 1rem; margin-bottom: -6px;height: 32px;display: flex;align-items: center;justify-content: center;">List Rak</div>
+                                <table class="table table-striped table-hover datatable-dark-primary w-100" id="modal_master_picking_tb2">
+                                    <thead>
+                                        <tr>
+                                            <th style="border-top: 0">Kode Rak</th>
+                                            <th style="border-top: 0">Sub Rak</th>
+                                            <th style="border-top: 0">Pick</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-lg btn-primary d-none" id="loading_datatable_modal_master_picking_tb2" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" type="button" disabled>
+                                        <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                                        Loading...
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_master_group_picking" data-status="false" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600" id="modal_title_master_group_picking">MASTER GROUP PICKING KLIKINDOGROSIR</h5>
+                <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-5">
+                        <div class="p-4 position-relative" style="border: 2px solid lightgray">
+                            <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                <label for="modal_master_group_picking_input" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Input Grup : </label>
+                                <select id="modal_master_group_picking_input" class="form-control"></select>
+                            </div>
+                            <div class="table-responsive position-relative" style="margin-top: 1rem">
+                                <table class="table table-striped table-hover datatable-dark-primary w-100" id="modal_master_picking_group_tb1">
+                                    <thead>
+                                        <tr>
+                                            <th>Kode Rak</th>
+                                            <th>Sub Rak</th>
+                                            <th>Pick</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-lg btn-primary d-none" id="loading_datatable_modal_master_picking_group_tb1" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" type="button" disabled>
+                                        <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                                        Loading...
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-2 flex-column d-flex align-items-center justify-content-center" style="gap: 60px">
+                        <button class="btn btn-lg btn-success" style="width: 130px" onclick="actionAdditionalMasterPickingGroupSimpan()">Simpan >></button>                        
+                        <button class="btn btn-lg btn-danger" style="width: 130px" onclick="actionAdditionalMasterPickingGroupHapus()"><< Hapus</button>                        
+                    </div>
+                    <div class="col-5">
+                        <div class="p-4 position-relative" style="border: 2px solid lightgray">
+                            <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
+                                <label for="modal_master_group_picking_grup" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Filter Grup : </label>
+                                <select id="modal_master_group_picking_grup" class="form-control"></select>
+                            </div>
+
+                            <div class="table-responsive position-relative" style="margin-top: 1rem">
+                                <div class="bg-teal" style="color: white;font-weight: 700;font-size: 1rem; margin-bottom: -6px;height: 32px;display: flex;align-items: center;justify-content: center;">List Rak</div>
+                                <table class="table table-striped table-hover datatable-dark-primary w-100" id="modal_master_picking_group_tb2">
+                                    <thead>
+                                        <tr>
+                                            <th style="border-top: 0">Kode Rak</th>
+                                            <th style="border-top: 0">Sub Rak</th>
+                                            <th style="border-top: 0">Pick</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-lg btn-primary d-none" id="loading_datatable_modal_master_picking_group_tb2" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" type="button" disabled>
+                                        <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                                        Loading...
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_password_manager" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #2f4f4f!important">
@@ -1457,44 +1624,15 @@
 <script src="{{ asset("js/project/klikIGRKeyDown.js") }}"></script>
 <script src="{{ asset("js/project/klikIGRButton.js") }}"></script>
 <script>
+    var timerRefresh;
     var isFunctionRunning = false;
     let statusSiapPicking = "{{ $statusSiapPicking }}";
     let statusSiapPacking = "{{ $statusSiapPacking }}";
 
     $(document).ready(function() {
         setDateNow("#tanggal_trans");
-        tb = $('#tb').DataTable({
-            processing: true,
-            ajax: {
-                url: currentURL + `/datatables/${$("#tanggal_trans").val()}/${statusSiapPicking}/${statusSiapPacking}`,
-                type: 'GET'
-            },
-            columnDefs: [
-                { className: 'text-center', targets: [0,1] },
-            ],
-            order: [],
-            "paging": false,
-            "searching": false,
-            "scrollY": "calc(100vh - 440px)",
-            "scrollCollapse": true,
-            ordering: false,
-            columns: [
-                { data: 'service' },
-                { data: 'STATUS SEND JALUR' },
-                {
-                    data: null,
-                    defaultContent: "<button class='btn btn-info btn-detail'>DETAIL</button>",
-                    className: "text-center"
-                },
-            ],
-            rowCallback: function(row, data){
-                $(row).click(function() {
-                    $('#tb tbody tr').removeClass('select-r');
-                    $(this).toggleClass("select-r");
-                    $("#label_no_trans").text(tb.row(this).data().no_trans);
-                });
-            },
-        });
+        initializeDatatablesMain();
+        actionPbBatal();
 
         tb_edit_pb = $('#tb_edit_pb').DataTable({
             data: [],
@@ -1616,13 +1754,13 @@
         }
         
         //List Button Action Tidak Perlu Pilih Data
-        if (tb.row(".select-r").data() === undefined && !["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "CetakSuratJalan", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "MasterAlasanbatalKirim", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
+        if (tb.row(".select-r").data() === undefined && !["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "CetakSuratJalan", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "ReCreateAWB", "MasterAlasanbatalKirim", "MasterPickingHH", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
             Swal.fire('Peringatan!', 'Pilih Data Terlebih Dahulu..!', 'warning');
             return;
         }
         
         //List Button Action Tidak Perlu No Trans
-        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "ListingDelivery", "MasterAlasanbatalKirim", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
+        if (!["BuktiSerahTerimaKardus", "LaporanPesananExpired", "LaporanPenyusutanHarian", "CetakFormPengembalianBarang", "PbBatal", "ItemPickingBelumTransit", "LoppCod", "ListPBLebihDariMaxSerahTerima", "ReCreateAWB", "ListingDelivery", "MasterAlasanbatalKirim", "MasterPickingHH", "BaRusakKemasan", "BAPengembalianDana"].includes($(this).attr("actionName"))) {
             if( tb.row(".select-r").data().no_trans == null && tb.row(".select-r").data().no_trans == ''){
                 Swal.fire('Peringatan!', 'Data Tidak Memiliki No. Trans..!', 'warning');
                 return;
@@ -1757,6 +1895,67 @@ function actionGlobalDownloadPdf(fileName){
     });
 }
 
+function initializeDatatablesMain(){
+    tb = $('#tb').DataTable({
+        processing: true,
+        ajax: {
+            url: currentURL + `/datatables/${$("#tanggal_trans").val()}/${statusSiapPicking}/${statusSiapPacking}`,
+            type: 'GET'
+        },
+        columnDefs: [
+            { className: 'text-center', targets: [0,1] },
+        ],
+        order: [],
+        "paging": false,
+        "searching": false,
+        "scrollY": "calc(100vh - 440px)",
+        "scrollCollapse": true,
+        ordering: false,
+        columns: [
+            { data: 'service' },
+            { data: 'STATUS SEND JALUR' },
+            {
+                data: null,
+                defaultContent: "<button class='btn btn-info btn-detail'>DETAIL</button>",
+                className: "text-center"
+            },
+        ],
+        rowCallback: function(row, data){
+            $(row).click(function() {
+                $('#tb tbody tr').removeClass('select-r');
+                $(this).toggleClass("select-r");
+                $("#label_no_trans").text(tb.row(this).data().no_trans);
+            });
+        },
+    });
+}
+
+$("#auto_refresh").change(function(){
+    if ($(this).is(':checked')) {
+        timerRefresh = setInterval(TimerRefresh_Tick, 60000); 
+    }else {
+        clearInterval(timerRefresh);
+    }
+});
+
+function TimerRefresh_Tick(){
+    tb.ajax.reload();
+    actionPbBatal();
+}
+
+$("#auto_send_hh").change(function(){
+    if ($(this).is(':checked')) {
+        timerRefresh = setInterval(TimerSendHHKlik_Tick, 180000); 
+    }else {
+        clearInterval(timerRefresh);
+    }
+});
+
+//! IRVAN | Function Banyak Dikerjakan Nanti
+function TimerSendHHKlik_Tick(){
+    // tb.ajax.reload();
+    // actionPbBatal();
+}
 </script>
 @endpush
 

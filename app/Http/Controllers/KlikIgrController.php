@@ -33,6 +33,7 @@ class KlikIgrController extends Controller
     }
 
     public function index(){
+
         // $pdf = PDF::loadView('pdf.klik-igr-listing-delivery');
         // return $pdf->stream();
         // $this->createTableIPP_ONL();
@@ -125,13 +126,12 @@ class KlikIgrController extends Controller
 
         //!! FUNCTION BELUM DIBUAT
         // $this->updateDataVoid();
-        // $this->listObi_H();
 
         // if(session('flagSPI')){
         //     $this->cekPBAkanBatal();
         // }
 
-        // $this->cekItemBatal(True);
+        $this->cekItemBatal(True);
 
         return view('menu.klik-igr', $data);
     }
@@ -295,6 +295,8 @@ class KlikIgrController extends Controller
         $query .= "    FROM tbtr_obi_h  ";
         $query .= "    LEFT JOIN tbmaster_customer ON obi_kdmember = cus_kodemember ";
         $query .= "    LEFT JOIN tbtr_transaksi_va ON SUBSTR(obi_nopb, 0, 6)= tva_trxid AND obi_tglpb = tva_tglpb ";
+
+        //! IRVAN | DUMMY DATATABLES QUERY
         // $query .= "   WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($tanggal_trans)->format('Y-m-d H:i:s')."'  ";
 
         // Adding conditional clause
@@ -706,12 +708,12 @@ class KlikIgrController extends Controller
     //? DONE
     //* btnStruk_Click
     public function actionDraftStruk(Request $request){
-        $itemReal = $this->cekItemRealisasi($request->no_trans, $request->nopb);
-        if(!isset($request->no_trans)){
-            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+        $itemReal = $this->cekItemRealisasi($request->selectedRow["no_trans"], $request->selectedRow["no_pb"]);
+        if(!isset($request->selectedRow["no_trans"])){
+            return ApiFormatter::error(400, 'Data Tidak Memiliki !');
         }
 
-        if(strtolower($request->status) != 'set ongkir'){
+        if(strtolower($request->selectedRow["status"]) != 'set ongkir'){
             return ApiFormatter::error(400, 'Bukan Data Yang Siap Draft Struk!');
         }
 
@@ -861,8 +863,7 @@ class KlikIgrController extends Controller
                 $data["nama_file"] = $this->rptSuratJalan($selectedRow['notrans'], $selectedRow['kodeweb'], $selectedRow['no_pb'], $selectedRow['kode_member'], $selectedRow['free_ongkir'], $selectedRow['flagbayar'], $request->tanggal_trans);
             }
 
-            dd('done comment commit');
-
+            //! IRVAN | COMMENT COMMIT
             // DB::commit();
 
             return ApiFormatter::success(200, 'success action cetak surat jalan', $data);
@@ -1088,15 +1089,28 @@ class KlikIgrController extends Controller
         return ApiFormatter::success(200, "Success", $data);
     }
 
-    //? BINGUNG FLOW NYA
+    //? DONE
+    //? LANJUTAN FUNCTION di FormPickerClickController
     //! btnPicker_Click
-    public function actionMasterPickerHH(){
-        //* show form -> frmPickerKlik
+    public function actionMasterPickingHHPrep(){
+        //* atur judulnya
+        if(session('flagIGR')){
+            $data['tittle'] = 'MASTER PICKING KLIKINDOGROSIR';
+        }else{
+            $data['tittle'] = 'MASTER PICKING SPI';
+        }
+
+        //* CHECK GROUP PICKING
+        $dtCek = DB::table('group_picker_klik')->selectRaw("COUNT(gpk_group)")->first();
+        if($dtCek->count <= 0){
+            return ApiFormatter::error(400, 'Mohon Setting Group Picking Terlebih Dahulu!');
+        }
+
+        return ApiFormatter::success(200, "Berhasil Menampilkan Modal Master Picker HH", $data);
     }
 
     //? DONE
     //! btnDelivery_Click_New
-
     public function actionListingDeliveryPrep(Request $request){
         $selectedRow = $request->selectedRow;
 
@@ -1414,47 +1428,48 @@ class KlikIgrController extends Controller
         }
     }
 
+    //? DONE
     //! btnReCreateAWB_Click
-    //! NOTE KEVIN
-    //? dihold dulu karena perlu data dari new form
     public function actionReCreateAWB(){
+        $query = '';
+        $query .= " SELECT  ";
+        $query .= "   obi_nopb nopb, ";
+        $query .= "   obi_notrans notrans, ";
+        $query .= "   TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgltrans, ";
+        $query .= "   obi_kdmember kdmember, ";
+        $query .= "   obi_tgltrans ";
+        $query .= " FROM tbtr_obi_h  ";
+        $query .= " WHERE COALESCE(obi_recid,'0') IN ('5','6') ";
+        //! dummy (bisa dicomment untuk run)
+        // $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE-30) ";
+        // $query .= " AND obi_trxidnew IS NULL ";
+        // $query .= " AND EXISTS ( ";
+        // $query .= "   SELECT sti_pin ";
+        // $query .= "   FROM tbtr_serahterima_ipp ";
+        // $query .= "   WHERE sti_noorder = obi_trxid ";
+        // $query .= "   AND UPPER(sti_tipeproses) = 'TITIP' ";
+        // $query .= " ) ";
+        $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC LIMIT 15";
+        //! IRVAN | DUMMY DATA
+        $dtPB = DB::select($query);
 
+        
+        if(count($dtPB) == 0){
+            return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
+        }
+        
+        //* ADD PILIHAN ALASAN BATAL KIRIM
+        $alasanBtl = DB::select("SELECT ROW_NUMBER() OVER () AS NO, ALASAN FROM (SELECT abk_alasan AS alasan FROM tbmaster_alasan_batal_kirim ORDER BY 1) AS alasan");
+        $data["alasanBatal"] = $alasanBtl[0]->alasan;
+        $data["data"] = $dtPB;
+
+        return ApiFormatter::success(200, "success", $data);
+    }
+
+    public function actionReCreateAWBProses(Request $request){
         DB::beginTransaction();
         try{
-
-            $query = '';
-            $query .= " SELECT  ";
-            $query .= "   obi_nopb nopb, ";
-            $query .= "   obi_notrans notrans, ";
-            $query .= "   TO_CHAR(obi_tgltrans,'DD-MM-YYYY') tgltrans, ";
-            $query .= "   obi_kdmember kdmember, ";
-            $query .= "   obi_tgltrans ";
-            $query .= " FROM tbtr_obi_h  ";
-            $query .= " WHERE COALESCE(obi_recid,'0') IN ('5','6') ";
-            //! dummy (bisa dicomment untuk run)
-            $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE-30) ";
-            $query .= " AND obi_trxidnew IS NULL ";
-            $query .= " AND EXISTS ( ";
-            $query .= "   SELECT sti_pin ";
-            $query .= "   FROM tbtr_serahterima_ipp ";
-            $query .= "   WHERE sti_noorder = obi_trxid ";
-            $query .= "   AND UPPER(sti_tipeproses) = 'TITIP' ";
-            $query .= " ) ";
-            $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC";
-            $dtPB = DB::select($query);
-
-            if(count($dtPB) == 0){
-                return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
-            }
-
-            //* ADD PILIHAN ALASAN BATAL KIRIM
-            $alasanBtl = DB::select("SELECT ROW_NUMBER() OVER () AS NO, ALASAN FROM (SELECT abk_alasan AS alasan FROM tbmaster_alasan_batal_kirim ORDER BY 1) AS alasan");
-            $alasanBatal = $alasanBtl[0]->alasan;
-
-            //! show form -> FrmReCreateAWB
-            //! nanti mungkin formnya milih dari $dtPB terus ditampung di variable $fRecreateAWB
-
-            $fRecreateAWB = [];
+            $fRecreateAWB = $request->data;
 
             if(count($fRecreateAWB) == 0){
                 return ApiFormatter::error(400, 'Belum ada PB yang dipilih');
@@ -1462,13 +1477,13 @@ class KlikIgrController extends Controller
 
             foreach($fRecreateAWB as $item){
                 if(session('flagSPI') == true){
-                    $this->reCreateAWB_SPI($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
+                    $this->reCreateAWB_SPI($item["kdmember"], $item["notrans"], $item["tgltrans"], $item["nopb"], $item["alasan"]);
                 }else{
-                    $this->reCreateAWB_KLIK($item->kdmember, $item->notrans, $item->tgltrans, $item->nopb, $alasanBatal);
+                    $this->reCreateAWB_KLIK($item["kdmember"], $item["notrans"], $item["tgltrans"], $item["nopb"], $item["alasan"]);
                 }
             }
 
-	        dd('done comment commit');
+            //! IRVAN | COMMIT COMMENT
             //DB::commit();
 
             return ApiFormatter::success(200, 'Selesai Proses Re-Create AWB IPP');
@@ -1749,7 +1764,11 @@ class KlikIgrController extends Controller
     //* IRVAN | Action Pada Form Banyak kerjain terakhir | FORM => $("#modal_ba_barang_rusak").modal("show")
     //? butuh request -> selectedRow
     //? tidak perlu DB Transaction karena tidak ada proses create/update
-    public function actionBARusakKemasan(Request $request){
+    public function actionBaRusakKemasan(Request $request){
+
+        //! IRVAN DUMMY DATA 
+        $data['selectedRow'] = $request->selectedRow;
+        return ApiFormatter::success(200, "Success", $data);
 
         $selectedRow = $request->selectedRow;
 
@@ -1757,7 +1776,8 @@ class KlikIgrController extends Controller
             if((($selectedRow['status'] == 'Siap Struk' OR $selectedRow['status'] == 'Selesai Struk') AND $selectedRow['tipe_bayar'] == 'COD') OR ($selectedRow['status'] == 'Selesai Struk' AND $selectedRow['tipe_bayar'] <> "COD")){
                 //! open form -> frmBARusakSPI
                 //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
-
+                $data['selectedRow'] = $request->selectedRow;
+                return ApiFormatter::success(200, "Success", $data);
             }else{
                 if(str_contains(strtoupper($selectedRow['status']), 'BATAL')){
                     return ApiFormatter::error(400, 'Transaksi sudah dibatalkan!');
@@ -1774,7 +1794,8 @@ class KlikIgrController extends Controller
             if($selectedRow['status'] == 'Siap Struk' AND $selectedRow['tipe_bayar'] == 'COD'){
                 //! open form -> frmBARusakSPI
                 //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
-
+                $data['selectedRow'] = $request->selectedRow;
+                return ApiFormatter::success(200, "Success", $data);
             }else{
                 if($selectedRow['tipe_bayar'] == 'COD'){
                     $message = $selectedRow['status'] == 'Selesai Struk' ? 'Transaksi sudah distruk!' : 'Transaksi COD belum DSP, Belum dapat Input BA Rusak!';
@@ -1789,7 +1810,6 @@ class KlikIgrController extends Controller
     //? DONE
     //! btnFormPengembalianBarang_Click
     public function actionCetakFormPengembalianBarang(Request $request){
-        // return $this->cetakFormPengembalianBarang($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
         return $this->cetakFormPengembalianBarang();
     }
 
@@ -3184,7 +3204,7 @@ class KlikIgrController extends Controller
             }
         }
         $data["type"] = "ITEM";
-        return ApiFormatter::success(200, "Berhasil Menampilakn List ITEM Akan batal", $data);
+        return ApiFormatter::success(200, "Berhasil Menampilkan List ITEM Akan batal", $data);
     }
 
     private function PrintNotaIIK($NoTrans, $noContainer, $kodeWeb, $nopb, $tglpb){
@@ -5212,9 +5232,9 @@ class KlikIgrController extends Controller
 
             if($kdWeb = 'WebMM'){
                 //! BELUM SELESAI (PROCEDURE INI TIDAK ADA)
-                $procedure = DB::select("sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("call sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }else{
-                $procedure = DB::select("sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
+                $procedure = DB::select("call sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }
 
             $status = $procedure[0]->p_Status;
@@ -6219,13 +6239,11 @@ class KlikIgrController extends Controller
         $files_content['nama_file'] = "-";
     }
 
-    //! PROSES MENGHASILKAN FILE (BELUM SELESAI)
     private function logPLUtanpaLokasi($nopb, $tgl_pb, $prdcd){
         $pb = substr(str_replace("/", "", $nopb), 0, 6);
 
         $namaFile = "LOG_OBI_LOKASI_KOSONG_" . $pb . ".LOG";
 
-        // Create and write the log content
         $logContent = "========= BEGIN ===========\n";
         $logContent .= "No PB     : " . $nopb . "\n";
         $logContent .= "Tgl PB    : " . Carbon::parse($tgl_pb)->format('d-m-Y') . "\n";
@@ -6235,23 +6253,9 @@ class KlikIgrController extends Controller
         }
         $logContent .= "=========== END ===========\n";
 
-        // Return a streamed response
         $files_content['content'] = $logContent;
         $files_content['nama_file'] = $namaFile;
         return $files_content;
-        // pb = Strings.Left(Replace(nopb, "/", ""), 6)
-        // namaFile = "LOG_OBI_LOKASI_KOSONG_" & pb & ".LOG"
-        // pathSimpanLog = System.IO.Path.Combine(path, namaFile)
-
-        // Dim SW As New IO.StreamWriter(pathSimpanLog, True)
-        // SW.WriteLine("========= BEGIN ===========")
-        // SW.WriteLine("No PB     : " & nopb)
-        // SW.WriteLine("Tgl PB    : " & dgv_tglpb)
-        // SW.WriteLine("===========================")
-        // For m As Integer = 0 To prdcd.Rows.Count - 1
-        //     SW.WriteLine("PLU       : " & prdcd.Rows(m).Item(0))
-        // Next
-        // SW.WriteLine("=========== END ===========")
     }
 
     private function ulangPicking($dgv_notrans, $dgv_nopb){
@@ -7339,5 +7343,10 @@ class KlikIgrController extends Controller
         if($count == 0){
             DB::select("ALTER TABLE TBTR_TRANSAKSI_VA ADD COLUMN TVA_URL VARCHAR(100)");
         }
+    }
+
+    //! IRVAN | ConToWebServiceNew does not exist WALAUPUN DI CONTROLLER.php ADA FUNCTIONNYA SEMENTARA DIHARDCODE DLU
+    private function ConToWebServiceNew($endpoint, $apiName, $apiKey, $postData = []){
+        return true;
     }
 }
