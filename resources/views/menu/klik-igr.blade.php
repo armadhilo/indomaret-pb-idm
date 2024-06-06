@@ -930,7 +930,7 @@
                 <div class="float-right mt-4 d-flex">
                     <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px">Confirm</button>
                     <input type="number" class="form-control" style="margin: 0 15px; width: 180px; height: 42px" id="kg_berat_modal_ekspedisi">
-                    <button type="button" class="btn btn-primary btn-lg" style="width: 180px" onclick="actionAdditionalHitungUlang()">Calculate</button>
+                    <button type="button" class="btn btn-primary btn-lg" style="width: 180px" onclick="actionAdditionalHitungUlangEkspedisi()">Calculate</button>
                     <button type="button" style="width: 180px; margin-left: 15px" class="btn btn-lg btn-secondary" data-dismiss="modal">CANCEL</button>
                 </div>
             </div>

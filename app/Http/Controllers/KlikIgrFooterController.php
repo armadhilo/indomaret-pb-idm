@@ -451,6 +451,9 @@ class KlikIgrFooterController extends KlikIgrController
             ->where('cus_kodemember', $request->kode_member)
             ->value(DB::raw('UPPER(cus_namamember)'));
         $request->merge(['nama_member' => $nama_member]);
+                        $data['data'] = $this->actionF10Datatables(session('flagSPI'), $request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
+                $data['request'] = $request->all();
+                return ApiFormatter::success(200, "Success", $data);
         if(session('flagSPI') == true){
             if(($request->status == 'Siap Struk' AND $request->tipe_bayar == 'COD') OR ($request->status == 'Selesai Struk' AND $request->tipe_bayar != 'COD')){
                 //* open FORM -> frmHitungUlangSPI
@@ -500,6 +503,7 @@ class KlikIgrFooterController extends KlikIgrController
             foreach ($request->datatables as $item){
                 $prdcd = $item["plu"];
                 $qtyBaru = $item["qtyinput"] * (session('flagSPI') ? 1 : $item["frac"]);
+                
                 $result = $this->updateQtyHitungUlang($request->tanggal_trans, $selectedRow["no_trans"], $prdcd, $qtyBaru);
                 if(!$result){
                     throw new \Exception("Gagal Update Qty PLU " . $prdcd);
@@ -614,6 +618,7 @@ class KlikIgrFooterController extends KlikIgrController
             return ApiFormatter::success(200, "Proses Hitung Ulang Berhasil", $txtContent);
         } catch (QueryException $e) {
             DB::rollBack();
+            return $e;
             return ApiFormatter::error(500, "Error Hitung Ulang");
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1253,7 +1258,7 @@ class KlikIgrFooterController extends KlikIgrController
         $query .= "SET obi_qty_hitungulang = " . $qtyBaru . " ";
         $query .= "WHERE obi_tgltrans = TO_DATE('" . date('d-m-Y', strtotime($tgltrans)) . "','DD-MM-YYYY') ";
         $query .= "AND obi_notrans = '" . $notrans . "' ";
-        $query .= "WHERE obi_prdcd = '" . $prdcd . "' ";
+        $query .= "AND obi_prdcd = '" . $prdcd . "' ";
 
         $affectedRows = DB::update($query);
 
@@ -1286,7 +1291,7 @@ class KlikIgrFooterController extends KlikIgrController
         $query .= "AND TO_CHAR(h.obi_tgltrans, 'YYYY-MM-DD') = '" . date('Y-m-d', strtotime($tgltrans)) . "' ";
         $query .= "AND d.obi_recid IS NULL ";
         $query .= "AND d.obi_qtyrealisasi > 0 ";
-        $query .= "ORDER BY prd_deskripsipanjang LIMIT 25";
+        $query .= "ORDER BY prd_deskripsipanjang ";
 
         $data = DB::select($query);
 

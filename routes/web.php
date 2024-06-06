@@ -114,6 +114,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::get("/actionBaRusakKemasanPrep", [FormBaRusakController::class, 'actionPrep']);
             Route::get("/actionBaRusakKemasanLoadItem", [FormBaRusakController::class, 'loadItem']);
             Route::get("/actionBaRusakKemasanLoadBA", [FormBaRusakController::class, 'LoadBA']);
+            Route::post("/actionBaRusakKemasanHitungUlang", [FormBaRusakController::class, 'actionHitungUlang']);
 
             $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'CetakSuratJalan', 'CetakIIK', 'PbBatal', 'ItemPickingBelumTransit', 'LoppCod', 'ListPBLebihDariMaxSerahTerima', 'BAPengembalianDana', 'ListingDelivery', 'ReCreateAWB', 'BaRusakKemasan', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 

@@ -204,7 +204,7 @@ function actionAdditionalPesananExpired(){
 }
 
 
-function actionAdditionalHitungUlang(){
+function actionAdditionalHitungUlangEkspedisi(){
     if($("#txt_nama_modal_ekspedisi").val() == ''){
         Swal.fire("Peringatan", "Nama Ekspedisi Belum Diinput!", "warning");
         return;
@@ -1430,7 +1430,6 @@ function actionBaRusakKemasan(){
         url: currentURL + `/action/BaRusakKemasan`,
         type: "POST",
         data: { selectedRow: selectedRow },
-        async: false,
         success: function(response) {
             $("#modal_ba_barang_rusak").modal("show");
             var nama_member;
@@ -1450,9 +1449,7 @@ function actionBaRusakKemasan(){
                 });
             }
             
-            setTimeout(() => {
-                actionAdditionalReloadTabBaRusakKemasan();
-            }, 500);
+            actionAdditionalReloadTabBaRusakKemasan();
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({
@@ -1489,7 +1486,6 @@ function actionAdditionalReloadTabBaRusakKemasan(){
     $.ajax({
         url: currentURL + `/action/actionBaRusakKemasanPrep`,
         type: "GET",
-        async: false,
         data: { selectedRow: selectedRow },
         success: function(response) {
             $("#status_ba_barang_rusak_tab3").val(response.data.statusBA);
@@ -1680,6 +1676,7 @@ function loadItemBaBaRusakKemasan(){
 
 function hitungUlangBaRusakKemasan(){
     var selectedRow = tb.row(".select-r").data();
+    var datatable = tb_ba_barang_rusak_tab1.rows().data().toArray();
     Swal.fire({
         title: 'Yakin?',
         html: `Hitung Ulang ${selectedRow.no_pb} ?`,
@@ -1688,14 +1685,29 @@ function hitungUlangBaRusakKemasan(){
     })
     .then((result) => {
         if (result.value) {
-            $("#modal_edit_pb").modal("show");
-            $("#no_pb_detail_edit").text(selectedRow.no_pb);
-            $("#tanggal_pb_detail_edit").text(selectedRow.tgl_pb);
-            $("#no_trans_detail_edit").text(selectedRow.no_trans);
-            if (["Siap Picking", "Set Ongkir", "Siap Draft Struk", statusSiapPacking].includes(selectedRow.status)) {
-                $("#action_form_pembatalan").append(`<option value="ITEM BATAL">Item Batal</option>`);
-            }
-            draw_tb_edit_pb(selectedRow);
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + `/action/actionBaRusakKemasanHitungUlang`,
+                type: "POST",
+                data: {selectedRow: selectedRow, datatable: datatable},
+                success: function(response) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire('Success!', response.message,'success');
+                    var blob = new Blob([response.data.str], { type: "text/plain" });
+                    var link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = response.data.nama_file;
+                    link.click();
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
         }
     });
 }
