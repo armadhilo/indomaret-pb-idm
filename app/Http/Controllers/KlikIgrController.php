@@ -1765,18 +1765,23 @@ class KlikIgrController extends Controller
     //? butuh request -> selectedRow
     //? tidak perlu DB Transaction karena tidak ada proses create/update
     public function actionBaRusakKemasan(Request $request){
-
-        //! IRVAN DUMMY DATA 
-        $data['selectedRow'] = $request->selectedRow;
-        return ApiFormatter::success(200, "Success", $data);
-
         $selectedRow = $request->selectedRow;
+
+        //! START IRVAN DUMMY DATA 
+        $data['selectedRow'] = $request->selectedRow;
+        $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . $selectedRow['kode_member'] . "'");
+                // $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . 'wasdf' . "'");
+
+
+        return ApiFormatter::success(200, "Success", $data);
+        //! END IRVAN DUMMY DATA 
 
         if(session('flagSPI') == true){
             if((($selectedRow['status'] == 'Siap Struk' OR $selectedRow['status'] == 'Selesai Struk') AND $selectedRow['tipe_bayar'] == 'COD') OR ($selectedRow['status'] == 'Selesai Struk' AND $selectedRow['tipe_bayar'] <> "COD")){
                 //! open form -> frmBARusakSPI
                 //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
                 $data['selectedRow'] = $request->selectedRow;
+                $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . $selectedRow['kode_member'] . "'");
                 return ApiFormatter::success(200, "Success", $data);
             }else{
                 if(str_contains(strtoupper($selectedRow['status']), 'BATAL')){
@@ -1795,6 +1800,7 @@ class KlikIgrController extends Controller
                 //! open form -> frmBARusakSPI
                 //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
                 $data['selectedRow'] = $request->selectedRow;
+                $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . $selectedRow['kode_member'] . "'");
                 return ApiFormatter::success(200, "Success", $data);
             }else{
                 if($selectedRow['tipe_bayar'] == 'COD'){

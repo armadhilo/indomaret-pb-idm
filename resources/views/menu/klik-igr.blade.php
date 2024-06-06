@@ -259,7 +259,7 @@
                         </div>
                         <div class="form-group d-flex" style="gap: 15px">
                             <label for="upload_rtt" class="detail-info" style="white-space: nowrap">Path CSV &nbsp;:</label>
-                            <input type="file" class="form-control">
+                            <input type="file" class="form-control" accept=".zip" id="path_zip">
                         </div>
                         <div class="d-flex w-100 justify-content-between" style="gap: 15px">
                             <div class="d-flex flex-column" style="gap: 7px">
@@ -1328,26 +1328,20 @@
                                 </div>
                                 <div class="form-group d-flex align-items-start child-no-radius" style="width: 100%">
                                     <label for="no_pb_ba_barang_rusak_tab1" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Alasan : </label>
-                                    <textarea id="alasan_ba_barang_rusak_tab1" class="form-control" style="height: 70px; resize: none"></textarea>
+                                    <textarea id="alasan_ba_barang_rusak_tab1" disabled class="form-control" style="height: 70px; resize: none"></textarea>
                                 </div>
                             </div>
                             <div class="table-responsive position-relative">
                                 <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab1">
                                     <thead>
-                                        <tr>
-                                            <th style="width: 170px">PLU</th>
-                                            <th style="width: 440px">Deskripsi</th>
-                                            <th>Frac</th>
-                                            <th>QtyBA</th>
-                                        </tr>
                                     </thead>
                                     <tbody>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
-                                <button class="btn btn-primary btn-lg w-150px" style="height: 42px">Hitung Ulang</button>
-                                <button class="btn btn-success btn-lg w-150px" style="height: 42px">Simpan</button>
+                                <button class="btn btn-primary btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_hitung_ulang" onclick="hitungUlangBaRusakKemasan()">Hitung Ulang</button>
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_simpan">Simpan</button>
                             </div>
                         </div>
                     </div>
@@ -1367,26 +1361,20 @@
                                 </div>
                                 <div class="form-group d-flex align-items-start child-no-radius" style="width: 100%">
                                     <label for="no_pb_ba_barang_rusak_tab2" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Alasan : </label>
-                                    <textarea id="alasan_ba_barang_rusak_tab2" class="form-control" style="height: 70px; resize: none"></textarea>
+                                    <textarea id="alasan_ba_barang_rusak_tab2" disabled class="form-control" style="height: 70px; resize: none"></textarea>
                                 </div>
                             </div>
                             <div class="table-responsive position-relative">
-                                <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab1">
+                                <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab2">
                                     <thead>
-                                        <tr>
-                                            <th style="width: 170px">PLU</th>
-                                            <th style="width: 440px">Deskripsi</th>
-                                            <th>Frac</th>
-                                            <th>QtyBA</th>
-                                        </tr>
                                     </thead>
                                     <tbody>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
-                                <button class="btn btn-success btn-lg w-150px" style="height: 42px">Approve</button>
-                                <button class="btn btn-danger btn-lg w-150px" style="height: 42px">Batal</button>
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_approve">Approve</button>
+                                <button class="btn btn-danger btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_batal">Batal</button>
                             </div>
                         </div>
                     </div>
@@ -1410,25 +1398,19 @@
                                 </div>
                                 <div class="form-group d-flex align-items-start child-no-radius" style="width: 100%">
                                     <label for="no_pb_ba_barang_rusak_tab1" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">Alasan : </label>
-                                    <textarea id="alasan_ba_barang_rusak_tab1" class="form-control" style="height: 70px; resize: none"></textarea>
+                                    <textarea id="alasan_ba_barang_rusak_tab3" disabled class="form-control" style="height: 70px; resize: none"></textarea>
                                 </div>
                             </div>
                             <div class="table-responsive position-relative">
-                                <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab1">
+                                <table class="table table-striped table-hover datatable-dark-primary w-100 table-center tb-ba-rusak" id="tb_ba_barang_rusak_tab3">
                                     <thead>
-                                        <tr>
-                                            <th style="width: 170px">PLU</th>
-                                            <th style="width: 440px">Deskripsi</th>
-                                            <th>Frac</th>
-                                            <th>QtyBA</th>
-                                        </tr>
                                     </thead>
                                     <tbody>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
-                                <button class="btn btn-success btn-lg w-150px" style="height: 42px">Reprint</button>
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_reprint">Reprint</button>
                             </div>
                         </div>
                     </div>
@@ -1949,6 +1931,49 @@ $("#auto_send_hh").change(function(){
     }else {
         clearInterval(timerRefresh);
     }
+});
+
+$("#button_proses").click(function(){
+    if ($("#path_zip").val() === '') {
+        Swal.fire('Peringatan!', 'File Path Masih Kosong..!', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Proses file CSV ${$("#path_zip")[0].files[0].name} ?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            var formData = new FormData();
+            formData.append('zipFile', $("#path_zip")[0].files[0]);
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + `/action/proses-main`,
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire('Success!', response.message,'success');
+                    $('#path_zip').val('');
+                    tb.ajax.reload();
+                    actionPbBatal();
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+    })
 });
 
 //! IRVAN | Function Banyak Dikerjakan Nanti

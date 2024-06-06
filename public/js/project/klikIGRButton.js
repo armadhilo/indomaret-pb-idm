@@ -1,24 +1,5 @@
 let tb_periode_pesanan, tb_ba_rusak;
 
-tb_ba_rusak = $('.tb-ba-rusak').DataTable({
-    columnDefs: [
-        { className: 'text-center', targets: [0,1] },
-    ],
-    order: [],
-    "paging": false,
-    "searching": false,
-    "scrollY": "calc(100vh - 440px)",
-    "scrollCollapse": true,
-    ordering: false,
-    data: [],
-    columns: [
-        { data: 'plu' },
-        { data: 'desc' },
-        { data: 'frac' },
-        { data: 'qty' },
-    ],
-});
-
 function initialize_datatables_list_pb(data, columnsData, columnsDefsData = []){
     columnsDefsData.push({ className: 'text-center', targets: "_all" });
     tb_periode_pesanan = $('#modal_list_pb_batal_tb').DataTable({
@@ -1186,7 +1167,6 @@ function actionOngkosKirim(){
                 Swal.fire('Success!', response.message,'success');
                 tb.ajax.reload();
             } else if (response.code === 201){
-                console.log(response.data.flagFree);
                 if(response.data.flagFree == false || response.data.flagFree == 'false'){
                     $("#img_gratis_ongkir_modal_ekspedisi").addClass("d-none");
                     $("#img_gratis_ongkir_modal_ekspedisi").removeClass("d-flex");
@@ -1450,19 +1430,29 @@ function actionBaRusakKemasan(){
         url: currentURL + `/action/BaRusakKemasan`,
         type: "POST",
         data: { selectedRow: selectedRow },
+        async: false,
         success: function(response) {
+            $("#modal_ba_barang_rusak").modal("show");
+            var nama_member;
+            if(response.data.nama_member.length < 1){
+                nama_member = "";
+            } else {
+                nama_member = response.data.nama_member[0].cus_namamember;
+            }
             let fieldsResponseTemporary = [
                 { id: "no_pb_ba_barang_rusak_tab", value: response.data.selectedRow.no_pb },
                 { id: "kode_member_ba_barang_rusak_tab", value: response.data.selectedRow.kode_member },
-                { id: "nama_member_ba_barang_rusak_tab", value: response.data.selectedRow.nama_member }
+                { id: "nama_member_ba_barang_rusak_tab", value: nama_member }
             ];
             for (let i = 1; i <= 3; i++) {
                 fieldsResponseTemporary.forEach(field => {
                     $(`#${field.id}${i}`).val(field.value);
                 });
             }
-            $("#modal_ba_barang_rusak").modal("show");
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            
+            setTimeout(() => {
+                actionAdditionalReloadTabBaRusakKemasan();
+            }, 500);
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({
@@ -1471,6 +1461,241 @@ function actionBaRusakKemasan(){
                     : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
                 icon: "error"
             });
+        }
+    });
+}
+
+function actionGlobalSettingsTabBaRusakKemasan(params = 5) {
+    const tabs = ["#input-ba-rk-tab", "#draft-ba-rk-tab", "#history-ba-rk-tab"];
+    const errorMessage = () => Swal.fire("Error", "Pembuatan Tab Gagal Harap Coba Kembali", "error");
+
+    if (params < 0 || params > 2) {
+        return errorMessage();
+    }
+
+    tabs.forEach((tab, index) => {
+        $(tab).toggleClass("d-none", index !== params);
+        if (index === params) {
+            $(tab).trigger("click");
+        }
+    });
+}
+
+
+function actionAdditionalReloadTabBaRusakKemasan(){
+    var selectedRow = tb.row(".select-r").data();
+    $("#ba_barang_rusak_reprint").addClass('d-none');
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionBaRusakKemasanPrep`,
+        type: "GET",
+        async: false,
+        data: { selectedRow: selectedRow },
+        success: function(response) {
+            $("#status_ba_barang_rusak_tab3").val(response.data.statusBA);
+            if(response.data.statusBA == "NEW"){
+                $("#alasan_ba_barang_rusak_tab2").val(response.data.txtAlasan2);
+                $("#alasan_ba_barang_rusak_tab3").val(response.data.txtAlasan3);
+                actionGlobalSettingsTabBaRusakKemasan(0);
+                $("#ba_barang_rusak_hitung_ulang").attr("disabled", false);
+                $("#ba_barang_rusak_simpan").attr("disabled", true);
+                if(selectedRow.tipe_bayar == "COD" && selectedRow.status == "Selesai Struk"){
+                    $("#ba_barang_rusak_hitung_ulang").attr("disabled", true);
+                    Swal.fire("Peringatan!", "Transaksi COD Sudah Selesai Struk", "warning");
+                }
+                setTimeout(() => {
+                    loadItemPbBaRusakKemasan();
+                }, 500);
+                return;
+            } else {
+                $("#alasan_ba_barang_rusak_tab3").val(response.data.txtAlasan1);
+                if(response.data.statusBA == "DRAFT"){
+                    actionGlobalSettingsTabBaRusakKemasan(1);
+                    if(selectedRow.tipe_bayar == "COD" && selectedRow.status == "Selesai Struk"){
+                        $("#ba_barang_rusak_approve").attr("disabled", true);
+                        Swal.fire("Peringatan!", "Transaksi COD Sudah Selesai Struk", "warning");
+                    }
+                    return;
+                } else{
+                    actionGlobalSettingsTabBaRusakKemasan(2);
+                    if(selectedRow.status == "BATAL"){
+                        $("#ba_barang_rusak_reprint").attr("disabled", false);
+                    }
+                }
+                setTimeout(() => {
+                    loadItemBaBaRusakKemasan();
+                }, 500);
+            }
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function loadItemPbBaRusakKemasan(){
+    var selectedRow = tb.row(".select-r").data();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionBaRusakKemasanLoadItem`,
+        type: "GET",
+        async: false,
+        data: {selectedRow: selectedRow},
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide'); }, 500);
+            if ($.fn.DataTable.isDataTable('#tb_ba_barang_rusak_tab1')) {
+                tb_ba_barang_rusak_tab1.clear().draw();
+                $("#tb_ba_barang_rusak_tab1").dataTable().fnDestroy();
+                $("#tb_ba_barang_rusak_tab1 thead").empty()
+            }
+
+            tb_ba_barang_rusak_tab1 = $('#tb_ba_barang_rusak_tab1').DataTable({
+                data: response.data.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false, 
+                "scrollY": "calc(100vh - 650px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "plu", title: "PLU" },
+                    { data: "deskripsi", title: "Deskripsi" },
+                    { data: "frac", title: "Frac" },
+                    { data: "qtyba", title: "Qty BA" },
+                    { data: "qtyreal", title: "Qty Real", render: function(data, type, row) {
+                        return parseFloat(parseInt(data)).toFixed(0);
+                    } },
+                ],
+                ordering: false,
+                destory: true,
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#tb_ba_barang_rusak_tab1')) {
+                tb_ba_barang_rusak_tab1.clear().draw();
+            }
+        }
+    });
+}
+
+function loadItemBaBaRusakKemasan(){
+    var selectedRow = tb.row(".select-r").data();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionBaRusakKemasanLoadBA`,
+        type: "GET",
+        async: false,
+        data: {selectedRow: selectedRow},
+        success: function(response) {
+            setTimeout(() => { $('#modal_loading').modal('hide'); }, 500);
+            if ($.fn.DataTable.isDataTable('#tb_ba_barang_rusak_tab2')) {
+                tb_ba_barang_rusak_tab2.clear().draw();
+                $("#tb_ba_barang_rusak_tab2").dataTable().fnDestroy();
+                $("#tb_ba_barang_rusak_tab2 thead").empty()
+            }
+
+            if ($.fn.DataTable.isDataTable('#tb_ba_barang_rusak_tab3')) {
+                tb_ba_barang_rusak_tab3.clear().draw();
+                $("#tb_ba_barang_rusak_tab3").dataTable().fnDestroy();
+                $("#tb_ba_barang_rusak_tab3 thead").empty()
+            }
+
+            tb_ba_barang_rusak_tab2 = $('#tb_ba_barang_rusak_tab2').DataTable({
+                data: response.data.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false, 
+                "scrollY": "calc(100vh - 650px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "plu", title: "PLU" },
+                    { data: "deskripsi", title: "Deskripsi" },
+                    { data: "frac", title: "Frac" },
+                    { data: "qtyba", title: "Qty BA", render: function(data, type, row) {
+                        return parseFloat(parseInt(data)).toFixed(0);
+                    } },
+                ],
+                ordering: false,
+                destory: true,
+            });
+
+            tb_ba_barang_rusak_tab3 = $('#tb_ba_barang_rusak_tab3').DataTable({
+                data: response.data.data,
+                language: {
+                    emptyTable: "<div class='datatable-no-data' style='color: #ababab'>Tidak Ada Data</div>",
+                },
+                order: [],
+                "paging": false,
+                "searching": false, 
+                "scrollY": "calc(100vh - 650px)",
+                "scrollCollapse": true,
+                columnDefs: [{ className: 'text-center', targets: "_all" }],
+                columns: [
+                    { data: "plu", title: "PLU" },
+                    { data: "deskripsi", title: "Deskripsi" },
+                    { data: "frac", title: "Frac" },
+                    { data: "qtyba", title: "Qty BA", render: function(data, type, row) {
+                        return parseFloat(parseInt(data)).toFixed(0);
+                    } },
+                ],
+                ordering: false,
+                destory: true,
+            });
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+            if ($.fn.DataTable.isDataTable('#tb_ba_barang_rusak_tab2')) {
+                tb_ba_barang_rusak_tab2.clear().draw();
+            }
+            if ($.fn.DataTable.isDataTable('#tb_ba_barang_rusak_tab3')) {
+                tb_ba_barang_rusak_tab3.clear().draw();
+            }
+        }
+    });
+}
+
+
+function hitungUlangBaRusakKemasan(){
+    var selectedRow = tb.row(".select-r").data();
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Hitung Ulang ${selectedRow.no_pb} ?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            $("#modal_edit_pb").modal("show");
+            $("#no_pb_detail_edit").text(selectedRow.no_pb);
+            $("#tanggal_pb_detail_edit").text(selectedRow.tgl_pb);
+            $("#no_trans_detail_edit").text(selectedRow.no_trans);
+            if (["Siap Picking", "Set Ongkir", "Siap Draft Struk", statusSiapPacking].includes(selectedRow.status)) {
+                $("#action_form_pembatalan").append(`<option value="ITEM BATAL">Item Batal</option>`);
+            }
+            draw_tb_edit_pb(selectedRow);
         }
     });
 }

@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\ActionProsesController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MonitoringWebServiceController;
 use App\Http\Controllers\ReturTokoTutupIdmController;
 use App\Http\Controllers\DspbRotiController;
+use App\Http\Controllers\FormBaRusakController;
 use App\Http\Controllers\FormPickerClickController;
 use App\Http\Controllers\HistoryProdukController;
 use App\Http\Controllers\KlikIgrController;
@@ -61,7 +63,9 @@ Route::get('/logout', [LoginController::class, 'logout']);
         Route::group(['prefix' => 'action'], function(){
             Route::post("/download-zip", [KlikIgrController::class, 'actionGlobalDownloadZip']);
             Route::post("/download-pdf", [KlikIgrController::class, 'actionGlobalDownloadPdf']);
+            Route::post("/proses-main", [ActionProsesController::class, 'listPB']);
 
+            //* KeysFunction Additional
             Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);
             Route::post("/f4-validasi-rak", [KlikIgrFooterController::class, 'actionF4ValidasiRak']);
             Route::post("/f4-item-batal", [KlikIgrFooterController::class, 'actionF4ItemBatal']);
@@ -105,6 +109,11 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::get("/actionBAPengembalianDanaGetHistory", [KlikIgrController::class, 'actionBAPengembalianDanaGetHistory']);
             Route::get("/actionBAPengembalianDanaDatatables/{noba}/{isHistory}", [KlikIgrController::class, 'actionBAPengembalianDanaDatatables']);
             Route::get("/actionBuktiSerahTerimaKardusDatatables/{history}", [KlikIgrController::class, 'actionBuktiSerahTerimaKardusDatatables']);
+
+            //* BARusakKemasan Additional
+            Route::get("/actionBaRusakKemasanPrep", [FormBaRusakController::class, 'actionPrep']);
+            Route::get("/actionBaRusakKemasanLoadItem", [FormBaRusakController::class, 'loadItem']);
+            Route::get("/actionBaRusakKemasanLoadBA", [FormBaRusakController::class, 'LoadBA']);
 
             $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'CetakSuratJalan', 'CetakIIK', 'PbBatal', 'ItemPickingBelumTransit', 'LoppCod', 'ListPBLebihDariMaxSerahTerima', 'BAPengembalianDana', 'ListingDelivery', 'ReCreateAWB', 'BaRusakKemasan', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 
