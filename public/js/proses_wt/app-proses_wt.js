@@ -73,10 +73,17 @@ submit_wt =()=>{
             processData: false,
             dataType: "json"
       }).fail(function (e) {
-         
+            Swal.fire({
+               title: 'Gagal',
+               html: 'Data kosong',
+               icon: 'warning',
+               allowOutsideClick: false,
+               onOpen: () => {
+                     swal.hideLoading()
+               }
+         });
          $('#proses-wt').loading('toggle');
-      })
-      .done(function (data) {
+      }).done(function (data) {
          
          if (data.data.data_toko) {
          let no = 1;

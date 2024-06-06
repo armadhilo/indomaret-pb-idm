@@ -65,7 +65,7 @@
 
 
 <main>
-    @if(sizeof($data) == 0 )
+    @if(!$data )
         <h4 class="center" style=" text-align: center;">@lang('TIDAK ADA DATA')</h4>
 
     @else

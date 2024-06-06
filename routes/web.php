@@ -62,6 +62,9 @@ Route::middleware(['mylogin'])->group(function () {
     Route::get('/test2', [RPTController::class, 'print_cetak_ulang_dsp_test2']);
     
     Route::prefix('/api')->group(function () {
+        
+        Route::get('print/report/{data}', [RPTController::class, 'print_report']);
+    
         /*  Monitoring */
         Route::prefix('/monitoring')->group(function () {
 
@@ -89,6 +92,8 @@ Route::middleware(['mylogin'])->group(function () {
 
             Route::get('/pb/omi', [RPTController::class, 'get_no_pb']);
             Route::post('/cetak/dsp/ulang', [RPTController::class, 'print_cetak_ulang_dsp']);
+            Route::post('/cetak/sj/ulang', [RPTController::class, 'print_cetak_ulang_sj']);
+            Route::post('/struk/hadiah', [RPTController::class, 'print_struk_hadiah']);
 
         });
         /*  Voucher */

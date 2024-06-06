@@ -123,7 +123,7 @@
                                     </div>
                                     <div class="tab-pane fade" id="OMI" role="tabpanel" aria-labelledby="OMI-tab">
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-dsp','Cetak Ulang DSP','/api/report/cetak/dsp/ulang')">Cetak Ulang DSP</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb()">Cetak Ulang SJ</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-sj','Cetak Ulang SJ','/api/report/cetak/sj/ulang')">Cetak Ulang SJ</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb()">Struk Hadiah</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb()">Outstanding DSP</button>
                                     </div>

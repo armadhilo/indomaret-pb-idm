@@ -282,7 +282,6 @@ getDataPaketPengirimanIDM =()=>{
 
          });
 
-      console.log(field)
       }else{
          Swal.fire({
             title: 'Gagal',
