@@ -1341,7 +1341,7 @@
                             </div>
                             <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
                                 <button class="btn btn-primary btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_hitung_ulang" onclick="hitungUlangBaRusakKemasan()">Hitung Ulang</button>
-                                <button class="btn btn-success btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_simpan">Simpan</button>
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_simpan" onclick="simpanBaRusakKemasan()">Simpan</button>
                             </div>
                         </div>
                     </div>
@@ -1350,6 +1350,7 @@
                             <div class="d-flex flex-column">
                                 <div class="form-group d-flex align-items-center child-no-radius" style="width: 400px">
                                     <label for="no_pb_ba_barang_rusak_tab2" class="detail-info text-nowrap bg-teal h-38px w-150px flex-shrink-0">No PB : </label>
+                                    <input type="text" hidden id="no_ba_barang_rusak_tab2">
                                     <input type="text" class="form-control" disabled id="no_pb_ba_barang_rusak_tab2">
                                 </div>
                                 <div class="form-group d-flex align-items-center child-no-radius" style="width: 100%">
@@ -1373,8 +1374,8 @@
                                 </table>
                             </div>
                             <div class="d-flex mt-2 p-3 justify-content-center" style="gap: 25px">
-                                <button class="btn btn-success btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_approve">Approve</button>
-                                <button class="btn btn-danger btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_batal">Batal</button>
+                                <button class="btn btn-success btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_approve" onclick="approveBaRusakKemasanPrep()">Approve</button>
+                                <button class="btn btn-danger btn-lg w-150px" style="height: 42px" id="ba_barang_rusak_batal" onclick="batalBaRusakKemasan()">Batal</button>
                             </div>
                         </div>
                     </div>
@@ -1593,6 +1594,35 @@
                     <input type="password" class="form-control" style="border: unset;" id="password_manager">
                     <button class="btn btn-primary" style="box-shadow: unset!important; width: 160px; font-weight: bold" onclick="actionAdditionalPasswordManager()">OK</button>
                     <button class="btn btn-secondary" style="box-shadow: unset!important; width: 160px; font-weight: bold" onclick="closeModalPasswordManager();">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" role="dialog" id="modal_approval" status="" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content" style="border: 0; background: #2f4f4f!important">
+            <div class="modal-body" style="border: 1px solid white; margin: 8px; padding: 15px 19px;">
+                <div class="form-group d-flex align-items-center justify-content-center m-0 flex-column" style="gap: 20px">
+                    <h2 style="white-space: nowrap; margin: 0; font-weight: bold; color: white">Approval Requirement Level </h2>
+                    <h5 style="white-space: nowrap; margin: 0; font-weight: bold; color: white" id="label_username_approval"></h5>
+                    <div style="width: 80%">
+                        <input type="number" hidden id="userlevel_approval">
+                        <input type="text" hidden id="keterangan_approval">
+                        <div class="form-group w-100 d-flex" style="gap: 20px; margin-bottom: 23px!important">
+                            <label for="username_approval" class="detail-info bg-teal text-nowrap px-4">Username :</label>
+                            <input type="text" class="form-control" style="border: unset;" id="username_approval">
+                        </div>
+                        <div class="form-group w-100 d-flex" style="gap: 20px; margin-bottom: 23px!important">
+                            <label for="password_approval" class="detail-info bg-teal text-nowrap px-4">Password :</label>
+                            <input type="password" class="form-control" style="border: unset;" id="password_approval">
+                        </div>
+                        <div class="d-flex align-items-center justify-content-center" style="gap: 20px">
+                            <button class="btn btn-primary" style="box-shadow: unset!important; width: 160px; height: 40px; font-weight: bold" onclick="actionAdditionalApproval()">OK</button>
+                            <button class="btn btn-secondary" style="box-shadow: unset!important; width: 160px; height: 40px; font-weight: bold" data-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

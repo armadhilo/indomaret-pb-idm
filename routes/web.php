@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActionProsesController;
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MonitoringWebServiceController;
@@ -59,11 +60,11 @@ Route::get('/logout', [LoginController::class, 'logout']);
         Route::post('/detail-transaksi', [KlikIgrController::class, 'detailTransaksi']);
         Route::post('/connect', [KlikIgrController::class, 'connectToWebservice']);
 
-
         Route::group(['prefix' => 'action'], function(){
             Route::post("/download-zip", [KlikIgrController::class, 'actionGlobalDownloadZip']);
             Route::post("/download-pdf", [KlikIgrController::class, 'actionGlobalDownloadPdf']);
             Route::post("/proses-main", [ActionProsesController::class, 'listPB']);
+            Route::post('/action-approve', [KlikIgrController::class, 'action_approve']);
 
             //* KeysFunction Additional
             Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);
@@ -115,6 +116,9 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::get("/actionBaRusakKemasanLoadItem", [FormBaRusakController::class, 'loadItem']);
             Route::get("/actionBaRusakKemasanLoadBA", [FormBaRusakController::class, 'LoadBA']);
             Route::post("/actionBaRusakKemasanHitungUlang", [FormBaRusakController::class, 'actionHitungUlang']);
+            Route::post("/actionBaRusakKemasanSimpan", [FormBaRusakController::class, 'actionSimpan']);
+            Route::post("/actionBaRusakKemasanBatal", [FormBaRusakController::class, 'actionBatal']);
+            Route::post("/actionBaRusakKemasanApprove", [FormBaRusakController::class, 'btnApprove_Click']);
 
             $buttonKeys = ['SendHandHelt', 'OngkosKirim', 'DraftStruk', 'PembayaranVA', 'KonfirmasiPembayaran', 'Sales', 'CetakSuratJalan', 'CetakIIK', 'PbBatal', 'ItemPickingBelumTransit', 'LoppCod', 'ListPBLebihDariMaxSerahTerima', 'BAPengembalianDana', 'ListingDelivery', 'ReCreateAWB', 'BaRusakKemasan', 'cetakFormPengembalianBarang', 'LaporanPenyusutanHarian', 'LaporanPesananExpired', 'BuktiSerahTerimaKardus'];
 

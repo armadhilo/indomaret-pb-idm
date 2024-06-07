@@ -1489,6 +1489,7 @@ function actionAdditionalReloadTabBaRusakKemasan(){
         data: { selectedRow: selectedRow },
         success: function(response) {
             $("#status_ba_barang_rusak_tab3").val(response.data.statusBA);
+            $("#no_ba_barang_rusak_tab2").val(response.data.noBA)
             if(response.data.statusBA == "NEW"){
                 $("#alasan_ba_barang_rusak_tab2").val(response.data.txtAlasan2);
                 $("#alasan_ba_barang_rusak_tab3").val(response.data.txtAlasan3);
@@ -1505,13 +1506,23 @@ function actionAdditionalReloadTabBaRusakKemasan(){
                 return;
             } else {
                 $("#alasan_ba_barang_rusak_tab3").val(response.data.txtAlasan1);
+                //! IRVAN DUMMY TEST 
+                actionGlobalSettingsTabBaRusakKemasan(1);
+                    if(selectedRow.tipe_bayar == "COD" && selectedRow.status == "Selesai Struk"){
+                        $("#ba_barang_rusak_approve").attr("disabled", true);
+                        Swal.fire("Peringatan!", "Transaksi COD Sudah Selesai Struk", "warning");
+                    }
+                    setTimeout(() => {
+                        loadItemBaBaRusakKemasan();
+                    }, 500);
+                    return;
+                //! END IRVAN DUMMY TEST
                 if(response.data.statusBA == "DRAFT"){
                     actionGlobalSettingsTabBaRusakKemasan(1);
                     if(selectedRow.tipe_bayar == "COD" && selectedRow.status == "Selesai Struk"){
                         $("#ba_barang_rusak_approve").attr("disabled", true);
                         Swal.fire("Peringatan!", "Transaksi COD Sudah Selesai Struk", "warning");
                     }
-                    return;
                 } else{
                     actionGlobalSettingsTabBaRusakKemasan(2);
                     if(selectedRow.status == "BATAL"){
@@ -1698,6 +1709,111 @@ function hitungUlangBaRusakKemasan(){
                     link.href = window.URL.createObjectURL(blob);
                     link.download = response.data.nama_file;
                     link.click();
+                    $('#ba_barang_rusak_simpan').prop('disabled', false);
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        } else {
+            $('#ba_barang_rusak_simpan').prop('disabled', true);
+        }
+    });
+}
+
+function simpanBaRusakKemasan(){
+    var selectedRow = tb.row(".select-r").data();
+    var datatable = tb_ba_barang_rusak_tab1.rows().data().toArray();
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Simpan Data BA RK ${selectedRow.no_pb} ?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + `/action/actionBaRusakKemasanSimpan`,
+                type: "POST",
+                data: {selectedRow: selectedRow, datatable: datatable, alasan: $("#alasan_ba_barang_rusak_tab1").val()},
+                success: function(response) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire('Success!', response.message,'success').then(function(){
+                        actionAdditionalReloadTabBaRusakKemasan();
+                    });
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+    });
+}
+
+function approveBaRusakKemasanPrep(){
+    $("#modal_ba_barang_rusak").addClass('brightness-blur');
+    $("#userlevel_approval").val(991);
+    $("#label_username_approval").text(getUserLevelNameApproval(991));
+    $("#keterangan_approval").val("Approval Str Mgr./Jr.Mgr. - BA Rusak Kemasan");
+    $("#modal_approval").modal("show");
+}
+
+function actionLanjutanApprovalBaRusakKemasan(username = "", namaUser = ""){
+    var selectedRow = tb.row(".select-r").data();
+    var datatable = tb_ba_barang_rusak_tab2.rows().data().toArray();
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/actionBaRusakKemasanApprove`,
+        type: "POST",
+        data: {selectedRow: selectedRow, datatable: datatable, username: username, noBA: $("#no_ba_barang_rusak_tab2").val(), alasan: $("#alasan_ba_barang_rusak_tab2").val()},
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire('Success!', response.message,'success').then(function(){
+                actionAdditionalReloadTabBaRusakKemasan();
+            })
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+}
+
+function batalBaRusakKemasan(){
+    var selectedRow = tb.row(".select-r").data();
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Batalin BA RK ${selectedRow.no_pb} ?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + `/action/actionBaRusakKemasanBatal`,
+                type: "POST",
+                data: {selectedRow: selectedRow},
+                success: function(response) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire('Success!', response.message,'success').then(function(){
+                        actionAdditionalReloadTabBaRusakKemasan();
+                    });
                 }, error: function(jqXHR, textStatus, errorThrown) {
                     setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                     Swal.fire({
@@ -2428,3 +2544,79 @@ $('#modal_master_group_picking').on('shown.bs.modal', function () {
 $('#modal_master_picking').on('shown.bs.modal', function () {
     $("#modal_master_picking").removeClass("brightness-blur");
 });
+
+//* APPROVAL
+function getUserLevelNameApproval(UsrLvl){
+    let str;
+    if (UsrLvl === 1) {
+        str = "MANAGER";
+    } else if (UsrLvl === 2) {
+        str = "SUPERVISOR";
+    } else if (UsrLvl === 999) {
+        return "OTP";
+    } else if (UsrLvl === 990) {
+        return "IC";
+    } else if (UsrLvl === 991) {
+        return '{{ session("flagSPI") }}' ? "Store Mgr./Jr.Mgr. SPI" : "Store Mgr./Jr.Mgr. Toko Igr";
+    } else {
+        str = "KASIR";
+    }
+    return str;
+}
+
+$('#modal_approval').on('hidden.bs.modal', function () {
+    $("#userlevel_approval").val();
+    $("#keterangan_approval").val();
+    $("#label_username_approval").text();
+    $(".modal.brightness-blur").removeClass("brightness-blur");
+});
+
+function actionAdditionalApproval(){
+    Swal.fire({
+        title: 'Lanjutkan Requirement Approval Level ?',
+        html: `Pastikan Username & Password sudah terisi`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            if($("#username_approval").val() == "" || $("#password_approval").val() == ""){
+                Swal.fire("Peringatan!", "Username atau Password Belum Diisi", "warning");
+                return;
+            }
+            if($("#userlevel_approval").val() == 999){
+                //! IRVAN | cURL ERROR Resolve Host
+                (async () => {
+                    var dataValue = await connectToWebService("http://fo.indogrosir.lan/OMIWebService/OMIWebService.asmx/GetOTP?" + "KodeToko=" + '{{ session("KODECABANG") }}' , "POST");
+                    if (dataValue) {
+                        console.log(dataValue);
+                    }
+                })();
+            } else {
+                $('#modal_loading').modal('show');
+                $.ajax({
+                    url: currentURL + `/action/action-approve`,
+                    type: "POST",
+                    data: {userlevel: $("#userlevel_approval").val(), keterangan: $("#keterangan_approval").val(), username: $("#username_approval").val(), password: $("#password_approval").val()},
+                    success: function(response) {
+                        setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                        actionLanjutanApprovalBaRusakKemasan(response.data.username, response.data.namaUser);
+                        $("#username_approval").val();
+                        $("#password_approval").val();
+                        $("#modal_approval").modal("hide")
+                    }, error: function(jqXHR, textStatus, errorThrown) {
+                        setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                        Swal.fire({
+                            text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                                ? jqXHR.responseJSON.message
+                                : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                            icon: "error"
+                        });
+                        $("#username_approval").val();
+                        $("#password_approval").val();
+                    }
+                });
+            }
+        }
+    });
+}

@@ -104,7 +104,6 @@
                 @yield('content')
 
                 @yield('modal')
-
                 <!-- Modal Load-->
                 <div class="modal fade" role="dialog" id="modal_loading" data-keyboard="false" data-backdrop="static" style="z-index: 2000">
                     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -183,6 +182,7 @@
         function onKeyUpUpperCase(inputValue) {
             return inputValue.toUpperCase();
         }
+
     </script>
     @stack('page-script')
 </body>

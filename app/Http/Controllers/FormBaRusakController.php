@@ -30,8 +30,6 @@ class FormBaRusakController extends KlikIgrController
     public function actionPrep(Request $request){
         $selectedRow = $request->selectedRow;
         $dt = DB::select("SELECT DISTINCT brk_statusba, brk_noba, TO_CHAR(brk_tglba,'DD-MM-YYYY'), brk_alasan FROM tbtr_barusak_spi WHERE brk_nopb = '" . $selectedRow["no_pb"] . "' AND brk_kodemember = '" . $selectedRow["kode_member"] . "'");
-        //!! IRVAN | DUMMY DATA
-        // $dt = DB::select("SELECT DISTINCT brk_statusba, brk_noba, TO_CHAR(brk_tglba,'DD-MM-YYYY'), brk_alasan FROM tbtr_barusak_spi LIMIT 15");
 
         if(count($dt) > 0){
             $data['statusBA'] = $dt[0]->brk_statusba;
@@ -70,13 +68,13 @@ class FormBaRusakController extends KlikIgrController
         $query .= " ON prd_prdcd = obi_prdcd ";
         $query .= " LEFT JOIN konversi_item_klikigr ";
         $query .= " ON substr(pluigr, 1, 6) || '0' = substr(obi_prdcd, 1, 6) || '0' ";
-        // $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
-        // $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
-        // $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
-        // $query .= " AND DATE_TRUNC('DAY', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'DD-MM-YYYY') ";
+        $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
+        $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
+        $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
+        $query .= " AND DATE_TRUNC('DAY', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'DD-MM-YYYY') ";
         $query .= " AND d.obi_recid IS NULL ";
         $query .= " AND d.obi_qtyrealisasi > 0 ";
-        $query .= " ORDER BY prd_deskripsipanjang LIMIT 15";
+        $query .= " ORDER BY prd_deskripsipanjang ";
 
         $data['data'] = DB::select($query);
 
@@ -100,9 +98,9 @@ class FormBaRusakController extends KlikIgrController
         $query .= " ON prd_prdcd = brk_prdcd ";
         $query .= " LEFT JOIN konversi_item_klikigr ";
         $query .= " ON substr(pluigr, 1, 6) || '0' = substr(brk_prdcd, 1, 6) || '0' ";
-        // $query .= " WHERE brk_nopb = '" . $selectedRow["no_pb"] . "'";
-        // $query .= " AND brk_kodemember = '" . $selectedRow["kode_member"] . "'";
-        $query .= " ORDER BY prd_deskripsipanjang LIMIT 15";
+        $query .= " WHERE brk_nopb = '" . $selectedRow["no_pb"] . "'";
+        $query .= " AND brk_kodemember = '" . $selectedRow["kode_member"] . "'";
+        $query .= " ORDER BY prd_deskripsipanjang ";
 
         $data['data'] = DB::select($query);
 
@@ -223,7 +221,7 @@ class FormBaRusakController extends KlikIgrController
                         $query .= "       reward_nominal_hitungulang = reward_nominal ";
                         $query .= " WHERE kode_member = '" .$selectedRow["kdmember"] . "' ";
                         $query .= "   AND no_trans = '" .$selectedRow["notrans"] . "' ";
-                        $query .= "   AND no_pb = '" .$selectedRow["nopb"] . "' ";
+                        $query .= "   AND no_pb = '" .$selectedRow["no_pb"] . "' ";
                         $query .= "   AND tipe_promo = 'CASHBACK' ";
                         DB::update($query);
                     }
@@ -237,7 +235,7 @@ class FormBaRusakController extends KlikIgrController
                 $query .= "       reward_nominal_hitungulang = reward_nominal ";
                 $query .= " WHERE kode_member = '" .$selectedRow["kdmember"] . "' ";
                 $query .= "   AND no_trans = '" .$selectedRow["notrans"] . "' ";
-                $query .= "   AND no_pb = '" .$selectedRow["nopb"] . "' ";
+                $query .= "   AND no_pb = '" .$selectedRow["no_pb"] . "' ";
                 $query .= "   AND tipe_promo = 'CASHBACK' ";
                 DB::update($query);
             }
@@ -248,12 +246,10 @@ class FormBaRusakController extends KlikIgrController
                 $txtContent = $this->PrintNotaHitungUlangKlikSPI("HITUNGULANG", "KlikIGR", $request->tipe_kredit, $request->selectedRow);
             };
 
-            //! IRVAN COMMIT COMMENT
-            // DB::commit();
+            DB::commit();
             return ApiFormatter::success(200, "Proses Hitung Ulang Berhasil", $txtContent);
 
         } catch (HttpResponseException $e) {
-            // Handle the custom response exception
             throw new HttpResponseException($e->getResponse());
 
         }catch(\Exception $e){
@@ -266,17 +262,132 @@ class FormBaRusakController extends KlikIgrController
         }
     }
 
-    //! NOTE KEVIN
-    //* dgvItem2 itu bentuknya array bisa di cek di vb nya
-    public function btnApprove_Click($tipeBayar,$nopb,$notrans,$kdmember,$tgltrans,$noBA,$dgvItem2 = []){
-        //* buka form approval -> frmApproval
-        // frmApproval.UserLevel = 991
-        // frmApproval.Keterangan = "Approval Str Mgr./Jr.Mgr. - BA Rusak Kemasan"
+    public function actionSimpan(Request $request){
+        $alasan = trim($request->alasan);
+
+        $selectedRow = $request->selectedRow;
+        foreach ($request->datatable as $data){
+            $plu = $data["plu"];
+            $query = "";
+            $query .= " SELECT prd_unit ";
+            $query .= " FROM tbtr_obi_h h ";
+            $query .= " JOIN tbtr_obi_d d ";
+            $query .= " ON d.obi_tgltrans = h.obi_tgltrans ";
+            $query .= " AND d.obi_notrans = h.obi_notrans ";
+            $query .= " JOIN tbmaster_prodmast ";
+            $query .= " ON prd_prdcd = obi_prdcd ";
+            $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
+            $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
+            $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
+            $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'DD-MM-YYYY') ";
+            $query .= " AND d.obi_recid IS NULL ";
+            $query .= " AND d.obi_qtyrealisasi > 0 ";
+            $query .= " AND d.obi_prdcd = '" . $plu . "' ";
+            $query .= " ORDER BY prd_deskripsipanjang ";
+
+            $dt = DB::select($query);
+
+            $qtyBA = $data["qtyba"];
+            if(count($dt) > 0){
+                $qtyBA = $data['qtyba'] / $data['frac'];
+            } else {
+                $qtyBA = $data['qtyba'] * (session("flagSPI") ? 1 : $data['frac']);
+            }
+
+            DB::beginTransaction();
+            try{
+                $dt = DB::select("SELECT brk_prdcd FROM tbtr_barusak_spi WHERE brk_nopb = '" . $selectedRow['no_pb'] . "' AND brk_kodemember = '" . $selectedRow['kode_member'] . "' AND brk_prdcd = '" . $plu . "'");
+
+
+                if(count($dt) > 0 ){
+                    $query = "";
+                    $query .= " UPDATE tbtr_barusak_spi ";
+                    $query .= " SET brk_tglba = CURRENT_DATE, brk_statusba = 'DRAFT', ";
+                    $query .= "     brk_tipebayar =  '" . $selectedRow['tipe_bayar'] . "', ";
+                    $query .= "     brk_qtyba = '" . $qtyBA . "', ";
+                    $query .= "     brk_alasan =  '" . $alasan . "', ";
+                    $query .= "     brk_create_by =  '" . session("userid") . "' ";
+                    $query .= " WHERE brk_nopb =  '" . $selectedRow["no_pb"] . "' ";
+                    $query .= " AND brk_kodemember =  '" . $selectedRow['kode_member'] . "' ";
+                    $query .= " AND brk_prdcd =  '" . $plu . "' ";
+                    DB::update($query);
+                } else{
+                    $query = "";
+                    $query .= " INSERT INTO tbtr_barusak_spi ( ";
+                    $query .= "   brk_tglba, ";
+                    $query .= "   brk_statusba, ";
+                    $query .= "   brk_tipebayar, ";
+                    $query .= "   brk_nopb, ";
+                    $query .= "   brk_tglpb, ";
+                    $query .= "   brk_kodemember, ";
+                    $query .= "   brk_prdcd, ";
+                    $query .= "   brk_qtyba, ";
+                    $query .= "   brk_alasan, ";
+                    $query .= "   brk_create_by, ";
+                    $query .= "   brk_create_dt ";
+                    $query .= " ) VALUES ( ";
+                    $query .= "   CURRENT_DATE, ";
+                    $query .= "   'DRAFT', ";
+                    $query .= "   '" . $selectedRow['tipe_bayar'] . "', ";
+                    $query .= "   '" . $selectedRow['no_pb'] . "', ";
+                    $query .= "   TO_DATE('" . $selectedRow['tgltrans'] . "', 'DD-MM-YYYY'), ";
+                    $query .= "   '" . $selectedRow['kode_member'] . "', ";
+                    $query .= "   '" . $plu . "', ";
+                    $query .= "   '" . $qtyBA . "', ";
+                    $query .= "   '" . $alasan . "', ";
+                    $query .= "   '" . session("userid") . "', ";
+                    $query .= "   NOW() ";
+                    $query .= " ) ";
+                    DB::update($query);
+                }
+
+                DB::commit();
+
+            } catch(\Exception $e){
+
+                DB::rollBack();
+
+                $message = "Gagal Insert Data BA PLU " . $plu . ".";
+                return ApiFormatter::error(400, $message);
+            }
+        }
+
+        return ApiFormatter::success(200, "Selesai Input Data BA");
+    }
+
+    public function actionBatal(Request $request){
+        $selectedRow = $request->selectedRow;
 
         DB::beginTransaction();
         try{
+            $query = "";
+            $query .= " UPDATE tbtr_barusak_spi ";
+            $query .= " SET brk_statusba = 'BATAL', ";
+            $query .= "     brk_modify_by = '" . session('userid') . "', ";
+            $query .= "     brk_modify_dt = NOW() ";
+            $query .= " WHERE brk_nopb = '" . $selectedRow['no_pb'] . "' ";
+            $query .= " AND brk_kodemember = '" . $selectedRow['kode_member'] . "' ";
+    
+            DB::update($query);
 
-            $userApproval = ''; //! dummy dari username frmApproval
+            DB::commit();
+
+            return ApiFormatter::success(200, "Berhasil Update Batal BA RK.");
+        } catch(\Exception $e){
+
+            DB::rollBack();
+            $message = "Gagal Update Batal BA RK.";
+            return ApiFormatter::error(400, $message);
+        }
+
+    }
+
+    //? DONE
+    public function btnApprove_Click(Request $request){
+        DB::beginTransaction();
+        try{
+            $selectedRow = $request->selectedRow;
+            $userApproval = $request->username;
 
             $seq = "";
             $nodoc = "";
@@ -285,7 +396,7 @@ class FormBaRusakController extends KlikIgrController
             $total = 0;
             $count = 0;
 
-            if($tipeBayar <> 'COD'){
+            if($selectedRow["tipe_bayar"] <> 'COD'){
                 $seq = $this->GetSeqNodoc();
 
                 // Generating transaction numbers
@@ -293,13 +404,13 @@ class FormBaRusakController extends KlikIgrController
                 $noret = "D" . date("y") . str_pad($seq, 4, "0", STR_PAD_LEFT);
                 $_TransactionNo = $noret;
 
-                $this->getDataStruk($nopb,$notrans,$kdmember);
+                $this->getDataStruk($selectedRow["no_pb"],$selectedRow["no_trans"],$selectedRow["kode_member"]);
             }
 
-            foreach($dgvItem2 as $key => $item){
-                $plu = $item->plu;
-                $frac = $item->frac;
-                $qty = $item->qtyba;
+            foreach($request->datatable as $key => $item){
+                $plu = $item["plu"];
+                $frac = $item["frac"];
+                $qty = $item["qtyba"];
 
                 //* Cek Unit KG
                 $query = '';
@@ -310,10 +421,10 @@ class FormBaRusakController extends KlikIgrController
                 $query .= " AND d.obi_notrans = h.obi_notrans ";
                 $query .= " JOIN tbmaster_prodmast ";
                 $query .= " ON prd_prdcd = obi_prdcd ";
-                $query .= " WHERE h.obi_nopb = '" . $nopb . "' ";
-                $query .= " AND h.obi_notrans = '" . $notrans . "' ";
-                $query .= " AND h.obi_kdmember = '" . $kdmember . "' ";
-                $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $tgltrans . "','DD-MM-YYYY') ";
+                $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
+                $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
+                $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
+                $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "','DD-MM-YYYY') ";
                 $query .= " AND d.obi_recid IS NULL ";
                 $query .= " AND d.obi_qtyrealisasi > 0 ";
                 $query .= " AND d.obi_prdcd = '" . $plu . "' ";
@@ -321,55 +432,54 @@ class FormBaRusakController extends KlikIgrController
                 $dt = DB::select($query);
 
                 if(count($dt) > 0){
-                    if($dt[0]->prd_unit == 'KG'){
-                        $qty = $qty / $frac;
-                    }else{
-                        $frac = session('flagSPI') == true ? 1 : $frac;
-                        $qty = $qty * $frac;
+                    if($dt[0]->prd_unit == "KG"){
+                        $qtyBA = $item['qtyba'] / $item['frac'];
+                    } else {
+                        $qtyBA = $item['qtyba'] * (session("flagSPI") ? 1 : $item['frac']);
                     }
                 }
 
                 if($qty > 0){
-                    if($tipeBayar == 'COD'){
-                        $this->prosesBA_COD($plu, $qty);
+                    if($selectedRow["tipe_bayar"] == 'COD'){
+                        $this->prosesBA_COD($plu, $qty, $selectedRow["tgltrans"], $selectedRow["no_trans"]);
                     }else{
-                        $this->prosesBPBR($nodoc, $noret, $plu, $qty);
-                        $this->insertMstranD($nodoc, $noret, $plu, $qty, $count, $total);
+                        $this->prosesBPBR($nodoc, $noret, $plu, $qty, $selectedRow["no_pb"], $selectedRow["no_trans"], $selectedRow["kode_member"]);
+                        $this->insertMstranD($nodoc, $noret, $plu, $qty, $count, $total, $selectedRow["no_trans"], $selectedRow["kode_member"], $selectedRow["no_pb"]);
                     }
                 }
 
                 $count++;
             }
 
-            if($tipeBayar == 'COD'){
-                $this->prosesDSPUlang_COD($tipeBayar, $nopb, $notrans, $tgltrans, $kdmember);
+            if($selectedRow["tipe_bayar"] == 'COD'){
+                $this->prosesDSPUlang_COD($selectedRow["tipe_bayar"], $selectedRow["no_pb"], $selectedRow["no_trans"], $selectedRow["tgltrans"], $selectedRow["kode_member"]);
             }else{
                 $this->insertMstranH($nodoc, $noret);
-                $this->insertVCHRetur($nodoc, $noret, $total);
+                $this->insertVCHRetur($nodoc, $noret, $total, $request->alasan, $selectedRow["kode_member"]);
             }
 
             //* UPDATE TBTR_BARUSAK_SPI
             $query = '';
             $query .= " UPDATE tbtr_barusak_spi  ";
             $query .= " SET brk_statusba = 'DONE', ";
-            $query .= "     brk_noba = '" . $noBA . "', ";
+            $query .= "     brk_noba = '" . $request->noBA . "', ";
             $query .= "     brk_tglba = CURRENT_DATE, ";
             $query .= "     brk_userapprove = '" . $userApproval . "', ";
             $query .= "     brk_tglapprove = CURRENT_DATE, ";
             $query .= "     brk_modify_by = '" . session('userid') . "', ";
             $query .= "     brk_modify_dt = NOW() ";
-            $query .= " WHERE brk_nopb = '" . $nopb . "' ";
-            $query .= " AND brk_kodemember = '" . $kdmember . "' ";
+            $query .= " WHERE brk_nopb = '" . $selectedRow["no_pb"] . "' ";
+            $query .= " AND brk_kodemember = '" . $selectedRow["kode_member"] . "' ";
             DB::update($query);
 
-            if($tipeBayar <> 'COD'){
+            if($selectedRow["tipe_bayar"] <> 'COD'){
                 $query = '';
                 $query .= " SELECT COALESCE(vcrt_nominal,0) nominal ";
                 $query .= " FROM TBTR_VCH_RETUR ";
                 $query .= " WHERE vcrt_transactionno = '" . $noret . "' ";
                 $query .= " AND vcrt_cashierid = '" . session('userid') . "' ";
                 $query .= " AND vcrt_station = '" . session("SPI_STATION") . "' ";
-                $query .= " AND vcrt_kodemember = '" . $kdmember . "' ";
+                $query .= " AND vcrt_kodemember = '" . $selectedRow["kode_member"] . "' ";
                 $dtBR = DB::select($query);
 
                 if(count($dtBR) > 0){
@@ -382,24 +492,22 @@ class FormBaRusakController extends KlikIgrController
                     }
 
                     if(session('flagSPI')){
-                        $this->sendNotif_SPIKLIK('SPI', $nopb, 'Nominal Barang Rusak Rp ' . str_replace(",", ".", $stringNominalBR));
+                        $this->sendNotif_SPIKLIK('SPI', $selectedRow["no_pb"], 'Nominal Barang Rusak Rp ' . str_replace(",", ".", $stringNominalBR));
                     }else{
-                        $this->sendNotif_SPIKLIK('KLIK', $nopb, 'Nominal Barang Rusak Rp ' . str_replace(",", ".", $stringNominalBR));
+                        $this->sendNotif_SPIKLIK('KLIK', $selectedRow["no_pb"], 'Nominal Barang Rusak Rp ' . str_replace(",", ".", $stringNominalBR));
                     }
                 }
             }
 
             $this->CetakBARK();
 
-            if($tipeBayar <> "COD"){
+            if($selectedRow["tipe_bayar"] <> "COD"){
                 $this->CetakBPBR();
             }
 
+            DB::commit();
 
-	        dd('done comment commit');
-            //DB::commit();
-
-            return ApiFormatter::success(200, 'btn Approve Success');
+            return ApiFormatter::success(200, 'Berhasil Proses Approve');
 
         } catch (HttpResponseException $e) {
             // Handle the custom response exception
@@ -437,12 +545,7 @@ class FormBaRusakController extends KlikIgrController
         return true;
     }
 
-    //! ADA NOTE KEVIN
-    private function prosesBPBR($nodoc, $noret, $plu, $qty, $nopb, $notrans){
-
-        //! NOTE KEVIN
-        //? cari variable ini darimana
-        $kdmember = '';
+    private function prosesBPBR($nodoc, $noret, $plu, $qty, $nopb, $notrans, $kdmember){
 
         $UserMODUL = session('userid');
         $KodeIGR = session('KODECABANG');
@@ -544,15 +647,7 @@ class FormBaRusakController extends KlikIgrController
         return true;
     }
 
-    //! ADA NOTE KEVIN
-    private function insertMstranD($nodoc, $noret, $plu, $qty, $count, $total){
-
-        //! NOTE KEVIN
-        //? VARIABLE INI CARI DEFINE DARI MANA
-        $notrans = '';
-        $kdmember = '';
-        $nopb = '';
-
+    private function insertMstranD($nodoc, $noret, $plu, $qty, $count, $total, $notrans, $kdmember, $nopb){
         $KodeIGR = session('KODECABANG');
         $UserMODUL = session('userid');
         $tglStruk = $this->tglStruk;
@@ -1296,15 +1391,7 @@ class FormBaRusakController extends KlikIgrController
         return true;
     }
 
-    //! ADA NOTE KEVIN
-    private function insertVCHRetur($nodoc, $noret, $total){
-
-        //! NOTE KEVIN
-        //? cari variable ini darimana
-        //* txtAlasan2 kalo dari vb dari txtAlasan2.text
-        $txtAlasan2 = '';
-        $kdmember = '';
-
+    private function insertVCHRetur($nodoc, $noret, $total, $txtAlasan2, $kdmember){
         $UserMODUL = session('userid');
         $KodeIGR = session('KODECABANG');
         $StationMODUL = session("SPI_STATION");

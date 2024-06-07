@@ -1761,9 +1761,7 @@ class KlikIgrController extends Controller
     }
 
     //! btnBARusakSPI_Click
-    //* IRVAN | Action Pada Form Banyak kerjain terakhir | FORM => $("#modal_ba_barang_rusak").modal("show")
-    //? butuh request -> selectedRow
-    //? tidak perlu DB Transaction karena tidak ada proses create/update
+    //? DONE
     public function actionBaRusakKemasan(Request $request){
         $selectedRow = $request->selectedRow;
 
@@ -1810,6 +1808,56 @@ class KlikIgrController extends Controller
                     return ApiFormatter::error(400, 'Inputan BA RK Khusus Transaksi COD!');
                 }
             }
+        }
+    }
+
+    public function action_approve(Request $request){
+        
+        if($request->userlevel == 990){
+            $ds = DB::select("SELECT * FROM TBMASTER_USER WHERE RECORDID IS NULL AND USERID = '" . $request->username . "' AND USERPASSWORD = '" . $request->password . "' AND KODEIGR = '" . session("KODECABANG") . "' AND UPPER(email) LIKE 'IC%INDOMARET.%' ");
+        } else if ($request->userlevel == 991){
+            $ds = DB::select("SELECT * FROM TBMASTER_USER WHERE RECORDID IS NULL AND USERID = '" . $request->username . "' AND USERPASSWORD = '" . $request->password . "' AND KODEIGR = '" . session("KODECABANG") ."'");
+        }
+
+        if(count($ds) == 0){
+            return ApiFormatter::error(400, "Invalid Username or Password");
+        } else {
+            $query = "";
+            $query = "SELECT 1 FROM information_schema.columns where upper(table_name) = 'TBTR_LOG_APPROVAL'";
+            $dt = DB::select($query);
+
+            if(count($dt) == 0){
+                $query = "";
+                $query = "CREATE TABLE TBTR_LOG_APPROVAL (";
+                $query .= "APP_STATION VARCHAR(5),";
+                $query .= "APP_WAKTU DATE, ";
+                $query .= "APP_APPROVED_BY VARCHAR(5), ";
+                $query .= "APP_CREATE_BY VARCHAR(5), ";
+                $query .= "APP_CREATE_DT DATE, ";
+                $query .= "APP_MODIFY_BY VARCHAR(5), ";
+                $query .= "APP_MODIFY_DT DATE, ";
+                $query .= "APP_KETERANGAN VARCHAR(100) ) ";
+
+                DB::statement($query);
+            }
+                $query = "";
+                $query = "INSERT INTO TBTR_LOG_APPROVAL (";
+                $query .= "APP_STATION,";
+                $query .= "APP_WAKTU, ";
+                $query .= "APP_APPROVED_BY, ";
+                $query .= "APP_KETERANGAN, ";
+                $query .= "APP_CREATE_BY, ";
+                $query .= "APP_CREATE_DT ) VALUES ( ";
+                $query .= "'" . session("SPI_STATION") . "', ";
+                $query .= "CURRENT_DATE, ";
+                $query .= "'" . $request->username . "', ";
+                $query .= "'" . $request->keterangan . "', ";
+                $query .= "'" . session("userid") . "', ";
+                $query .= "NOW()) ";
+                DB::insert($query);
+                $data['username'] = $request->username;
+                $data['namaUser'] = $ds[0]->username;
+                return ApiFormatter::success(200, "Success Approval", $data);
         }
     }
 
