@@ -863,8 +863,7 @@ class KlikIgrController extends Controller
                 $data["nama_file"] = $this->rptSuratJalan($selectedRow['notrans'], $selectedRow['kodeweb'], $selectedRow['no_pb'], $selectedRow['kode_member'], $selectedRow['free_ongkir'], $selectedRow['flagbayar'], $request->tanggal_trans);
             }
 
-            //! IRVAN | COMMENT COMMIT
-            // DB::commit();
+            DB::commit();
 
             return ApiFormatter::success(200, 'success action cetak surat jalan', $data);
 
@@ -1380,8 +1379,7 @@ class KlikIgrController extends Controller
 
             //* form report -> rptListDeliverySPI
 
-            //!! IRVAN || COMMIT COMMENT
-            //DB::commit();
+            DB::commit();
 
             $data['noListing'] = $noListing;
             $data['tglListing'] = $tglListing;
@@ -1440,17 +1438,15 @@ class KlikIgrController extends Controller
         $query .= "   obi_tgltrans ";
         $query .= " FROM tbtr_obi_h  ";
         $query .= " WHERE COALESCE(obi_recid,'0') IN ('5','6') ";
-        //! dummy (bisa dicomment untuk run)
-        // $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE-30) ";
-        // $query .= " AND obi_trxidnew IS NULL ";
-        // $query .= " AND EXISTS ( ";
-        // $query .= "   SELECT sti_pin ";
-        // $query .= "   FROM tbtr_serahterima_ipp ";
-        // $query .= "   WHERE sti_noorder = obi_trxid ";
-        // $query .= "   AND UPPER(sti_tipeproses) = 'TITIP' ";
-        // $query .= " ) ";
-        $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC LIMIT 15";
-        //! IRVAN | DUMMY DATA
+        $query .= " AND DATE_TRUNC('DAY',obi_tgltrans) >= DATE_TRUNC('DAY',CURRENT_DATE-30) ";
+        $query .= " AND obi_trxidnew IS NULL ";
+        $query .= " AND EXISTS ( ";
+        $query .= "   SELECT sti_pin ";
+        $query .= "   FROM tbtr_serahterima_ipp ";
+        $query .= "   WHERE sti_noorder = obi_trxid ";
+        $query .= "   AND UPPER(sti_tipeproses) = 'TITIP' ";
+        $query .= " ) ";
+        $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC ";
         $dtPB = DB::select($query);
 
         
@@ -1483,8 +1479,7 @@ class KlikIgrController extends Controller
                 }
             }
 
-            //! IRVAN | COMMIT COMMENT
-            //DB::commit();
+            DB::commit();
 
             return ApiFormatter::success(200, 'Selesai Proses Re-Create AWB IPP');
 
@@ -1715,8 +1710,7 @@ class KlikIgrController extends Controller
             $data['noBA'] = $seqBA;
             $data['tglBA'] = $tglBA;
 
-            //!! IRVAN || COMMIT COMMENT
-            // DB::commit();
+            DB::commit();
 
             $pdf = PDF::loadView('pdf.klik-igr-ba-dana-spi', $data);
 
@@ -1765,19 +1759,8 @@ class KlikIgrController extends Controller
     public function actionBaRusakKemasan(Request $request){
         $selectedRow = $request->selectedRow;
 
-        //! START IRVAN DUMMY DATA 
-        $data['selectedRow'] = $request->selectedRow;
-        $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . $selectedRow['kode_member'] . "'");
-                // $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . 'wasdf' . "'");
-
-
-        return ApiFormatter::success(200, "Success", $data);
-        //! END IRVAN DUMMY DATA 
-
         if(session('flagSPI') == true){
             if((($selectedRow['status'] == 'Siap Struk' OR $selectedRow['status'] == 'Selesai Struk') AND $selectedRow['tipe_bayar'] == 'COD') OR ($selectedRow['status'] == 'Selesai Struk' AND $selectedRow['tipe_bayar'] <> "COD")){
-                //! open form -> frmBARusakSPI
-                //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
                 $data['selectedRow'] = $request->selectedRow;
                 $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . $selectedRow['kode_member'] . "'");
                 return ApiFormatter::success(200, "Success", $data);
@@ -1795,8 +1778,6 @@ class KlikIgrController extends Controller
 
         }else{
             if($selectedRow['status'] == 'Siap Struk' AND $selectedRow['tipe_bayar'] == 'COD'){
-                //! open form -> frmBARusakSPI
-                //! dgv_nopb, dgv_notrans, dtTrans.Value.ToString("dd-MM-yyyy"), dgv_memberigr, dgv_tipebayar, dgv_status
                 $data['selectedRow'] = $request->selectedRow;
                 $data['nama_member'] = DB::select("SELECT cus_kodemember, cus_namamember FROM tbmaster_customer WHERE cus_kodemember = '" . $selectedRow['kode_member'] . "'");
                 return ApiFormatter::success(200, "Success", $data);
@@ -1922,7 +1903,7 @@ class KlikIgrController extends Controller
         $query .= "   AND UPPER(obi_alasanbtl) LIKE 'WAKTU PROSES LEBIH DARI % HARI' ";
         $query .= "   AND DATE_TRUNC('DAY',obi_tglpb) BETWEEN TO_DATE('" & $request->periodeAwal & "','DD-MM-YYYY') ";
         $query .= "                            AND TO_DATE('" & $request->periodeAkhir & "','DD-MM-YYYY') ";
-        $query .= " ORDER BY obi_nopb ASC LIMIT 15";
+        $query .= " ORDER BY obi_nopb ASC ";
         $data['dtItem'] = DB::select($query);
 
         if(count($data['dtItem']) == 0){
@@ -2066,8 +2047,7 @@ class KlikIgrController extends Controller
                 $data['noSTK'] = $seqSTK;
                 $data['tglSTK'] = $tglSTK;
 
-                //!! IRVAN || COMMIT COMMENT
-                // DB::commit();
+                DB::commit();
 
                 $pdf = PDF::loadView('pdf.klik-igr-stk', $data);
 
@@ -2127,7 +2107,7 @@ class KlikIgrController extends Controller
             $query .= " AND stk_nopb = obi_nopb ";
             $query .= " AND stk_tglpb = obi_tglpb ";
             $query .= ") ";
-            $query .= "ORDER BY obi_tglpb, obi_nopb LIMIT 50";
+            $query .= "ORDER BY obi_tglpb, obi_nopb ";
         } else if ($history == 0){
             $query = '';
             $query .= "SELECT ";
@@ -3501,7 +3481,7 @@ class KlikIgrController extends Controller
         $query .= "from tbtr_packing_obi join tbtr_obi_h on pobi_notransaksi = obi_notrans and pobi_tgltransaksi = obi_tgltrans ";
         $query .= "WHERE obi_notrans = '" . $notrans . "'";
         $query .= "AND obi_nopb = '" . $nopb . "'";
-        $query .= "ORDER BY pobi_nocontainer ASC LIMIT 15";
+        $query .= "ORDER BY pobi_nocontainer ASC ";
         $dtKoli = DB::select($query);
 
         $koli = '';
@@ -3977,8 +3957,7 @@ class KlikIgrController extends Controller
                 }
                 $data['pathStorage'] = "temp_nota_new";
 
-                //! IRVAN || COMMENT COMMIT
-                // DB::commit();
+                DB::commit();
                 return ApiFormatter::success(200, "success", $data);
             }
 
@@ -4081,13 +4060,13 @@ class KlikIgrController extends Controller
         $sql .= " AND dtl.obi_prdcd = pobi_prdcd ";
         $sql .= "LEFT JOIN konversi_item_klikigr knv ";
         $sql .= "  ON SUBSTR(dtl.obi_prdcd,1,6) || '0' = SUBSTR(knv.pluigr,1,6) || '0' ";
-        // $sql .= "WHERE hdr.obi_tglpb = TO_DATE('" . date('d-m-Y', strtotime($selectedRow["tgl_pb"])) . "','DD-MM-YYYY')  ";
-        // $sql .= "AND hdr.obi_nopb = '" . $selectedRow["no_pb"] . "'  ";
-        // $sql .= "AND hdr.obi_kdmember = '" . $selectedRow["kode_member"] . "'  ";
-        // $sql .= "AND hdr.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
+        $sql .= "WHERE hdr.obi_tglpb = TO_DATE('" . date('d-m-Y', strtotime($selectedRow["tgl_pb"])) . "','DD-MM-YYYY')  ";
+        $sql .= "AND hdr.obi_nopb = '" . $selectedRow["no_pb"] . "'  ";
+        $sql .= "AND hdr.obi_kdmember = '" . $selectedRow["kode_member"] . "'  ";
+        $sql .= "AND hdr.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
         $sql .= "WHERE COALESCE(obi_qty_hitungulang,0) > 0 ";
         $sql .= "AND dtl.obi_recid IS NULL ";
-        $sql .= "ORDER BY pobi_nocontainer ASC, dtl.obi_scan_dt DESC, dtl.obi_prdcd ASC LIMIT 12";
+        $sql .= "ORDER BY pobi_nocontainer ASC, dtl.obi_scan_dt DESC, dtl.obi_prdcd ASC ";
 
         $dt = DB::select($sql);
 
@@ -4126,16 +4105,16 @@ class KlikIgrController extends Controller
         $query .= 'SELECT hdr.obi_nopb as "No Pemesanan", obi_kodealamat as "Kode Alamat", hdr.obi_notrans as "No Picking", hdr.obi_tgltrans as "Tgl Picking", ';
         $query .= 'OBI_EKSPEDISI as "Biaya Pengiriman", OBI_PRDCD as "Kode PLU OBI", OBI_QTYREAL as "Jml Picking", ';
         $query .= '(CASE WHEN prd_unit = \'KG\' THEN 1 ELSE prd_frac END) as PRD_FRAC ';
-        $query .= 'FROM tbtr_obi_h as hdr, tbhistory_obi_d as his, tbmaster_prodmast LIMIT 5';
+        $query .= 'FROM tbtr_obi_h as hdr, tbhistory_obi_d as his, tbmaster_prodmast ';
 
-        // $query .= 'WHERE hdr.obi_notrans = his.obi_notrans ';
-        // $query .= 'AND hdr.obi_TGLtrans = his.obi_TGLtrans ';
-        // $query .= 'AND OBI_KODEIGR =  PRD_KODEIGR ';
-        // $query .= 'AND OBI_PRDCD  = PRD_PRDCD ';
-        // $query .= $temp_tgl_pb;
-        // $query .= $temp_no_pb;
-        // $query .= 'AND hdr.obi_KDMEMBER = "' . $kode_member . '" ';
-        // $query .= 'AND hdr.obi_notrans = "' . $no_trans . '" ';
+        $query .= 'WHERE hdr.obi_notrans = his.obi_notrans ';
+        $query .= 'AND hdr.obi_TGLtrans = his.obi_TGLtrans ';
+        $query .= 'AND OBI_KODEIGR =  PRD_KODEIGR ';
+        $query .= 'AND OBI_PRDCD  = PRD_PRDCD ';
+        $query .= $temp_tgl_pb;
+        $query .= $temp_no_pb;
+        $query .= 'AND hdr.obi_KDMEMBER = "' . $kode_member . '" ';
+        $query .= 'AND hdr.obi_notrans = "' . $no_trans . '" ';
 
         $dtPicking = DB::select($query);
 
@@ -4699,8 +4678,6 @@ class KlikIgrController extends Controller
 
         //! INI NANTI CHECK LAGI DI VB NYA (BELUM SELESAI)
         //! KARENA INI BUAT FILE BARU -> $str3
-
-        //* IRVAN | STR & STR3 DIGABUNG JADI 1 FILE txt
         $str3 = "";
         $str3 .= "            * TERIMA KASIH *            " . PHP_EOL;
 
@@ -4978,8 +4955,7 @@ class KlikIgrController extends Controller
 
             $file_content = $this->WRITE_SSO($dtOBI_D, $dgv_memberigr, $dgv_notrans);
 
-            //! IRVAN || COMMENT COMMIT
-            // DB::commit();
+            DB::commit();
             return ApiFormatter::success(200, "Success", $file_content);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -6173,7 +6149,7 @@ class KlikIgrController extends Controller
             $query .= "AND OBI_NOTRANS = '" . $notrans . "' ";
             $query .= "AND OBI_RECID IS NULL ";
             $query .= "AND COALESCE(OBI_ITEMKG,0) = 0 ";
-            $query .= ") as www WHERE LOKASI = 0 LIMIT 15";
+            $query .= ") as www WHERE LOKASI = 0 ";
             $dt = DB::select($query);
 
             if(count($dt)){

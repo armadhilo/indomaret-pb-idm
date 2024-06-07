@@ -104,7 +104,6 @@ class FormPickerClickController extends KlikIgrController
         $query .= " WHERE pk_userid = '" . addslashes($userid) . "' ";
         $query .= "   AND pk_group = '" . addslashes($group) . "' ";
         $query .= " ORDER BY pk_urutan ASC ";
-        //! IRVAN || DUMMY DATA
 
         $data['data'] = DB::select($query);
 
@@ -191,7 +190,6 @@ class FormPickerClickController extends KlikIgrController
                 }
             }
 
-            //! IRVAN | COMMIT COMMENT
             DB::commit();
 
             return ApiFormatter::success(200, "Berhasil Menyimpan Data!");

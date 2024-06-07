@@ -1506,17 +1506,6 @@ function actionAdditionalReloadTabBaRusakKemasan(){
                 return;
             } else {
                 $("#alasan_ba_barang_rusak_tab3").val(response.data.txtAlasan1);
-                //! IRVAN DUMMY TEST 
-                actionGlobalSettingsTabBaRusakKemasan(1);
-                    if(selectedRow.tipe_bayar == "COD" && selectedRow.status == "Selesai Struk"){
-                        $("#ba_barang_rusak_approve").attr("disabled", true);
-                        Swal.fire("Peringatan!", "Transaksi COD Sudah Selesai Struk", "warning");
-                    }
-                    setTimeout(() => {
-                        loadItemBaBaRusakKemasan();
-                    }, 500);
-                    return;
-                //! END IRVAN DUMMY TEST
                 if(response.data.statusBA == "DRAFT"){
                     actionGlobalSettingsTabBaRusakKemasan(1);
                     if(selectedRow.tipe_bayar == "COD" && selectedRow.status == "Selesai Struk"){
