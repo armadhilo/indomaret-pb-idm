@@ -65,6 +65,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post("/download-pdf", [KlikIgrController::class, 'actionGlobalDownloadPdf']);
             Route::post("/proses-main", [ActionProsesController::class, 'listPB']);
             Route::post('/action-approve', [KlikIgrController::class, 'action_approve']);
+            Route::post('/SendHH-Tick', [KlikIgrController::class, 'SendHH_Tick']);
 
             //* KeysFunction Additional
             Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);

@@ -1600,6 +1600,19 @@
     </div>
 </div>
 
+<div class="modal fade" role="dialog" id="modal_loading_send_hh" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+        <div class="modal-body pt-0" style="background-color: #F5F7F9; border-radius: 6px;">
+            <div class="text-center">
+                <img style="border-radius: 4px; height: 140px;" src="{{ asset('img/loader_1.gif') }}" draggable="false" alt="Loading">
+                <h6 style="position: absolute; bottom: 10%; left: 31%;" class="pb-2">Send HandHelt Otomatis...</h6>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+
 <div class="modal fade" role="dialog" id="modal_approval" status="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content" style="border: 0; background: #2f4f4f!important">
@@ -1629,7 +1642,6 @@
     </div>
 </div>
 
-
 @endsection
 
 @push('page-script')
@@ -1638,6 +1650,8 @@
 <script>
     var timerRefresh;
     var isFunctionRunning = false;
+    var flagSendHH_Tick = false;
+    let listPLUMasalah = [];
     let statusSiapPicking = "{{ $statusSiapPicking }}";
     let statusSiapPacking = "{{ $statusSiapPacking }}";
 
@@ -1957,7 +1971,9 @@ function TimerRefresh_Tick(){
 
 $("#auto_send_hh").change(function(){
     if ($(this).is(':checked')) {
-        timerRefresh = setInterval(TimerSendHHKlik_Tick, 180000); 
+        if(!flagSendHH_Tick && !isFunctionRunning){
+            timerRefresh = setInterval(TimerSendHHKlik_Tick, 180000); 
+        }
     }else {
         clearInterval(timerRefresh);
     }
@@ -2008,8 +2024,43 @@ $("#button_proses").click(function(){
 
 //! IRVAN | Function Banyak Dikerjakan Nanti
 function TimerSendHHKlik_Tick(){
-    // tb.ajax.reload();
-    // actionPbBatal();
+    flagSendHH_Tick = true;
+    $('#modal_loading_send_hh').modal('show');
+    $.ajax({
+        url: currentURL + `/action/SendHH-Tick`,
+        type: "POST",
+        data: {pickRakToko: $("#pick_rak_toko").val()},
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading_send_hh').modal('hide'); }, 500);
+            flagSendHH_Tick = false;
+            listPLUMasalah = response.data.listPLUMasalah;
+            if(response.code == 201){
+                var blob = new Blob([response.data.content], { type: "text/plain" });
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = "ERROR_SEND_OTOMATIS.TXT";
+                link.click();
+                Swal.fire("Peringatan!", "Send HandHelt Otomatis Berhasil! Tetapi terdapat Error", "warning").then(function(){
+                    tb.ajax.reload();
+                    actionPbBatal()
+                })
+            } else {
+                Swal.fire("Success", "Send HandHelt Otomatis Berhasil!", "success").then(function(){
+                    tb.ajax.reload();
+                    actionPbBatal()
+                })
+            }
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading_send_hh').modal('hide'); }, 500);
+            flagSendHH_Tick = false;
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
 }
 </script>
 @endpush
