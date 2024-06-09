@@ -301,11 +301,13 @@ class RPTController extends Controller
                     'DATA' => $results,
                     'PERUSAHAAN' => $perusahaanResults[0]
                 ];
+            }else{
+
+                return (object)['errors'=>true];
             }
             
             return $dataSet;
 
-            // return (object)['errors'=>true];
     }
 
     public function data_struk_hadiah($kodetoko = null, $nopb = null, $tglpb = null,$request = null){
