@@ -14,27 +14,19 @@
     $datetime->setTimezone($timezone);
     ?>
     <header>
-        {{--    <p>--}}
-        {{--        {{ $perusahaan->prs_namaperusahaan }}<br>--}}
-        {{--        {{ $perusahaan->prs_namacabang }}<br><br>--}}
-        {{--    </p>--}}
-        {{--    <h3 style="text-align:laporan daftar retur center">--}}
-        {{--        ** STRUK RESET KASIR **<br>--}}
-        {{--        No. Reset : {{ $noreset }}--}}
-        {{--    </h3>--}}
     </header>
 
-    <h5 style="margin-top: 0px;margin-bottom: 0px;"><b>NPWP : {{ $perusahaan->prs_npwp }}</b></h5>
+    <h5 style="margin-top: 0px;margin-bottom: 0px;"><b>{{ $data->data->NPWP }}</b></h5>
     <hr>
     <h2  style="margin-top: -15px;margin-bottom: 0px;text-align: center;">
         <b>HADIAH</b>
     </h2>   
     <h4 style="margin-top: 0px;margin-bottom: 0px;text-align: center;">(BUKTI PENYERAHAN BRG. HADIAH)</h4> 
-    <h5 style="margin-top: 0px;margin-bottom: 0px;text-align: center;">Tgl Struk : {{date('d-m-Y')}}</h5>
+    <h5 style="margin-top: 0px;margin-bottom: 0px;text-align: center;">Tgl Struk : {{date('d-m-Y',strtotime($data->data->tglTran))}}</h5>
     <br>
     <p style="margin-top:-28px;">
-        <h5 style="text-align:left; margin:0px;"><b>TOKO&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $perusahaan->prs_npwp }}</b></h5>
-        <h5 style="text-align:left; margin:0px;"><b>NO. PB&nbsp;&nbsp; : {{ $perusahaan->prs_npwp }}</b></h5>
+        <h5 style="text-align:left; margin:0px;"><b>TOKO&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ $data->data->NamaOMI }}</b></h5>
+        <h5 style="text-align:left; margin:0px;"><b>NO. PB&nbsp;&nbsp; : {{ $data->nopb }}</b></h5>
 
     </p>
 
@@ -56,20 +48,19 @@
                 $total = 0;
                 $ppn = 0;
             @endphp
-            @foreach($data as $d)
+            @foreach($data->data->list_struk as $d)
                 <tr>
-                    <td colspan="4" class="left">{{ $d->prd_deskripsipendek }}</td>
-                    <td colspan="2" class="right">({{ $d->cp_plu }})</td>
+                    <td colspan="4" class="left">{{ $d->plu }}</td>
+                    <td colspan="2" class="right">({{ $d->prdcd }})</td>
                 </tr>
                 <tr>
-                    <td class="right">{{ $d->rom_qtyselisih }}</td>
-                    <td class="right" colspan="3">{{ number_format($d->cp_hsat,0,'.',',') }}</td>
-                    <td class="right" colspan="3">{{ number_format($d->cp_total,0,'.',',') }}</td>
+                    <td class="right">{{ $d->qty }}</td>
+                    <td class="right" colspan="3">{{ number_format($d->frac,0,'.',',') }}</td>
+                    <td class="right" colspan="3">{{ number_format(($d->frac * $d->qty),0,'.',',') }}</td>
                 </tr>
 
                 @php
-                    $total += $d->cp_total;
-                    $ppn += $d->cp_ppn;
+                    $total += ($d->frac * $d->qty);
                 @endphp
             @endforeach
             </tbody>
@@ -108,9 +99,9 @@
             </tr>
             <tr>
                 <td colspan="6" class="center">
-                    <h2 style="margin-bottom:-25px;">= {{$perusahaan->prs_namacabang}} =</h2>
+                    <h2 style="margin-bottom:-25px;">= {{$data->data->NamaCab}} =</h2>
                     <br style="margin-bottom:-25px;">
-                    <h4 style="margin-bottom:-25px;"> {{$perusahaan->prs_alamat1}},Telp. {{$perusahaan->prs_telepon}} </h4>
+                    <h4 style="margin-bottom:-25px;"> {{$data->data->AlamatCab1." ".$data->data->AlamatCab2}} </h4>
                     <h4></h4>
                 </td>
             </tr>  
@@ -135,11 +126,11 @@
     <style>
         @page {
             margin-top: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 0px;
             /*margin: 25px 20px;*/
             /*size: 1071pt 792pt;*/
             /*size: 595pt 842pt;*/
-            size: 298pt {{ 370+(count($data)*28) }}pt;
+            size: 298pt {{ 370+(count($data->data->list_struk)*28) }}pt;
             /*size: 842pt 638pt;*/
         }
         header {

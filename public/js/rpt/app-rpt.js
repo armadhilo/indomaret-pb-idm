@@ -86,9 +86,20 @@ $(document).ready(function(){
          templateResult: formatOption,
          templateSelection: formatSelection
      });
+
+     $('.toko_2').hide();
+     $('.nopb').show();
 });
 
-modal_toko_pb=(jenis = null,text=null,url=null)=>{
+modal_toko_pb=(jenis = null,text=null,url=null,toko2 = false)=>{
+    if(toko2){
+        $('.toko_2').show();
+        $('.nopb').hide();
+    }else{
+        $('.toko_2').hide();
+        $('.nopb').show();
+
+    }
    $('.modal-title').html('');
    $('#modal-pb-toko').modal();
    $('.modal-title').html(jenis);
@@ -110,6 +121,7 @@ get_toko=()=>{
 
             });
             $("#toko").append(select);
+            $("#toko_2").append(select);
          }
       }).fail(function() {
          $('#retur_card').loading('toggle');

@@ -34,11 +34,15 @@ class RPTController extends Controller
         return view("menu.rpt.index");
     }
         
-    public function print_report($data){
+    public function print_report(Request $request, $data){
         $data = json_decode(base64_decode($data));
         $jenis_page = null;
         $folder_page = null;
+        $filename = $data->filename;
         $title_report = 'default-'.date('Y-m-d');
+        $header_cetak_custom = false;
+        $postiion_page_number_x = 63;
+        $postiion_page_number_y = 615;
         
         switch ($data->filename) {
             case 'cetak-ulang-dsp':
@@ -46,18 +50,41 @@ class RPTController extends Controller
                 $folder_page = $data->folder_page;
                 $title_report = $data->title_report;
                 $data->data =$this->data_cetak_ulang_dsp($data->kodetoko,$data->nopb,$data->tglpb);
+                if (isset($data->data->errors)) {
+                    $data = null;
+                }
                 break;
             case 'cetak-ulang-sj':
                 $jenis_page = $data->jenis_page;
                 $folder_page = $data->folder_page;
                 $title_report = $data->title_report;
                 $data->data = (object)$this->data_cetak_ulang_sj($data->kodetoko,$data->nopb,$data->tglpb);
+                if (isset($data->data->errors)) {
+                    $data = null;
+                }
                 break;
             case 'struk-hadiah':
                 $jenis_page = $data->jenis_page;
                 $folder_page = $data->folder_page;
                 $title_report = $data->title_report;
-                $data->data = (object)$this->data_struk_hadiah($data->kodetoko,$data->nopb,$data->tglpb);
+                $data->data = (object)$this->data_struk_hadiah($data->kodetoko,$data->nopb,$data->tglpb,$request);
+                
+                if (isset($data->data->errors)) {
+                    $data = null;
+                }
+
+                break;
+            case 'outstanding-dsp':
+                $jenis_page = $data->jenis_page;
+                $folder_page = $data->folder_page;
+                $title_report = $data->title_report;
+                $data->data = (object)$this->data_outstanding_dsp($data->kodetoko,$data->kodetoko2);
+                $header_cetak_custom = 'upper';  
+                
+                if (isset($data->data->errors)) {
+                    $data = null;
+                }
+
                 break;
             
             default:
@@ -72,23 +99,22 @@ class RPTController extends Controller
                            ->get();
         $perusahaan = $perusahaan[0];
         if ($jenis_page == 'default-page') {
-            
-            $header_cetak_custom = false;    
-            $pdf = PDF::loadview('menu.rpt.'.$folder_page.'.'.$data->filename, compact('data','tanggal','perusahaan','header_cetak_custom'));
+              
+            $pdf = PDF::loadview('menu.rpt.'.$folder_page.'.'.$filename, compact('data','tanggal','perusahaan','header_cetak_custom'));
             $pdf->output();
             $dompdf = $pdf->getDomPDF()->set_option("enable_php", true);
             $canvas = $dompdf->get_canvas();
     
             // //make page text in header and right side
     
-            $canvas->page_text(615, 63, "Page {PAGE_NUM} of {PAGE_COUNT}", null, 7, array(0, 0, 0));
+            $canvas->page_text($postiion_page_number_y,$postiion_page_number_x , "Page {PAGE_NUM} of {PAGE_COUNT}", null, 7, array(0, 0, 0));
 
             return $pdf->stream($title_report );
             
         } elseif ($jenis_page == 'struk-page') {
            
             $dompdf = new PDF();
-            $pdf = PDF::loadview('menu.rpt.'.$folder_page.'.'.$data->filename,compact(['perusahaan','data']));
+            $pdf = PDF::loadview('menu.rpt.'.$folder_page.'.'.$filename,compact(['perusahaan','data']));
             error_reporting(E_ALL ^ E_DEPRECATED);
             $pdf->output();
             $dompdf = $pdf->getDomPDF()->set_option("enable_php", true);
@@ -147,6 +173,7 @@ class RPTController extends Controller
     }
 
     public function print_struk_hadiah(Request $request){
+
         $kodetoko = $request->toko;
         $nopb = explode(" / ",$request->nopb)[0];
         $tglpb = explode(" / ",$request->nopb)[1];
@@ -161,6 +188,26 @@ class RPTController extends Controller
         $data_report['jenis_page'] = 'struk-page';
         $data_report['folder_page'] = 'omi';
         $data_report['title_report'] = 'STRUK-HADIAH';
+        $encrypt_data = base64_encode(json_encode($data_report));
+         //    $decrypt_data = json_decode(base64_decode($encrypt_data));
+         $link = url('/api/print/report/'.$encrypt_data);
+
+         return response()->json(['errors'=>false,'messages'=>'Berhasil','url'=>$link],200);
+    }
+    public function print_outstanding_dsp(Request $request){
+
+        $kodetoko = $request->toko;
+        $kodetoko2 = $request->toko2;
+        
+        $data_report =[];
+        $data_report['kodetoko'] = $kodetoko;
+        $data_report['kodetoko2'] = $kodetoko2;
+        // $data_report['nopb'] = $nopb;
+        // $data_report['tglpb'] = $tglpb;
+        $data_report['filename'] = 'outstanding-dsp';
+        $data_report['jenis_page'] = 'default-page';
+        $data_report['folder_page'] = 'omi';
+        $data_report['title_report'] = 'OUTSTANDING-DSP';
         $encrypt_data = base64_encode(json_encode($data_report));
          //    $decrypt_data = json_decode(base64_decode($encrypt_data));
          $link = url('/api/print/report/'.$encrypt_data);
@@ -216,20 +263,148 @@ class RPTController extends Controller
         return $data;
     }
 
-    public function data_struk_hadiah($kodetoko = null, $nopb = null, $tglpb = null){
+    public function data_outstanding_dsp($kodetoko = null, $kodetoko2 = null){
+        $query = "
+                SELECT w.shop,w.shop || ' (' || t.tko_namaomi || ' - ' || t.tko_kodecustomer || ')' AS KDTOKO,
+                    w.DOCNO AS NODOC,
+                    CASE 
+                        WHEN SUBSTR(w.keterangan, 1, 3) = '011' THEN 'P'
+                        WHEN SUBSTR(w.keterangan, 1, 3) <> '011' THEN 'F'
+                    END AS tipe,
+                    w.PRDCD AS PLUIDM,
+                    m.prc_pluigr AS PLUIGR,
+                    coalesce(p.prd_deskripsipanjang, '') AS NMBRG,
+                    w.qty AS QTY,
+                    w.price_idm AS HARGA,
+                    w.ppnrp_idm AS PPN,
+                    (w.qty * w.price_idm) + w.ppnrp_idm AS TOTAL
+                FROM tbtr_wt_interface w
+                    JOIN tbmaster_prodcrm m ON m.prc_pluidm = w.prdcd
+                    JOIN tbmaster_prodmast p ON m.prc_pluigr = p.prd_prdcd
+                    JOIN tbmaster_tokoigr t ON w.shop = t.tko_kodeomi
+                WHERE w.recid <> 'P'
+                 AND w.shop BETWEEN '$kodetoko' and '$kodetoko2'
+            ";
+
+            $results = $this->DB_PGSQL->select($query);
+
+            if (count($results) > 0) {
+                $perusahaanQuery = "
+                    SELECT prs_kodeigr AS kode_igr, PRS_NAMACABANG
+                    FROM tbmaster_perusahaan
+                ";
+
+                $perusahaanResults = $this->DB_PGSQL->select($perusahaanQuery);
+
+                // Create a dataset with both result sets
+                $dataSet =(object)[
+                    'DATA' => $results,
+                    'PERUSAHAAN' => $perusahaanResults[0]
+                ];
+            }
+            
+            return $dataSet;
+
+            // return (object)['errors'=>true];
+    }
+
+    public function data_struk_hadiah($kodetoko = null, $nopb = null, $tglpb = null,$request = null){
+        
+        
         $sql = "select distinct count (1) from tbmaster_hadiahdcp where hdc_kodetoko = '$kodetoko' and hdc_nodokumen = '$nopb'";
         $jmlh_hadiah = $this->DB_PGSQL->select($sql);
+        $IPMODUL = $request->getClientIp();
+        $KodeIGR = session()->get('KODECABANG');
+        $TokoOmi = $kodetoko;
+        $NoOrder = $nopb;
+        $NamaCab = "";
+        $AlamatCab1 = "";
+        $AlamatCab2 = "";
+        $NamaPersh = "";
+        $AlamatPersh1 = "";
+        $AlamatPersh2 = "";
+        $AlamatPersh3 = "";
+        $NPWP = "";
+        $NamaOMI = "";
+        $dtHDH = [];  
+        $msg = "";
+        $tglTran = null;
+        $STT = "";
+        $StationMODUL = session()->get('KODECABANG');
+    
 
-        if (count($jmlh_hadiah)) {
+        //     $headerData = $this->DB_PGSQL->select("
+        //         SELECT PRS_NamaCabang, PRS_Alamat1, CONCAT(PRS_NamaWilayah, ' - TELP ', PRS_Telepon) AS AlamatCab2,
+        //                 PRS_Namaperusahaan, PRS_AlamatFakturPajak1, PRS_AlamatFakturPajak2, PRS_AlamatFakturPajak3, 
+        //                 CONCAT('NPWP: ', PRS_NPWP) AS NPWP
+        //         FROM tbMaster_perusahaan
+        //     ");
+
+        //     if (!empty($headerData)) {
+        //         $header = $headerData[0];
+        //         $NamaCab = $header->prs_namacabang;
+        //         $AlamatCab1 = $header->prs_alamat1;
+        //         $AlamatCab2 = $header->alamatcab2;
+        //         $NamaPersh = $header->prs_namaperusahaan;
+        //         $AlamatPersh1 = $header->prs_alamatfakturpajak1;
+        //         $AlamatPersh2 = $header->prs_alamatfakturpajak2;
+        //         $AlamatPersh3 = $header->prs_alamatfakturpajak3;
+        //         $NPWP = $header->npwp;
+        //     }
+        // // Get OMI name
+        //     $omiData = $this->DB_PGSQL->select("
+        //         SELECT TKO_NamaOMI
+        //         FROM tbMaster_TokoIGR
+        //         WHERE TKO_KodeIGR = '$KodeIGR'
+        //         AND TKO_KodeOMI = '$TokoOmi'
+        //     ");
+
+        //     if (!empty($omiData)) {
+        //         $NamaOMI = $omiData[0]->tko_namaomi;
+        //     }
+        //     // Get hadiah details
+        //     $hadiahDetails =  $this->DB_PGSQL->select("
+        //         SELECT CONCAT(PRD_DeskripsiPendek, ' ', PRD_Unit, '/', PRD_Frac) AS PLU,fdkplu as prdcd,
+        //             FLOOR(FDJQTY / PRD_FRAC) AS QTY,
+        //             MOD(FDJQTY, PRD_Frac) AS FRAC
+        //         FROM tbMaster_HadiahDCP, TEMP_CFL, TbMaster_Prodmast
+        //         -- WHERE HDC_KodeIGR = '$KodeIGR'
+        //         -- AND HDC_KodeToko = '$TokoOmi'
+        //         -- AND HDC_NoDokumen = '$NoOrder'
+        //         WHERE COALESCE(HDC_RecordID, 'X') = '2'
+        //         AND PRD_KodeIGR = HDC_KodeIGR
+        //         AND PRD_PRDCD = CONCAT(SUBSTR(HDC_PRDCD, 1, 6), '0')
+        //         AND SUBSTR(FDKPLU, 1, 6) = SUBSTR(HDC_PRDCD, 1, 6)
+        //         ORDER BY PRD_PRDCD
+        //     ");
+
+        //     if (!empty($hadiahDetails)) {
+        //         foreach ($hadiahDetails as $key => $value) {
+        //             $dtHDH[] = $value;
+        //         }
+        //     }
+            
+        //     return (object)[
+        //         'list_struk'=>$dtHDH,
+        //         'tglTran'=>date('Y-m-d'),
+        //         'NamaOMI'=>$NamaOMI,
+        //         'NamaCab'=>$NamaCab,
+        //         'AlamatCab1'=>$AlamatCab1,
+        //         'AlamatCab2'=>$AlamatCab2,
+        //         'NamaPersh'=>$NamaPersh,
+        //         'AlamatPersh1'=>$AlamatPersh1,
+        //         'AlamatPersh2'=>$AlamatPersh2,
+        //         'AlamatPersh3'=>$AlamatPersh3,
+        //         'NPWP'=>$NPWP 
+        //     ];
+
+        if ($jmlh_hadiah[0]->count) {
 
             try {
                 $this->DB_PGSQL->beginTransaction();
     
                 
-                $msg = "";
-                $tglTran = null;
-                $STT = "";
-                $StationMODUL = session()->get('KODECABANG');
+              
         
                 // Truncate tables
                 $this->DB_PGSQL->statement("TRUNCATE TABLE TEMP_CFL");
@@ -243,39 +418,39 @@ class RPTController extends Controller
                             SUBSTR(RPB_PLU2, 1, 6) || '0' as FDKPLU,
                             SUM(coalesce(RPB_QtyRealisasi, 0) * CASE WHEN PRD_Unit = 'KG' THEN 1 ELSE PRD_FRAC END) as FDJQTY,
                             SUM(coalesce(RPB_QtyRealisasi, 0) * PRD_HrgJual) as FDNAMT,
-                            ? as IPMODUL
+                            '$IPMODUL' as IPMODUL
                      From TbTr_RealPB, tbMaster_Prodmast
-                     Where RPB_KodeIGR = ?
-                       And TRIM(RPB_NoDokumen) = TRIM(?)
-                       And RPB_KodeOMI = ?
+                     Where RPB_KodeIGR = '$KodeIGR'
+                       And TRIM(RPB_NoDokumen) = TRIM('$NoOrder')
+                       And RPB_KodeOMI = '$TokoOmi'
                        And RPB_Plu2 = PRD_PRDCD
                      Group By SUBSTR(RPB_PLU2, 1, 6) || '0')
                 ";
-                $this->DB_PGSQL->statement($sql, [$IPMODUL, $KodeIGR, $NoOrder, $TokoOmi]);
+                $this->DB_PGSQL->statement($sql);
         
                 // Select distinct TO_DATE(rpb_create_dt)
                 $sql = "
-                    SELECT DISTINCT TO_DATE(rpb_create_dt)
+                    SELECT rpb_create_dt::date
                     FROM tbtr_realpb
-                    WHERE RPB_KodeIGR = ?
-                      AND TRIM(RPB_NoDokumen) = TRIM(?)
-                      AND RPB_KodeOMI = ?
+                    WHERE RPB_KodeIGR = '$KodeIGR'
+                      AND TRIM(RPB_NoDokumen) = TRIM('$NoOrder')
+                      AND RPB_KodeOMI = '$TokoOmi'
                 ";
-                $results = $this->DB_PGSQL->select($sql, [$KodeIGR, $NoOrder, $TokoOmi]);
+                $results = $this->DB_PGSQL->select($sql);
         
                 foreach ($results as $row) {
-                    $tglTran = $row->to_date;
+                    $tglTran = $row->rpb_create_dt;
                 }
         
                 // Select distinct SUBSTR(RPB_IDSuratJalan, 14, 2)
                 $sql = "
                     SELECT DISTINCT SUBSTR(RPB_IDSuratJalan, 14, 2)
                     FROM tbtr_realpb
-                    WHERE RPB_KodeIGR = ?
-                      AND TRIM(RPB_NoDokumen) = TRIM(?)
-                      AND RPB_KodeOMI = ?
+                    WHERE RPB_KodeIGR = '$KodeIGR'
+                      AND TRIM(RPB_NoDokumen) = TRIM('$NoOrder')
+                      AND RPB_KodeOMI = '$TokoOmi'
                 ";
-                $results = $this->DB_PGSQL->select($sql, [$KodeIGR, $NoOrder, $TokoOmi]);
+                $results = $this->DB_PGSQL->select($sql);
         
                 // STT
                 $STT = $StationMODUL;
@@ -307,9 +482,9 @@ class RPTController extends Controller
                             INSERT INTO TEMP_FGF 
                             (JNSGF, PLUTR, PLUGF, NMAGF, QDPAT)
                             VALUES 
-                            ('2', ?, ?, ?, ?)
+                            ('2', '".$row->ftksup."',  '".$row->ftkplu."',  '".$row->ftketr."',  ".$q * $row->ftjvch.")
                         ";
-                        $this->DB_PGSQL->statement($sql, [$row->ftksup, $row->ftkplu, $row->ftketr, $q * $row->ftjvch]);
+                        $this->DB_PGSQL->statement($sql);
                     }
                 }
 
@@ -321,28 +496,28 @@ class RPTController extends Controller
                         $sql = "
                             SELECT COALESCE(COUNT(1), 0) 
                             FROM tbMaster_BrgPromosi 
-                            WHERE BPRP_KodeIGR = ? 
-                            AND BPRP_PRDCD = ?
+                            WHERE BPRP_KodeIGR = '$KodeIGR'
+                            AND BPRP_PRDCD = '".$row->PLUGF."'
                         ";
-                        $check = $this->DB_PGSQL->select($sql, [$KodeIGR, $row->PLUGF]);
+                        $check = $this->DB_PGSQL->select($sql);
                         $jum = $check[0]->coalesce;
 
                         if ($jum > 0) {
                             $sql = "
                                 SELECT BPRP_KetPanjang 
                                 FROM tbMaster_BrgPromosi 
-                                WHERE BPRP_KodeIGR = ? 
-                                AND BPRP_PRDCD = ?
+                                WHERE BPRP_KodeIGR = '$KodeIGR'
+                                AND BPRP_PRDCD = '".$row->PLUGF."'
                             ";
-                            $descResult = $this->DB_PGSQL->select($sql, [$KodeIGR, $row->PLUGF]);
+                            $descResult = $this->DB_PGSQL->select($sql);
                             $ftdesc = $descResult[0]->BPRP_KetPanjang;
 
                             $sql = "
                                 UPDATE TEMP_FGF 
-                                SET nmagf = ? 
-                                WHERE plugf = ?
+                                SET nmagf = '$ftdesc'
+                                WHERE plugf = '".$row->PLUGF."'
                             ";
-                            $this->DB_PGSQL->statement($sql, [$ftdesc, $row->PLUGF]);
+                            $this->DB_PGSQL->statement($sql);
                         }
                     }
                 }
@@ -351,49 +526,172 @@ class RPTController extends Controller
                 $sql = "
                     UPDATE tbMaster_HadiahDCP 
                     SET HDC_RecordID = '2' 
-                    WHERE HDC_KodeIGR = ? 
-                    AND HDC_KodeToko = ? 
-                    AND HDC_NoDokumen = ? 
+                    WHERE HDC_KodeIGR = '$KodeIGR'
+                    AND HDC_KodeToko = '$TokoOmi'
+                    AND HDC_NoDokumen = '$NoOrder'
                     AND HDC_RecordID IS NULL
                 ";
-                $this->DB_PGSQL->statement($sql, [$KodeIGR, $TokoOmi, $NoOrder]);
+                $this->DB_PGSQL->statement($sql);
 
-                $this->cetakHadiah($TokoOmi, $NoOrder);
+                /**
+                 * Cetak Hdiah
+                 */
+
+                 $headerData = $this->DB_PGSQL->select("
+                    SELECT PRS_NamaCabang, PRS_Alamat1, CONCAT(PRS_NamaWilayah, ' - TELP ', PRS_Telepon) AS AlamatCab2,
+                            PRS_Namaperusahaan, PRS_AlamatFakturPajak1, PRS_AlamatFakturPajak2, PRS_AlamatFakturPajak3, 
+                            CONCAT('NPWP: ', PRS_NPWP) AS NPWP
+                    FROM tbMaster_perusahaan
+                ");
+            
+                if (!empty($headerData)) {
+                    $header = $headerData[0];
+                    $NamaCab = $header->prs_namacabang;
+                    $AlamatCab1 = $header->prs_alamat1;
+                    $AlamatCab2 = $header->alamatcab2;
+                    $NamaPersh = $header->prs_namaperusahaan;
+                    $AlamatPersh1 = $header->prs_alamatfakturpajak1;
+                    $AlamatPersh2 = $header->prs_alamatfakturpajak2;
+                    $AlamatPersh3 = $header->prs_alamatfakturpajak3;
+                    $NPWP = $header->npwp;
+                }
+                   // Get OMI name
+                    $omiData = $this->DB_PGSQL->select("
+                        SELECT TKO_NamaOMI
+                        FROM tbMaster_TokoIGR
+                        WHERE TKO_KodeIGR = '$KodeIGR'
+                        AND TKO_KodeOMI = '$TokoOmi'
+                    ");
+
+                    if (!empty($omiData)) {
+                        $NamaOMI = $omiData[0]->tko_namaomi;
+                    }
+                    // Get hadiah details
+                    $hadiahDetails =  $this->DB_PGSQL->select("
+                        SELECT CONCAT(PRD_DeskripsiPendek, ' ', PRD_Unit, '/', PRD_Frac) AS PLU,
+                            FLOOR(FDJQTY / PRD_FRAC) AS QTY,
+                            MOD(FDJQTY, PRD_Frac) AS FRAC
+                        FROM tbMaster_HadiahDCP, TEMP_CFL, TbMaster_Prodmast
+                        WHERE HDC_KodeIGR = '$KodeIGR'
+                        AND HDC_KodeToko = '$TokoOmi'
+                        AND HDC_NoDokumen = '$NoOrder'
+                        AND COALESCE(HDC_RecordID, 'X') = '2'
+                        AND PRD_KodeIGR = HDC_KodeIGR
+                        AND PRD_PRDCD = CONCAT(SUBSTR(HDC_PRDCD, 1, 6), '0')
+                        AND SUBSTR(FDKPLU, 1, 6) = SUBSTR(HDC_PRDCD, 1, 6)
+                        ORDER BY PRD_PRDCD
+                    ");
+
+                    if (!empty($hadiahDetails)) {
+                        foreach ($hadiahDetails as $key => $value) {
+                            $dtHDH[] = $value;
+                        }
+                    }
+
+
+
+                /**
+                 * End Cetak Hdiah
+                 */
+
 
                 // Check and delete old records
                 $sql = "
                     SELECT COALESCE(COUNT(1), 0) 
                     FROM tbMaster_HadiahDCP 
-                    WHERE HDC_KodeIGR = ? 
-                    AND HDC_KodeToko = ? 
+                    WHERE HDC_KodeIGR = '$KodeIGR'
+                    AND HDC_KodeToko = '$TokoOmi'
                     AND HDC_RecordID = '2' 
                     AND DATE_TRUNC('DAY', CURRENT_DATE) - DATE_TRUNC('DAY', HDC_TglDokumen) > INTERVAL '45 DAYS'
                 ";
-                $results = $this->DB_PGSQL->select($sql, [$KodeIGR, $TokoOmi]);
+                $results = $this->DB_PGSQL->select($sql);
                 $jum = $results[0]->coalesce;
 
                 if ($jum > 0) {
                     $sql = "
                         DELETE FROM tbMaster_HadiahDCP 
-                        WHERE HDC_KodeIGR = ? 
-                        AND HDC_KodeToko = ? 
+                        WHERE HDC_KodeIGR = '$KodeIGR' 
+                        AND HDC_KodeToko = '$TokoOmi'
                         AND HDC_RecordID = '2' 
                         AND DATE_TRUNC('DAY', CURRENT_DATE) - DATE_TRUNC('DAY', HDC_TglDokumen) > INTERVAL '45 DAYS'
                     ";
-                    $this->DB_PGSQL->statement($sql, [$KodeIGR, $TokoOmi]);
+                    $this->DB_PGSQL->statement($sql);
                 }
                 
                 $this->DB_PGSQL->commit();
+                  $headerData = $this->DB_PGSQL->select("
+                    SELECT PRS_NamaCabang, PRS_Alamat1, CONCAT(PRS_NamaWilayah, ' - TELP ', PRS_Telepon) AS AlamatCab2,
+                            PRS_Namaperusahaan, PRS_AlamatFakturPajak1, PRS_AlamatFakturPajak2, PRS_AlamatFakturPajak3, 
+                            CONCAT('NPWP: ', PRS_NPWP) AS NPWP
+                    FROM tbMaster_perusahaan
+                ");
+            
+                if (!empty($headerData)) {
+                    $header = $headerData[0];
+                    $NamaCab = $header->prs_namacabang;
+                    $AlamatCab1 = $header->prs_alamat1;
+                    $AlamatCab2 = $header->alamatcab2;
+                    $NamaPersh = $header->prs_namaperusahaan;
+                    $AlamatPersh1 = $header->prs_alamatfakturpajak1;
+                    $AlamatPersh2 = $header->prs_alamatfakturpajak2;
+                    $AlamatPersh3 = $header->prs_alamatfakturpajak3;
+                    $NPWP = $header->npwp;
+                }
+                   // Get OMI name
+                    $omiData = $this->DB_PGSQL->select("
+                        SELECT TKO_NamaOMI
+                        FROM tbMaster_TokoIGR
+                        WHERE TKO_KodeIGR = '$KodeIGR'
+                        AND TKO_KodeOMI = '$TokoOmi'
+                    ");
+
+                    if (!empty($omiData)) {
+                        $NamaOMI = $omiData[0]->tko_namaomi;
+                    }
+                    // Get hadiah details
+                    $hadiahDetails =  $this->DB_PGSQL->select("
+                        SELECT CONCAT(PRD_DeskripsiPendek, ' ', PRD_Unit, '/', PRD_Frac) AS PLU,fdkplu as prdcd,
+                            FLOOR(FDJQTY / PRD_FRAC) AS QTY,
+                            MOD(FDJQTY, PRD_Frac) AS FRAC
+                        FROM tbMaster_HadiahDCP, TEMP_CFL, TbMaster_Prodmast
+                        WHERE HDC_KodeIGR = '$KodeIGR'
+                        AND HDC_KodeToko = '$TokoOmi'
+                        AND HDC_NoDokumen = '$NoOrder'
+                        AND COALESCE(HDC_RecordID, 'X') = '2'
+                        AND PRD_KodeIGR = HDC_KodeIGR
+                        AND PRD_PRDCD = CONCAT(SUBSTR(HDC_PRDCD, 1, 6), '0')
+                        AND SUBSTR(FDKPLU, 1, 6) = SUBSTR(HDC_PRDCD, 1, 6)
+                        ORDER BY PRD_PRDCD
+                    ");
+
+                    if (!empty($hadiahDetails)) {
+                        foreach ($hadiahDetails as $key => $value) {
+                            $dtHDH[] = $value;
+                        }
+                    }
+                return [
+                    'list_struk'=>$dtHDH,
+                    'tglTran'=>$tglTran,
+                    'NamaOMI'=>$NamaOMI,
+                    'NamaCab'=>$NamaCab,
+                    'AlamatCab1'=>$AlamatCab1,
+                    'AlamatCab2'=>$AlamatCab2,
+                    'NamaPersh'=>$NamaPersh,
+                    'AlamatPersh1'=>$AlamatPersh1,
+                    'AlamatPersh2'=>$AlamatPersh2,
+                    'AlamatPersh3'=>$AlamatPersh3,
+                    'NPWP'=>$NPWP 
+                ];
             } catch (\Throwable $th) {
                 
                 $this->DB_PGSQL->rollBack();
-                dd($th);
-                return response()->json(['errors'=>true,'messages'=>$th->getMessage()],500);
+                // dd($th);
+                return (object)['errors'=>true,'messages'=>$th->getMessage()];
             }
     
         } else {
             
-            return response()->json(['errors'=>true,'messages'=>'Data Tidak Tersedia'],404);
+            return (object)['errors'=>true,'messages'=>'Data Tidak Tersedia'];
         }
         
 
@@ -448,7 +746,7 @@ class RPTController extends Controller
             $nodspb = $nodspb[0]->ikl_registerrealisasi;
 
             if (!$nodspb) {
-                return ['errors'=>true,'message' => 'Data (ikl_registerrealisasi) Tidak ada data!'];
+                return (object)['errors'=>true,'message' => 'Data (ikl_registerrealisasi) Tidak ada data!'];
             }
 
             $sql2 = "SELECT TO_CHAR(pbo_create_dt, 'DD-MM-YYYY') AS pbo_create_dt ,ikl_registerrealisasi,pbo_kodeomi
@@ -466,7 +764,7 @@ class RPTController extends Controller
             $TglCreateDt = $TglCreateDtResult ? $TglCreateDtResult[0]->pbo_create_dt : null;
             
             if (!$TglCreateDt) {
-                return ['errors'=>true,'message' => 'Data (pbo_create_dt) Tidak ada data!'];
+                return (object)['errors'=>true,'message' => 'Data (pbo_create_dt) Tidak ada data!'];
             }
     
             // Additional logic based on retrieved data...
@@ -566,7 +864,7 @@ class RPTController extends Controller
             $dtKoli = $this->DB_PGSQL->select($sql5);
 
             if (count($dtKoli) == 0) {
-                return ['errors'=>true,'message' => 'Data (koli) Tidak ada data!'];
+                return (object)['errors'=>true,'message' => 'Data (koli) Tidak ada data!'];
             }
 
 

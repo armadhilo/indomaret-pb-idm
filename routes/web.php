@@ -94,6 +94,7 @@ Route::middleware(['mylogin'])->group(function () {
             Route::post('/cetak/dsp/ulang', [RPTController::class, 'print_cetak_ulang_dsp']);
             Route::post('/cetak/sj/ulang', [RPTController::class, 'print_cetak_ulang_sj']);
             Route::post('/struk/hadiah', [RPTController::class, 'print_struk_hadiah']);
+            Route::post('/outstanding/dsp', [RPTController::class, 'print_outstanding_dsp']);
 
         });
         /*  Voucher */

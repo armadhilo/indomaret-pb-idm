@@ -124,8 +124,8 @@
                                     <div class="tab-pane fade" id="OMI" role="tabpanel" aria-labelledby="OMI-tab">
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-dsp','Cetak Ulang DSP','/api/report/cetak/dsp/ulang')">Cetak Ulang DSP</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-sj','Cetak Ulang SJ','/api/report/cetak/sj/ulang')">Cetak Ulang SJ</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb()">Struk Hadiah</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb()">Outstanding DSP</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk-hadiah','Cetak Struk Hadiah','/api/report/struk/hadiah')">Struk Hadiah</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding-dsp','Cetak Outstanding DSP','/api/report/outstanding/dsp',true)">Outstanding DSP</button>
                                     </div>
                                 </div>
                                 
@@ -168,13 +168,23 @@
                             </div>
                         </div>
                         <div class="form-group ">
-                            <label for="katb">No PB</label>
-                            <!-- <select class="form-control form-control-sm select2 pb" name="nopb[]" id="nopb" disabled multiple=""> -->
-                            <select class="form-control form-control-sm select2 pb" name="nopb" id="nopb" disabled>
-                                <option value="" disabled selected>Pilih PB</option>
-                                <!-- <option value="all">All</option> -->
-                            
-                            </select>
+                            <div class="nopb">
+                                <label for="katb">No PB</label>
+                                <!-- <select class="form-control form-control-sm select2 pb" name="nopb[]" id="nopb" disabled multiple=""> -->
+                                <select class="form-control form-control-sm select2 pb" name="nopb" id="nopb" disabled>
+                                    <option value="" disabled selected>Pilih PB</option>
+                                    <!-- <option value="all">All</option> -->
+                                
+                                </select>
+                            </div>
+                            <div class="toko_2">
+                                <label for="katb">s.d Toko</label>
+                                <select class="form-control form-control-sm select2 toko hide" name="toko2" id="toko_2" onchange="get_pb(this.value)">
+                                            <option value="" disabled selected>Pilih Toko</option>
+                                            <!-- <option value="all">All</option> -->
+                                        
+                                </select>
+                            </div>
                             <input type="hidden" name="text" class="text" value="" >
                         </div>
                         
