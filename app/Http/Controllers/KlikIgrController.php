@@ -1210,13 +1210,13 @@ class KlikIgrController extends Controller
     //* btnOngkir_Click
     //! IRVAN | Bingung pas Form Nanti tanyakan
     public function actionOngkosKirim(Request $request){
-        // if(!isset($request->no_trans)){
-        //     return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        // }
+        if(!isset($request->no_trans)){
+            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+        }
 
-        // if(strtolower($request->status) != 'Set Ongkir'){
-        //     return ApiFormatter::error(400, 'Belum Dapat Melakukan Set Ongkos Kirim!');
-        // }
+        if(strtolower($request->status) != 'Set Ongkir'){
+            return ApiFormatter::error(400, 'Belum Dapat Melakukan Set Ongkos Kirim!');
+        }
 
         $this->setOngkir($request->flagBayar, $request->nopb, $request->tanggal_pb, $request->no_trans, $request->freeOngkir, $request->jarakKirim, $request->kode_member);
     }
@@ -1245,17 +1245,97 @@ class KlikIgrController extends Controller
         return ApiFormatter::success(200, "success", $data);
     }
 
-    //* Lanjutan Form Ongkir
-    public function actionHitungUlang(Request $request){
-        $ongkos = 0;
-        $zona = "1";
-        $flagEks = ($request->pengiriman == "EKSPEDISI") ? true : false;
-        if($flagEks){
-            $kodeEkspedisi = $request->txtNama;
-            $jarak = 0;
-            $ongkos = $request->jarak;
-        } else {
+    //* Lanjutan Form Ongkir With Form
+    public function ongkosKirimWithForm(Request $request){
+        $dgv_nopb = $request->nopb;
+        $dgv_tglpb = $request->tanggal_pb;
+        $dgv_notrans = $request->no_trans;
+        $dgv_freeongkir = $request->freeOngkir;
+        $dgv_jarakkirim = $request->jarakKirim;
+        $dgv_memberigr = $request->kode_member;
 
+        if($dgv_freeongkir == 'Y'){
+            $data["flagFree"] = true;
+        }else{
+            $data["flagFree"] = false;
+        }
+
+        $jarakKlik = $dgv_jarakkirim;
+
+        if($jarakKlik > 0){
+            $data["jarakKirim"] = $jarakKlik;
+            $flagLockJarak = true;
+        }else{
+            $query = '';
+            $query .= "SELECT COALESCE(hj_jarak, 0) jarakkirim  ";
+            $query .= "  FROM history_jarak ";
+            $query .= " WHERE hj_kodeigr = '" . session('KODECABANG') . "' ";
+            $query .= "   AND hj_kdmember = '" . $dgv_memberigr . "' ";
+            $query .= "   AND hj_alamat = ( ";
+            $query .= "                    SELECT amm_namaalamat ";
+            $query .= "                      FROM tbtr_alamat_mm ";
+            $query .= "                     WHERE amm_kodemember = '" . $dgv_memberigr . "' ";
+            $query .= "                       AND amm_notrans = '" . $dgv_notrans . "' ";
+            $query .= "                       AND amm_nopb = '" . $dgv_nopb . "' ";
+            $dtJarak = DB::select($query);
+
+            if(count($dtJarak)){
+                $jarakKlik = $dtJarak[0]->jarakkirim;
+                $data["jarakKirim"] = $jarakKlik;
+                $flagLockJarak = true;
+            }else{
+                $data["jarakKirim"] = 0;
+                $flagLockJarak = false;
+            }
+        }
+
+        //* SHOW FORM -> frmEkspedisi
+        $FlagEkspedisi = $request->formData['FlagEkspedisi'];
+        $biayaEkspedisi = $request->formData['biayaEkspedisi'];
+        $zona = $request->formData['zona'];
+        $kdEkspedisi = $request->formData['kdEkspedisi'];
+        $beratEkspedisi = $request->formData['beratEkspedisi'];
+
+        if($FlagEkspedisi == 'Y' OR $FlagEkspedisi == 'YY'){
+            $nmEks = $kdEkspedisi;
+            if($kdEkspedisi > 1){
+                $nmEks = DB::select("select eks_namaekspedisi from tbmaster_obi_ekspedisi where eks_kodeekspedisi = '" . $kdEkspedisi . "'")[0]->eks_namaekspedisi;
+            }else{
+                $nmEks = '-';
+            }
+
+            $query = "";
+            $query .= "UPDATE tbtr_obi_h ";
+            $query .= "   SET obi_ekspedisi = '" . $biayaEkspedisi . "', ";
+            $query .= "       obi_jrkekspedisi = '" . $beratEkspedisi . "', ";
+            $query .= "       obi_kdekspedisi = '" . $nmEks . "', ";
+            $query .= "       obi_zona = '" . $zona . "', ";
+            $query .= "       obi_recid = '3' ";
+            $query .= " WHERE obi_nopb = '" . $dgv_nopb . "', ";
+            $query .= "   AND obi_tglpb = '" . Carbon::parse($dgv_tglpb)->format('Y-m-d H:i:s') . "', ";
+            $query .= "   AND obi_notrans = '" . $dgv_notrans . "'";
+            DB::update($query);
+
+            if($flagLockJarak == false){
+                $query = "";
+                $query .= "INSERT INTO history_jarak ";
+                $query .= "SELECT obi_kodeigr, ";
+                $query .= "       obi_kdmember, ";
+                $query .= "       amm_namaalamat, ";
+                $query .= "       obi_jrkekspedisi ";
+                $query .= "  FROM tbtr_obi_h ";
+                $query .= "  JOIN tbtr_alamat_mm ";
+                $query .= "    ON amm_kodemember = obi_kdmember ";
+                $query .= "   AND amm_notrans = obi_notrans ";
+                $query .= "   AND amm_nopb = obi_nopb ";
+                $query .= " WHERE obi_kdmember = '" . $dgv_memberigr . "' ";
+                $query .= "   AND obi_notrans = '" . $dgv_notrans . "' ";
+                $query .= "   AND obi_nopb = '" . $dgv_nopb . "' ";
+                DB::insert($query);
+            }
+
+            $message = 'Data Ongkos Kirim Berhasil Disimpan.';
+            return ApiFormatter::success(200, $message);
         }
     }
 
@@ -6180,20 +6260,20 @@ class KlikIgrController extends Controller
 
         $flagLockJarak = false;
 
-        // if($dgv_flagBayar == 'Y'){
-        //     DB::table('tbtr_obi_h')
-        //         ->where([
-        //             'obi_nopb' => $dgv_nopb,
-        //             'obi_tglpb' => $dgv_tglpb,
-        //             'obi_notrans' => $dgv_notrans,
-        //         ])
-        //         ->update([
-        //             'obi_recid' => 3,
-        //         ]);
+        if($dgv_flagBayar == 'Y'){
+            DB::table('tbtr_obi_h')
+                ->where([
+                    'obi_nopb' => $dgv_nopb,
+                    'obi_tglpb' => $dgv_tglpb,
+                    'obi_notrans' => $dgv_notrans,
+                ])
+                ->update([
+                    'obi_recid' => 3,
+                ]);
 
-        //         $message = 'Skip Ongkos Kirim Karena Pembayaran Di Web';
-        //         throw new HttpResponseException(ApiFormatter::success(200, $message));
-        // }else{
+                $message = 'Skip Ongkos Kirim Karena Pembayaran Di Web';
+                throw new HttpResponseException(ApiFormatter::success(200, $message));
+        }else{
 
             if($dgv_freeongkir != 'T'){
                 if($dgv_freeongkir == 'Y'){
@@ -6210,15 +6290,15 @@ class KlikIgrController extends Controller
                 }else{
                     $query = '';
                     $query .= "SELECT COALESCE(hj_jarak, 0) jarakkirim  ";
-                    $query .= "  FROM history_jarak LIMIT 3";
-                    // $query .= " WHERE hj_kodeigr = '" . session('KODECABANG') . "' ";
-                    // $query .= "   AND hj_kdmember = '" . $dgv_memberigr . "' ";
-                    // $query .= "   AND hj_alamat = ( ";
-                    // $query .= "                    SELECT amm_namaalamat ";
-                    // $query .= "                      FROM tbtr_alamat_mm ";
-                    // $query .= "                     WHERE amm_kodemember = '" . $dgv_memberigr . "' ";
-                    // $query .= "                       AND amm_notrans = '" . $dgv_notrans . "' ";
-                    // $query .= "                       AND amm_nopb = '" . $dgv_nopb . "' ";
+                    $query .= "  FROM history_jarak ";
+                    $query .= " WHERE hj_kodeigr = '" . session('KODECABANG') . "' ";
+                    $query .= "   AND hj_kdmember = '" . $dgv_memberigr . "' ";
+                    $query .= "   AND hj_alamat = ( ";
+                    $query .= "                    SELECT amm_namaalamat ";
+                    $query .= "                      FROM tbtr_alamat_mm ";
+                    $query .= "                     WHERE amm_kodemember = '" . $dgv_memberigr . "' ";
+                    $query .= "                       AND amm_notrans = '" . $dgv_notrans . "' ";
+                    $query .= "                       AND amm_nopb = '" . $dgv_nopb . "' ";
                     $dtJarak = DB::select($query);
 
                     if(count($dtJarak)){
@@ -6236,20 +6316,13 @@ class KlikIgrController extends Controller
                 $data['namaEkspedisi1'] = DB::select($query);
 
                 $query = "SELECT id, title FROM master_shipping_klikigr ";
-                // $query .= " WHERE UPPER(title) NOT LIKE '%AMBIL%TOKO%' ";
-                // $query += " AND UPPER(title) NOT LIKE '%KURIR%INDOGROSIR%' ";
+                $query .= " WHERE UPPER(title) NOT LIKE '%AMBIL%TOKO%' ";
+                $query .= " AND UPPER(title) NOT LIKE '%KURIR%INDOGROSIR%' ";
                 $query .= " ORDER BY id ASC LIMIT 5";
 
                 $data['namaEkspedisi2'] = DB::select($query);
 
                 throw new HttpResponseException(ApiFormatter::success(201, "showFormEkspedisi", $data));
-
-                //* SHOW FORM -> frmEkspedisi
-                // FlagEkspedisi = frmEkspedisi.Flag
-                // _biayaEkspedisi = frmEkspedisi.Ongkos
-                // _zona = frmEkspedisi.Zona
-                // _kdEkspedisi = frmEkspedisi.kdEksp
-                // _beratEkspedisi = frmEkspedisi.Jarak
             }else{
                 $FlagEkspedisi = "YY";
                 $biayaEkspedisi = 0;
@@ -6266,7 +6339,8 @@ class KlikIgrController extends Controller
                     $nmEks = '-';
                 }
 
-                $query = "UPDATE tbtr_obi_h ";
+                $query = "";
+                $query .= "UPDATE tbtr_obi_h ";
                 $query .= "   SET obi_ekspedisi = '" . $biayaEkspedisi . "', ";
                 $query .= "       obi_jrkekspedisi = '" . $beratEkspedisi . "', ";
                 $query .= "       obi_kdekspedisi = '" . $nmEks . "', ";
@@ -6275,8 +6349,10 @@ class KlikIgrController extends Controller
                 $query .= " WHERE obi_nopb = '" . $dgv_nopb . "', ";
                 $query .= "   AND obi_tglpb = '" . Carbon::parse($dgv_tglpb)->format('Y-m-d H:i:s') . "', ";
                 $query .= "   AND obi_notrans = '" . $dgv_notrans . "'";
+                DB::update($query);
 
                 if($flagLockJarak == false){
+                    $query = "";
                     $query .= "INSERT INTO history_jarak ";
                     $query .= "SELECT obi_kodeigr, ";
                     $query .= "       obi_kdmember, ";
@@ -6290,16 +6366,14 @@ class KlikIgrController extends Controller
                     $query .= " WHERE obi_kdmember = '" . $dgv_memberigr . "' ";
                     $query .= "   AND obi_notrans = '" . $dgv_notrans . "' ";
                     $query .= "   AND obi_nopb = '" . $dgv_nopb . "' ";
+                    DB::insert($query);
                 }
 
                 $message = 'Data Ongkos Kirim Berhasil Disimpan.';
                 throw new HttpResponseException(ApiFormatter::success(200, $message));
             }
 
-        // }
-
-
-
+        }
     }
 
     protected function sendSPI($dgv_nopb, $dgv_notrans, $dgv_memberigr, $dtTrans){

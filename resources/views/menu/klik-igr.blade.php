@@ -926,7 +926,7 @@
                             <p style="color: black;"><b>FREE ONGKIR</b></p>
                         </div>
                     </div>
-                    <textarea id="rincian_biaya_modal_ekspedisi" rows="7" class="form-control"></textarea>
+                    <textarea id="rincian_biaya_modal_ekspedisi" rows="7" disabled class="form-control"></textarea>
                 </div>
             </div>
             <div class="modal-footer">

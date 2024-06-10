@@ -75,7 +75,10 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post("/f10-hitung-ulang", [KlikIgrFooterController::class, 'actionF10HitungUlang']);
             Route::get('/delete-alasan-pembatalan-pb', [KlikIgrFooterController::class, 'getAlasanPembatalanPB']);
             Route::post("/HitungUlang", [KlikIgrController::class, 'actionHitungUlang']);
+
+            //* OngkosKirim Additional
             Route::get("/getOngkosHitungBiaya", [KlikIgrController::class, 'getOngkosHitungBiaya']);
+            Route::post("/OngkosKirimWithForm", [KlikIgrController::class, 'ongkosKirimWithForm']);
 
             //* MasterAlasanBatalKirim Additional
             Route::get("/actionMasterAlasanBatalKirimDatatables/{flagMode}", [KlikIgrController::class, 'actionMasterAlasanBatalKirimDatatables']);

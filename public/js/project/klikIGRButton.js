@@ -1167,6 +1167,8 @@ function actionOngkosKirim(){
                 Swal.fire('Success!', response.message,'success');
                 tb.ajax.reload();
             } else if (response.code === 201){
+                $("#modal_ekspedisi").attr("data-ongkos", "");
+                $("#modal_ekspedisi").attr("data-zona", "");
                 $("#txtNama_modal_ekspedisi").val("");
                 $("#txtHarga_modal_ekspedisi").val("0");
                 $("#kgberat_modal_ekspedisi").val(response.data.jarakKirim);
@@ -1219,7 +1221,7 @@ $("#cbPengirim_modal_ekspedisi").change(function(){
         $("#txtHarga_modal_ekspedisi").removeClass("d-none");
         $("#txtHarga_modal_ekspedisi").val("0");
 
-        if($("modal_ekspedisi").attr("data-simulasi") == true){
+        if($("modal_ekspedisi").attr("data-simulasi") == 'true'){
             if(!$("#img_gratis_ongkir_modal_ekspedisi").hasClass("d-none")){
                 $("#txtHarga_modal_ekspedisi").attr("disabled", true);
             } else {
@@ -1264,7 +1266,7 @@ $("#showBtn_modal_ekspedisi").click(function(){
             }
         }
 
-        hitungBiaya()
+        hitungBiaya();
     }
 });
 
@@ -1290,7 +1292,6 @@ function hitungBiaya(){
             data: { kodeEkspedisi: kodeEkspedisi, Jarak: Jarak },
             success: function(response) {
                 setTimeout(function() { $('#modal_loading').modal('hide'); }, 500);
-                console.log(response.data[0]);
                 temp_ongkos = response.data[0].harga;
             },
             error: function(jqXHR, textStatus, errorThrown) {
@@ -1326,12 +1327,52 @@ function hitungBiaya(){
         }
         $("#rincian_biaya_modal_ekspedisi").val($("#rincian_biaya_modal_ekspedisi").val() + `Ongkos Kirim : ${fungsiRupiah(Ongkos)}\n`);
 
-        if($("modal_ekspedisi").attr("data-simulasi") == false){
+        if($("#modal_ekspedisi").attr("data-simulasi") == 'false'){
             $("#BtnOK_modal_ekspedisi").removeClass("d-none");
             $("#BtnOK_modal_ekspedisi").attr("disabled", false);
         }
     }
 }
+
+$("#BtnOK_modal_ekspedisi").click(function(){
+    var selectedRow = tb.row(".select-r").data();
+    if($("#cbPengirim_modal_ekspedisi").val() == "EKSPEDISI"){
+        kodeEkspedisi = $("#txtNama_modal_ekspedisi").val();
+        Jarak = parseFloat($('#kgberat_modal_ekspedisi').val().replace('.', ','));
+    } else {
+        kodeEkspedisi = $("#cbEks_modal_ekspedisi").val();
+        Jarak = parseFloat($('#kgberat_modal_ekspedisi').val().replace('.', ','));
+    }
+
+    $('#modal_loading').modal('show');
+    $.ajax({
+        url: currentURL + `/action/OngkosKirimWithForm`,
+        type: "POST",
+        data: {no_trans: selectedRow.no_trans, status: selectedRow.status, flagBayar: selectedRow.flagbayar, nopb: selectedRow.no_pb, tanggal_pb: selectedRow.tgl_pb, freeOngkir: selectedRow.free_ongkir, jarakKirim: selectedRow.jarakkirim, kode_member: selectedRow.kode_member, 
+        formData: {
+            FlagEkspedisi: "Y",
+            biayaEkspedisi: $("#modal_ekspedisi").attr("data-ongkos"),
+            zona: $("#modal_ekspedisi").attr("data-zona"),
+            kdEkspedisi: kodeEkspedisi,
+            beratEkspedisi: Jarak
+        }},
+        success: function(response) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire('Success!', response.message,'success').then(function(){
+                $("#modal_ekspedisi").modal("hide");
+            });
+            tb.ajax.reload();
+        }, error: function(jqXHR, textStatus, errorThrown) {
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            Swal.fire({
+                text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                    ? jqXHR.responseJSON.message
+                    : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                icon: "error"
+            });
+        }
+    });
+});
 
 function actionDraftStruk(){
     var selectedRow = tb.row(".select-r").data();
