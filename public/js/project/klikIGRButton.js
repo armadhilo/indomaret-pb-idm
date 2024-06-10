@@ -1167,6 +1167,14 @@ function actionOngkosKirim(){
                 Swal.fire('Success!', response.message,'success');
                 tb.ajax.reload();
             } else if (response.code === 201){
+                $("#txtNama_modal_ekspedisi").val("");
+                $("#txtHarga_modal_ekspedisi").val("0");
+                $("#kgberat_modal_ekspedisi").val(response.data.jarakKirim);
+                if(parseInt(response.data.jarakKirim) > 0){
+                    $("#kgberat_modal_ekspedisi").attr("disabled", true);
+                } else {
+                    $("#kgberat_modal_ekspedisi").attr("disabled", false);
+                }
                 if(response.data.flagFree == false || response.data.flagFree == 'false'){
                     $("#img_gratis_ongkir_modal_ekspedisi").addClass("d-none");
                     $("#img_gratis_ongkir_modal_ekspedisi").removeClass("d-flex");
@@ -1174,13 +1182,16 @@ function actionOngkosKirim(){
                     $("#img_gratis_ongkir_modal_ekspedisi").removeClass("d-none");
                     $("#img_gratis_ongkir_modal_ekspedisi").addClass("d-flex");
                 }
+                $("#cbEks_modal_ekspedisi").empty();
+                $("#cbNamaEks_modal_ekspedisi").empty();
                 response.data.namaEkspedisi1.forEach(item => {
-                    $("#nama_ekspedisi_modal_ekspedisi").append(`<option value="${item.eks_kodeekspedisi}">${item.eks_namaekspedisi}</option>`);
+                    $("#cbEks_modal_ekspedisi").append(`<option value="${item.eks_kodeekspedisi}">${item.eks_namaekspedisi}</option>`);
                 });
                 response.data.namaEkspedisi2.forEach(item => {
-                    $("#nama_ekspedisi_modal_ekspedisi").append(`<option value="${item.id}">${item.title}</option>`);
+                    $("#cbNamaEks_modal_ekspedisi").append(`<option value="${item.id}">${item.title}</option>`);
                 });
-                $("#jarak_modal_ekspedisi").val(response.data.jarakKirim);
+                $("#BtnOK_modal_ekspedisi").addClass("d-none");
+                $("#cbPengirim_modal_ekspedisi option:first").prop("selected", true).trigger("change");
                 $("#modal_ekspedisi").modal("show");
             }
         }, error: function(jqXHR, textStatus, errorThrown) {
@@ -1195,6 +1206,133 @@ function actionOngkosKirim(){
     });
 }
 
+$("#cbPengirim_modal_ekspedisi").change(function(){
+    if($(this).val() == "EKSPEDISI"){
+        $("#lblNama_modal_ekspedisi").text("Nama Ekspedisi");
+        $("#lblJarak_modal_ekspedisi").text("Ongkos Kirim");
+
+        $("#cbEks_modal_ekspedisi").addClass("d-none");
+        $("#cbNama_modal_ekspedisi").removeClass("d-none");
+        $("#txtNama_modal_ekspedisi").addClass("d-none")
+
+        $("#kgberat_modal_ekspedisi").addClass("d-none");
+        $("#txtHarga_modal_ekspedisi").removeClass("d-none");
+        $("#txtHarga_modal_ekspedisi").val("0");
+
+        if($("modal_ekspedisi").attr("data-simulasi") == true){
+            if(!$("#img_gratis_ongkir_modal_ekspedisi").hasClass("d-none")){
+                $("#txtHarga_modal_ekspedisi").attr("disabled", true);
+            } else {
+                $("#txtHarga_modal_ekspedisi").attr("disabled", false);
+            }
+        }
+    } else {
+        $("#lblNama_modal_ekspedisi").text("Jenis Kendaraan");
+        $("#lblJarak_modal_ekspedisi").text("Jarak");
+
+        $("#cbEks_modal_ekspedisi").removeClass("d-none");
+        $("#cbNama_modal_ekspedisi").addClass("d-none");
+        $("#txtNama_modal_ekspedisi").addClass("d-none")
+
+        $("#kgberat_modal_ekspedisi").removeClass("d-none");
+        $("#txtHarga_modal_ekspedisi").addClass("d-none");
+        $("#txtHarga_modal_ekspedisi").val($("#kgberat_modal_ekspedisi").val());
+        if($("#kgberat_modal_ekspedisi").val() > 0){
+            $("#kgberat_modal_ekspedisi").attr("disabled", true);
+        } else {
+            $("#kgberat_modal_ekspedisi").attr("disabled", false);
+        }
+    }
+});
+
+$("#showBtn_modal_ekspedisi").click(function(){
+    $("#rincian_biaya_modal_ekspedisi").val("");
+    if($("#cbPengirim_modal_ekspedisi").val() == "EKSPEDISI"){
+        $("#txtNama_modal_ekspedisi").val($("#cbNamaEks_modal_ekspedisi").val());
+        if($("#txtNama_modal_ekspedisi").val() == ""){
+            Swal.fire("Peringatan!", "Nama Ekspedisi Belum Anda Input.", "warning");
+            return;
+        }
+    } else {
+        if($("#kgberat_modal_ekspedisi").val() == ""){
+            Swal.fire("Peringatan!", "Jarak Pengiriman Belum Anda Input.", "warning");
+            return;
+        } else {
+            if(parseFloat($('#kgberat_modal_ekspedisi').val()) == 0){
+                Swal.fire("Peringatan!", "Jarak pengiriman Belum Anda Input.");
+                return;
+            }
+        }
+
+        hitungBiaya()
+    }
+});
+
+function hitungBiaya(){
+    $("#modal_ekspedisi").attr("data-ongkos", "0");
+    $("#modal_ekspedisi").attr("data-zona", "1");
+    var kodeEkspedisi, Ongkos, Jarak;
+
+    if($("#cbPengirim_modal_ekspedisi").val() == "EKSPEDISI"){
+        kodeEkspedisi = $("#txtNama_modal_ekspedisi").val();
+
+        Jarak = parseFloat($('#kgberat_modal_ekspedisi').val().replace('.', ','));
+        Ongkos = parseFloat($('#txtHarga_modal_ekspedisi').val().replace('.', ''));
+    } else {
+        kodeEkspedisi = $("#cbEks_modal_ekspedisi").val();
+        Jarak = parseFloat($('#kgberat_modal_ekspedisi').val().replace('.', ','));
+        $('#modal_loading').modal('show');
+        var temp_ongkos;
+        $.ajax({
+            url: currentURL + `/action/getOngkosHitungBiaya`,
+            type: "GET",
+            async: false,
+            data: { kodeEkspedisi: kodeEkspedisi, Jarak: Jarak },
+            success: function(response) {
+                setTimeout(function() { $('#modal_loading').modal('hide'); }, 500);
+                console.log(response.data[0]);
+                temp_ongkos = response.data[0].harga;
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                setTimeout(function() { $('#modal_loading').modal('hide'); }, 500);
+                Swal.fire({
+                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                        ? jqXHR.responseJSON.message
+                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                    icon: "error"
+                });
+                temp_ongkos = 0
+            }
+        });
+        Ongkos = temp_ongkos;
+    }
+
+    if(Ongkos == -1){
+        Swal.fire("Peringatan!", "Inputan Jarak Melebihi Jarak Makismal.", "warning");
+        return;
+    } else {
+        if(!$("#img_gratis_ongkir_modal_ekspedisi").hasClass("d-none")){
+            Ongkos = 0;
+        }
+
+        $("#rincian_biaya_modal_ekspedisi").val("");
+        $("#rincian_biaya_modal_ekspedisi").val($("#rincian_biaya_modal_ekspedisi").val() + "RINCIAN BIAYA PENGIRIMAN \n");
+        $("#rincian_biaya_modal_ekspedisi").val($("#rincian_biaya_modal_ekspedisi").val() + "=========================== \n");
+        if ($("#cbPengirim_modal_ekspedisi").val() == "EKSPEDISI") {
+            $("#rincian_biaya_modal_ekspedisi").val($("#rincian_biaya_modal_ekspedisi").val() + `Nama Ekspedisi : ${$("#txtNama_modal_ekspedisi").val().toUpperCase()}\n`);
+        } else {
+            $("#rincian_biaya_modal_ekspedisi").val($("#rincian_biaya_modal_ekspedisi").val() + `Jenis Kendaraan : ${$("#cbEks_modal_ekspedisi").val().toUpperCase()}\n`);
+            $("#rincian_biaya_modal_ekspedisi").val($("#rincian_biaya_modal_ekspedisi").val() + `Jarak : ${Jarak}\n`);
+        }
+        $("#rincian_biaya_modal_ekspedisi").val($("#rincian_biaya_modal_ekspedisi").val() + `Ongkos Kirim : ${fungsiRupiah(Ongkos)}\n`);
+
+        if($("modal_ekspedisi").attr("data-simulasi") == false){
+            $("#BtnOK_modal_ekspedisi").removeClass("d-none");
+            $("#BtnOK_modal_ekspedisi").attr("disabled", false);
+        }
+    }
+}
+
 function actionDraftStruk(){
     var selectedRow = tb.row(".select-r").data();
     $('#modal_loading').modal('show');
@@ -1203,7 +1341,7 @@ function actionDraftStruk(){
         type: "POST",
         data: { kode_web: selectedRow.kodeweb, tanggal_trans: $("#tanggal_trans").val(), selectedRow: selectedRow },
         success: function(response) {
-            // setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             actionGlobalDownloadZip(response.data.pathStorage, "Draft-Struk.zip");
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);

@@ -1221,6 +1221,30 @@ class KlikIgrController extends Controller
         $this->setOngkir($request->flagBayar, $request->nopb, $request->tanggal_pb, $request->no_trans, $request->freeOngkir, $request->jarakKirim, $request->kode_member);
     }
 
+    public function getOngkosHitungBiaya(Request $request){
+        $query = "";
+        $query .= "SELECT CASE WHEN " . str_replace(",", ".", $request->Jarak) . " > toz_kilo_max THEN -1 ELSE ";
+        $query .= "       CASE ";
+        $query .= "       WHEN " . str_replace(",", ".", $request->Jarak) . " > coalesce(toz_kilo_c, 9999999999) AND " . str_replace(",", ".", $request->Jarak) . " > coalesce(toz_kilo_a, 9999999999) THEN ";
+        $query .= "            toz_harga_a ";
+        $query .= "            + ((toz_kilo_c - toz_kilo_a) * toz_harga_b) ";
+        $query .= "            + ((" . str_replace(",", ".", $request->Jarak) . " - toz_kilo_c) * (toz_harga_b + toz_harga_c)) ";
+        $query .= "       WHEN " . str_replace(",", ".", $request->Jarak) . " > coalesce(toz_kilo_a, 9999999999) THEN ";
+        $query .= "            toz_harga_a ";
+        $query .= "            + ((" . str_replace(",", ".", $request->Jarak) . " - toz_kilo_a) / toz_kilo_b * toz_harga_b) ";
+        $query .= "       ELSE ";
+        $query .= "            toz_harga_a ";
+        $query .= "       END ";
+        $query .= "       END AS harga ";
+        $query .= "  FROM tbmaster_obi_zona ";
+        $query .= " WHERE toz_kodeekspedisi = '" . $request->kodeEkspedisi . "' ";
+
+
+
+        $data = DB::select($query);
+        return ApiFormatter::success(200, "success", $data);
+    }
+
     //* Lanjutan Form Ongkir
     public function actionHitungUlang(Request $request){
         $ongkos = 0;
@@ -6186,15 +6210,15 @@ class KlikIgrController extends Controller
                 }else{
                     $query = '';
                     $query .= "SELECT COALESCE(hj_jarak, 0) jarakkirim  ";
-                    $query .= "  FROM history_jarak ";
-                    $query .= " WHERE hj_kodeigr = '" . session('KODECABANG') . "' ";
-                    $query .= "   AND hj_kdmember = '" . $dgv_memberigr . "' ";
-                    $query .= "   AND hj_alamat = ( ";
-                    $query .= "                    SELECT amm_namaalamat ";
-                    $query .= "                      FROM tbtr_alamat_mm ";
-                    $query .= "                     WHERE amm_kodemember = '" . $dgv_memberigr . "' ";
-                    $query .= "                       AND amm_notrans = '" . $dgv_notrans . "' ";
-                    $query .= "                       AND amm_nopb = '" . $dgv_nopb . "' ";
+                    $query .= "  FROM history_jarak LIMIT 3";
+                    // $query .= " WHERE hj_kodeigr = '" . session('KODECABANG') . "' ";
+                    // $query .= "   AND hj_kdmember = '" . $dgv_memberigr . "' ";
+                    // $query .= "   AND hj_alamat = ( ";
+                    // $query .= "                    SELECT amm_namaalamat ";
+                    // $query .= "                      FROM tbtr_alamat_mm ";
+                    // $query .= "                     WHERE amm_kodemember = '" . $dgv_memberigr . "' ";
+                    // $query .= "                       AND amm_notrans = '" . $dgv_notrans . "' ";
+                    // $query .= "                       AND amm_nopb = '" . $dgv_nopb . "' ";
                     $dtJarak = DB::select($query);
 
                     if(count($dtJarak)){
@@ -6212,9 +6236,9 @@ class KlikIgrController extends Controller
                 $data['namaEkspedisi1'] = DB::select($query);
 
                 $query = "SELECT id, title FROM master_shipping_klikigr ";
-                $query .= " WHERE UPPER(title) NOT LIKE '%AMBIL%TOKO%' ";
+                // $query .= " WHERE UPPER(title) NOT LIKE '%AMBIL%TOKO%' ";
                 // $query += " AND UPPER(title) NOT LIKE '%KURIR%INDOGROSIR%' ";
-                $query .= " ORDER BY id ASC ";
+                $query .= " ORDER BY id ASC LIMIT 5";
 
                 $data['namaEkspedisi2'] = DB::select($query);
 

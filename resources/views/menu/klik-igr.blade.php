@@ -887,7 +887,7 @@
     </div>
 </div>  
 
-<div class="modal fade" role="dialog" id="modal_ekspedisi" data-keyboard="false" data-backdrop="static">
+<div class="modal fade" role="dialog" id="modal_ekspedisi" data-simulasi="false" data-ongkos="" data-zona="" data-keyboard="false" data-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header br">
@@ -900,37 +900,40 @@
                 <div style="position: static!important">
                     <div class="d-flex justify-content-between flex-column position-relative pb-5" style="gap: 15px">
                         <div class="form-group d-flex align-items-center validasi-struk-form-group child-no-radius m-0">
-                            <label for="pengiriman_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Pengiriman : </label>
-                            <select class="form-control" id="pengiriman_modal_ekspedisi" style="width: 275px">
+                            <label for="cbPengirim_modal_ekspedisi" id="lblPengirim_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Pengiriman : </label>
+                            <select class="form-control" id="cbPengirim_modal_ekspedisi" style="width: 275px">
                                 <option value="TEAM DELIVERY IGR" selected>TEAM DELIVERY IGR</option>
                                 <option value="EKSPEDISI">EKSPEDISI</option>
                             </select>
                         </div>
                         <div class="form-group d-flex align-items-center validasi-struk-form-group child-no-radius m-0">
-                            <label for="nama_ekspedisi_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Nama Ekspedisi : </label>
+                            <label for="cbNamaEks_modal_ekspedisi" id="lblNama_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Nama Ekspedisi : </label>
                             <div class="d-flex child-no-radius w-100" style="gap: 15px">
-                                <select class="form-control" id="nama_ekspedisi_modal_ekspedisi" style="flex: 1">
+                                <select class="form-control" id="cbNamaEks_modal_ekspedisi" style="flex: 1">
                                 </select>
-                                <input type="text" class="form-control" style="flex: 1" id="txt_nama_modal_ekspedisi">
+                                <select class="form-control" id="cbEks_modal_ekspedisi" style="flex: 1">
+                                </select>
+                                <input type="text" class="form-control" style="flex: 1" id="txtNama_modal_ekspedisi">
                             </div>
                         </div>
                         <div class="form-group d-flex align-items-center validasi-struk-form-group child-no-radius m-0">
-                            <label for="jarak_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Jarak : </label>
-                            <input type="text" class="form-control" id="jarak_modal_ekspedisi" style="width: 275px">
+                            <label for="kgberat_modal_ekspedisi" id="lblJarak_modal_ekspedisi" class="detail-info bg-teal m-0 w-200px">Jarak : </label>
+                            <input type="text" class="form-control" id="kgberat_modal_ekspedisi" style="width: 275px">
+                            <input type="text" class="form-control" id="txtHarga_modal_ekspedisi" style="width: 275px">
                         </div>
                         <div class="position-absolute d-flex align-items-center flex-column" id="img_gratis_ongkir_modal_ekspedisi" draggable="false" style="right: 27px; bottom: -11px;">
                             <img src="{{ asset("img\checklist.png") }}" alt="checklist" style="width: 65px">
                             <p style="color: black;"><b>FREE ONGKIR</b></p>
                         </div>
                     </div>
-                    <textarea id="rincian_biaya_modal_ekspedisi" rows="4" class="form-control"></textarea>
+                    <textarea id="rincian_biaya_modal_ekspedisi" rows="7" class="form-control"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <div class="float-right mt-4 d-flex">
-                    <button type="button" class="btn btn-primary btn-lg" onclick="action_f6(true)" style="width: 180px">Confirm</button>
-                    <input type="number" class="form-control" style="margin: 0 15px; width: 180px; height: 42px" id="kg_berat_modal_ekspedisi">
-                    <button type="button" class="btn btn-primary btn-lg" style="width: 180px" onclick="actionAdditionalHitungUlangEkspedisi()">Calculate</button>
+                    <button type="button" class="btn btn-primary btn-lg" id="BtnOK_modal_ekspedisi" style="width: 180px">Confirm</button>
+                    <input type="number" class="form-control" style="margin: 0 15px; width: 180px; height: 42px" id="kgberatLama_modal_ekspedisi">
+                    <button type="button" class="btn btn-primary btn-lg" style="width: 180px" id="showBtn_modal_ekspedisi">Calculate</button>
                     <button type="button" style="width: 180px; margin-left: 15px" class="btn btn-lg btn-secondary" data-dismiss="modal">CANCEL</button>
                 </div>
             </div>
@@ -2022,7 +2025,6 @@ $("#button_proses").click(function(){
     })
 });
 
-//! IRVAN | Function Banyak Dikerjakan Nanti
 function TimerSendHHKlik_Tick(){
     flagSendHH_Tick = true;
     $('#modal_loading_send_hh').modal('show');
