@@ -89,43 +89,43 @@
                                 </ul>
                                 <div class="tab-content" id="myTabContent">
                                     <div class="tab-pane fade show active" id="IDM1" role="tabpanel" aria-labelledby="IDM1-tab"> 
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Outstanding DSPB</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Cetak Hitory DSPB</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Struk Hadiah</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Pemutihan Batch</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Cetak BA Ulang</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Cetak BPBR Ulang</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Beban Retur IGR</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Analisa CRM</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Absensi WT</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Listing BA</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Retur IDM</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Outstanding Retur</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Cetak BA Bronjong</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding_dspb','Outstanding DSPB','/api/report/cetak/outstanding_dspb',false,false)">Outstanding DSPB</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_hitory_dspb','Cetak Hitory DSPB','/api/report/cetak/cetak_hitory_dspb',false,false)">Cetak Hitory DSPB</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk_hadiah','Struk Hadiah','/api/report/cetak/struk_hadiah',false,false)">Struk Hadiah</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('pemutihan_batch','Pemutihan Batch','/api/report/cetak/pemutihan_batch',false,false)">Pemutihan Batch</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_ba_ulang','Cetak BA Ulang','/api/report/cetak/cetak_ba_ulang',false,false)">Cetak BA Ulang</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_bpbr_ulang','Cetak BPBR Ulang','/api/report/cetak/cetak_bpbr_ulang',false,false)">Cetak BPBR Ulang</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('beban_retur_igr','Beban Retur IGR','/api/report/cetak/beban_retur_igr',false,false)">Beban Retur IGR</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('analisa_crm','Analisa CRM','/api/report/cetak/analisa_crm',false,false)">Analisa CRM</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('absensi_wt','Absensi WT','/api/report/cetak/absensi_wt',false,false)">Absensi WT</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('listing_ba','Listing BA','/api/report/cetak/listing_ba',false,false)">Listing BA</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('retur_idm','Retur IDM','/api/report/cetak/retur_idm',false,false)">Retur IDM</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding_retur','Outstanding Retur','/api/report/cetak/outstanding_retur',false,false)">Outstanding Retur</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_ba_bronjong','Cetak BA Bronjong','/api/report/cetak/cetak_ba_bronjong',false,false)">Cetak BA Bronjong</button>
                                     </div>
                                     <div class="tab-pane fade" id="IDM2" role="tabpanel" aria-labelledby="IDM2-tab">
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">RTBR</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Tolakan Retur</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Cetak BA Acost 0</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">History DSPB Roti</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Rekap DSPB Roti</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">History DSPB Voucher</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">History Rubah Status</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">History Paket IPP</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Rekap Pindah Lokasi</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">NPB Web Service</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Perubahan Status Retur</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Retur Supplier</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Serah Terima Retur</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="">Cetak History QRCode</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('rtbr','RTBR','/api/report/cetak/rtbr',false,false)">RTBR</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('tolakan-retur','Tolakan Retur','/api/report/cetak/tolakan_retur',false,false)">Tolakan Retur</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ba-acost','Cetak BA Acost','/api/report/cetak/cetak_ba_acost',false,false)">Cetak BA Acost 0</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('history-dspb-roti','History DSPB Roti','/api/report/cetak/history_dspb_roti',false,false)">History DSPB Roti</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('rekap-dspb-roti','Rekap DSPB Roti','/api/report/cetak/rekap_dspb_roti',false,false)">Rekap DSPB Roti</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('history-dspb-voucher','History DSPB Voucher','/api/report/cetak/history_dspb_voucher',false,false)">History DSPB Voucher</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('history-rubah-status','History Rubah Status','/api/report/cetak/history_rubah_status',false,false)">History Rubah Status</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('history-paket-ipp','History Paket IPP','/api/report/cetak/history_paket_ipp',false,false)">History Paket IPP</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('rekap-pindah-lokasi','Rekap Pindah Lokasi','/api/report/cetak/rekap_pindah_lokasi',false,false)">Rekap Pindah Lokasi</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('npb-web-service','NPB Web Service','/api/report/cetak/npb_web_service',false,false)">NPB Web Service</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('perubahan-status-retur','Perubahan Status Retur','/api/report/cetak/perubahan_status_retur',false,false)">Perubahan Status Retur</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('retur-supplier','Retur Supplier','/api/report/cetak/retur_supplier',false,false)">Retur Supplier</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('serah-terima-retur','Serah Terima Retur','/api/report/cetak/serah_terima_retur',false,false)">Serah Terima Retur</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-history-qrcode','Cetak History QRcode','/api/report/cetak/cetak_history_qrcode',false,false)">Cetak History QRCode</button>
                                         
                                         
                                     </div>
                                     <div class="tab-pane fade" id="OMI" role="tabpanel" aria-labelledby="OMI-tab">
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-dsp','Cetak Ulang DSP','/api/report/cetak/dsp/ulang')">Cetak Ulang DSP</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-sj','Cetak Ulang SJ','/api/report/cetak/sj/ulang')">Cetak Ulang SJ</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk-hadiah','Cetak Struk Hadiah','/api/report/struk/hadiah')">Struk Hadiah</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding-dsp','Cetak Outstanding DSP','/api/report/outstanding/dsp',true)">Outstanding DSP</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-dsp','Cetak Ulang DSP','/api/report/cetak/dsp/ulang',false,true)">Cetak Ulang DSP</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-sj','Cetak Ulang SJ','/api/report/cetak/sj/ulang',false,true)">Cetak Ulang SJ</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk-hadiah','Cetak Struk Hadiah','/api/report/struk/hadiah',false,true)">Struk Hadiah</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding-dsp','Cetak Outstanding DSP','/api/report/outstanding/dsp',true,true)">Outstanding DSP</button>
                                     </div>
                                 </div>
                                 
@@ -133,7 +133,7 @@
                             </div>
                         </div>
                         <div class="col-md-9">   
-                            <iframe id="pdfFrame" src="{{url('test')}}" type="application/pdf"></iframe>
+                            <iframe id="pdfFrame" src="" type="application/pdf"></iframe>
 
                         </div>
                     </div>
@@ -191,7 +191,7 @@
                         
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">OK</button>
+                        <button type="button" onclick="submit_modal()" class="btn btn-primary">OK</button>
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     </div>
                 </form>

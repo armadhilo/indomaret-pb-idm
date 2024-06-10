@@ -26,10 +26,15 @@
             <br>
             @php
                 $no = 1;
+                $totalDpp = 0;
+                $totalPpn = 0;
+                $totalGrandDpp = 0;
+                $totalGrandPpn = 0;
             @endphp
             <table class="table" style=" margin-top:10px;">
                 <thead style="border-top: 1px solid black;border-bottom: 1px solid black;">
                     <tr>
+                        <th style="text-align:center; width:20px;"></th>
                         <th style="text-align:center; width:20px;">@lang('No DSPB')</th>
                         <th style="text-align:center; width:100px;">@lang('DPP')</th>
                         <th style="text-align:center; width:80px; white-space:wrap;">@lang('PPN')</th>
@@ -37,32 +42,42 @@
                     </tr>
                 </thead>
                 <tbody style="border-bottom: 1px solid black;">
-                
-
+                @foreach($data->data->DATA as $key => $value)
+                    @php
+                        $totalDpp += $value->dpp;
+                        $totalPpn += $value->ppn;
+                        $totalGrandDpp += $value->dpp;
+                        $totalGrandPpn += $value->ppn;
+                    @endphp
                     <tr>
-                        <td colspan="4" style="text-align:left;">testing</td>
+                        <td colspan="4" style="text-align:left; padding-left:32px;">
+                            <u>
+                                {{$value->ikl_kodeidm.'-'.$value->tko_namaomi}}
+                            </u>
+                        </td>
                     </tr>
                     <tr>
-                        <td style="text-align:center;">1</td>
-                        <td style="text-align:center;">1</td>
-                        <td style="text-align:center;">1</td>
-                        <td style="text-align:center;">1</td>
+                        <td style="text-align:center;">{{ $value->ikl_nopb}}</td>
+                        <td style="text-align:center;">{{ $value->ikl_registerrealisasi}}</td>
+                        <td style="text-align:center;">{{ number_format((int)$value->dpp,0,'.',',') }}</td>
+                        <td style="text-align:center;">{{ number_format((int)$value->ppn,0,'.',',') }}</td>
+                        <td style="text-align:center;"></td>
+                    </tr>
+                @endforeach
+                    <tr>
+                        <td colspan="4"></td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:right;" colspan="2">@lang('Total')</td>
+                        <td style="text-align:center;">{{ number_format( $totalDpp,0,'.',',') }}</td>
+                        <td style="text-align:left; padding-left:75px;"colspan="2">{{ number_format( $totalPpn,0,'.',',') }}</td>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td style="text-align:right;" colspan="3">@lang('Total BKP')</td>
-                        <td style="text-align:center;">@lang('0')</td>
-                        <td style="text-align:center;">@lang('0')</td>
-                        <td style="text-align:center;">@lang('0')</td>
-                        <td style="text-align:center;">@lang('0')</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:right;" colspan="3">@lang('Total BTKP')</td>
-                        <td style="text-align:center;">@lang('0')</td>
-                        <td style="text-align:center;">@lang('0')</td>
-                        <td style="text-align:center;">@lang('0')</td>
-                        <td style="text-align:center;">@lang('0')</td>
+                        <td style="text-align:right;" colspan="2">@lang('Grand Total')</td>
+                        <td style="text-align:center;">{{ number_format( $totalGrandDpp,0,'.',',') }}</td>
+                        <td style="text-align:left; padding-left:75px;"colspan="2">{{ number_format( $totalGrandPpn,0,'.',',') }}</td>
                     </tr>
                 </tfoot>
             </table>  

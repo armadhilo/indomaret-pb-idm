@@ -37,4 +37,29 @@ trait mdPublic
             'data' => $dtPPN
         ];
     }
+
+    //OMI
+
+    public function HelpTokoOMI(){
+        $data = DB::select("
+            select TKO_KODEOMI,TKO_NAMAOMI
+            from  tbmaster_tokoigr 
+            where TKO_KODESBU = 'O'
+            limit 2000
+        ");
+        return $data;
+    }
+    //IDM
+
+    public function HelpTokoIDM(){
+        $data = DB::select("
+            select TKO_KODEOMI,TKO_NAMAOMI
+            from  tbmaster_tokoigr
+            WHERE TKO_KODESBU = 'I'
+            limit 2000
+        ");
+        return $data;
+    }
+
+
 }
