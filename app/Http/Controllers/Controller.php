@@ -32,10 +32,9 @@ class Controller extends BaseController
         return $data[0]['data'];
     }
 
-    //! NOTE INDOMARET
+    //! NOTE KEVIN
+    //? INI KARENA HIT ENDPOINT LANGSUNG RETURN TRUE AJA
     public function insertToNPB($cabang, $NamaFile, $dtH, $dtD){
-
-        //! INI KARENA HIT ENDPOINT LANGSUNG RETURN TRUE AJA
         return true;
     }
 
@@ -180,16 +179,16 @@ class Controller extends BaseController
                 'flag' => $flag,
                 'url' => $urlUpdateStatusKlik,
                 'status_klik' => $statusKlik,
-                'response' => 'response dummy', //! GET RESPONSE DARI ConToWebServiceNew (Dikerjain nanti karena harus check endpointnya) BELUM SELESAI
+                'response' => 'response dummy', //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
                 'create_by' => session('userid'),
                 'create_dt' => Carbon::now(),
             ]);
     }
 
-    //! SPI - DIPAKE DI KLIK IGR
+    //* SPI - DIPAKE DI KLIK IGR
     public function createTablePSP_SPI(){
 
-        //! CEK SEQUENCE SEQ_PICKING_SPI
+        //* CEK SEQUENCE SEQ_PICKING_SPI
         $count = DB::table('information_schema.sequences')
             ->whereRaw("upper(sequence_name) = 'SEQ_PICKING_SPI'")
             ->count();
@@ -204,7 +203,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBMASTER_GROUPRAK
+        //* CREATE TABLE TBMASTER_GROUPRAK
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBMASTER_GROUPRAK'")
             ->count();
@@ -227,7 +226,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TEMP_DPD_IDM
+        //* CREATE TABLE TEMP_DPD_IDM
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TEMP_DPD_IDM'")
             ->count();
@@ -262,7 +261,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE DPD_IDM_NOBARCODE
+        //* CREATE TABLE DPD_IDM_NOBARCODE
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'DPD_IDM_NOBARCODE'")
             ->count();
@@ -297,7 +296,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TEMP_HHELD_IDM
+        //* CREATE TABLE TEMP_HHELD_IDM
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TEMP_HHELD_IDM'")
             ->count();
@@ -330,7 +329,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE HHELD_IDM_ORA
+        //* CREATE TABLE HHELD_IDM_ORA
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'HHELD_IDM_ORA'")
             ->count();
@@ -376,7 +375,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE HHELD_HISTORY_IDM
+        //* CREATE TABLE HHELD_HISTORY_IDM
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'HHELD_HISTORY_IDM'")
             ->count();
@@ -422,7 +421,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE DPD_IDM_ORA
+        //* CREATE TABLE DPD_IDM_ORA
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'DPD_IDM_ORA'")
             ->count();
@@ -468,7 +467,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE DPD_HISTORY_IDM
+        //* CREATE TABLE DPD_HISTORY_IDM
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'DPD_HISTORY_IDM'")
             ->count();
@@ -514,7 +513,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE ZONA_IDM
+        //* CREATE TABLE ZONA_IDM
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'ZONA_IDM'")
             ->count();
@@ -537,7 +536,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE CONTAINER_IDM
+        //* CREATE TABLE CONTAINER_IDM
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'CONTAINER_IDM'")
             ->count();
@@ -558,7 +557,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CEK DATA CONTAINER_IDM - CONTAINER
+        //* CEK DATA CONTAINER_IDM - CONTAINER
         $count = DB::table('container_idm')
             ->whereRaw("upper(con_jenis) = 'CONTAINER'")
             ->count();
@@ -574,7 +573,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CEK DATA CONTAINER_IDM - BRONJONG
+        //* CEK DATA CONTAINER_IDM - BRONJONG
         $count = DB::table('container_idm')
             ->whereRaw("upper(con_jenis) = 'BRONJONG'")
             ->count();
@@ -590,7 +589,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE PICKING_ANTRIAN
+        //* CREATE TABLE PICKING_ANTRIAN
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'PICKING_ANTRIAN'")
             ->count();
@@ -612,7 +611,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE PICKING_CONTAINER
+        //* CREATE TABLE PICKING_CONTAINER
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'PICKING_CONTAINER'")
             ->count();
@@ -637,7 +636,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE DPD_DATA_IDM
+        //* CREATE TABLE DPD_DATA_IDM
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'DPD_DATA_IDM'")
             ->count();
@@ -679,7 +678,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE DPD_MASTER_IGR
+        //* CREATE TABLE DPD_MASTER_IGR
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'DPD_MASTER_IGR'")
             ->count();
@@ -697,7 +696,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBTR_DELIVERY_SPI
+        //* CREATE TABLE TBTR_DELIVERY_SPI
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->count();
@@ -722,7 +721,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CEK COLUMN TBTR_DELIVERY_SPI - DEL_NOPOL
+        //* CEK COLUMN TBTR_DELIVERY_SPI - DEL_NOPOL
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_NOPOL'")
@@ -732,7 +731,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE TBTR_DELIVERY_SPI ADD COLUMN DEL_NOPOL VARCHAR(100)");
         }
 
-        //! CEK COLUMN TBTR_DELIVERY_SPI - DEL_DRIVER
+        //* CEK COLUMN TBTR_DELIVERY_SPI - DEL_DRIVER
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_DRIVER'")
@@ -742,7 +741,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE TBTR_DELIVERY_SPI ADD DEL_DRIVER VARCHAR(100)");
         }
 
-        //! CEK COLUMN TBTR_DELIVERY_SPI - E
+        //* CEK COLUMN TBTR_DELIVERY_SPI - E
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_DELIVERYMAN'")
@@ -752,7 +751,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE TBTR_DELIVERY_SPI ADD COLUMN DEL_DELIVERYMAN VARCHAR(100)");
         }
 
-        //! CEK COLUMN TBTR_DELIVERY_SPI - DEL_NOLISTING
+        //* CEK COLUMN TBTR_DELIVERY_SPI - DEL_NOLISTING
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_NOLISTING'")
@@ -762,7 +761,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE TBTR_DELIVERY_SPI ADD COLUMN DEL_NOLISTING VARCHAR(20)");
         }
 
-        //! CEK COLUMN TBTR_DELIVERY_SPI - DEL_FLAGBATAL
+        //* CEK COLUMN TBTR_DELIVERY_SPI - DEL_FLAGBATAL
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_FLAGBATAL'")
@@ -772,7 +771,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE TBTR_DELIVERY_SPI ADD COLUMN DEL_FLAGBATAL VARCHAR(2)");
         }
 
-        //! CREATE TABLE TEMP_DELIVERY_SPI
+        //* CREATE TABLE TEMP_DELIVERY_SPI
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TEMP_DELIVERY_SPI'")
             ->count();
@@ -789,7 +788,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBTR_KONVERSI_SPI
+        //* CREATE TABLE TBTR_KONVERSI_SPI
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_KONVERSI_SPI'")
             ->count();
@@ -814,7 +813,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBTR_BAREFUND_SPI
+        //* CREATE TABLE TBTR_BAREFUND_SPI
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_BAREFUND_SPI'")
             ->count();
@@ -837,7 +836,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TEMP_BAREFUND_SPI
+        //* CREATE TABLE TEMP_BAREFUND_SPI
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TEMP_BAREFUND_SPI'")
             ->count();
@@ -855,7 +854,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBTR_BARUSAK_SPI
+        //* CREATE TABLE TBTR_BARUSAK_SPI
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_BARUSAK_SPI'")
             ->count();
@@ -883,7 +882,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CEK SEQUENCE SEQ_BA_REFUND_SPI
+        //* CEK SEQUENCE SEQ_BA_REFUND_SPI
         $count = DB::table('information_schema.sequences')
             ->whereRaw("upper(sequence_name) = 'SEQ_BA_REFUND_SPI'")
             ->count();
@@ -899,7 +898,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CEK SEQUENCE SEQ_BA_RUSAK_SPI
+        //* CEK SEQUENCE SEQ_BA_RUSAK_SPI
         $count = DB::table('information_schema.sequences')
             ->whereRaw("upper(sequence_name) = 'SEQ_BA_RUSAK_SPI'")
             ->count();
@@ -915,7 +914,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CEK SEQUENCE SEQ_LIST_DELIVERY_SPI
+        //* CEK SEQUENCE SEQ_LIST_DELIVERY_SPI
         $count = DB::table('information_schema.sequences')
             ->whereRaw("upper(sequence_name) = 'SEQ_LIST_DELIVERY_SPI'")
             ->count();
@@ -931,7 +930,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CEK COLUMN TBTR_DELIVERY_SPI - DEL_NOLISTING
+        //* CEK COLUMN TBTR_DELIVERY_SPI - DEL_NOLISTING
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_NOLISTING'")
@@ -941,7 +940,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE TBTR_DELIVERY_SPI ADD COLUMN DEL_NOLISTING VARCHAR(20)");
         }
 
-        //! CEK COLUMN TBTR_DSP_SPI - DSP_NOLISTING
+        //* CEK COLUMN TBTR_DSP_SPI - DSP_NOLISTING
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DSP_SPI'")
             ->whereRaw("upper(column_name) = 'DSP_NOLISTING'")
@@ -954,7 +953,7 @@ class Controller extends BaseController
 
     public function addColHitungUlang_SPI(){
 
-        //! ADD COLUMN TBTR_OBI_D - OBI_QTY_HITUNGULANG
+        //* ADD COLUMN TBTR_OBI_D - OBI_QTY_HITUNGULANG
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_OBI_D'")
             ->whereRaw("upper(column_name) = 'OBI_QTY_HITUNGULANG'")
@@ -964,7 +963,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE TBTR_OBI_D ADD COLUMN OBI_QTY_HITUNGULANG NUMERIC");
         }
 
-        //! ADD COLUMN PROMO_KLIKIGR - CASHBACK_HITUNGULANG
+        //* ADD COLUMN PROMO_KLIKIGR - CASHBACK_HITUNGULANG
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'PROMO_KLIKIGR'")
             ->whereRaw("upper(column_name) = 'CASHBACK_HITUNGULANG'")
@@ -974,7 +973,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE PROMO_KLIKIGR ADD COLUMN CASHBACK_HITUNGULANG NUMERIC");
         }
 
-        //! ADD COLUMN PROMO_KLIKIGR - KELIPATAN_HITUNGULANG
+        //* ADD COLUMN PROMO_KLIKIGR - KELIPATAN_HITUNGULANG
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'PROMO_KLIKIGR'")
             ->whereRaw("upper(column_name) = 'KELIPATAN_HITUNGULANG'")
@@ -984,7 +983,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE PROMO_KLIKIGR ADD COLUMN KELIPATAN_HITUNGULANG NUMERIC");
         }
 
-        //! ADD COLUMN PROMO_KLIKIGR - REWARD_PER_PROMO_HITUNGULANG
+        //* ADD COLUMN PROMO_KLIKIGR - REWARD_PER_PROMO_HITUNGULANG
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'PROMO_KLIKIGR'")
             ->whereRaw("upper(column_name) = 'REWARD_PER_PROMO_HITUNGULANG'")
@@ -994,7 +993,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE PROMO_KLIKIGR ADD COLUMN REWARD_PER_PROMO_HITUNGULANG NUMERIC");
         }
 
-        //! ADD COLUMN PROMO_KLIKIGR - REWARD_NOMINAL_HITUNGULANG
+        //* ADD COLUMN PROMO_KLIKIGR - REWARD_NOMINAL_HITUNGULANG
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'PROMO_KLIKIGR'")
             ->whereRaw("upper(column_name) = 'REWARD_NOMINAL_HITUNGULANG'")
@@ -1004,7 +1003,7 @@ class Controller extends BaseController
             DB::select("ALTER TABLE PROMO_KLIKIGR ADD COLUMN REWARD_NOMINAL_HITUNGULANG NUMERIC");
         }
 
-        //! ADD COLUMN TBTR_OBI_D - OBI_QTYBA
+        //* ADD COLUMN TBTR_OBI_D - OBI_QTYBA
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_OBI_D'")
             ->whereRaw("upper(column_name) = 'OBI_QTYBA'")
@@ -1026,7 +1025,7 @@ class Controller extends BaseController
         $PSP_NamaToko = $kodeMember;
         $PSP_KodeToko = 'SPI0';
 
-        //! TAMBAHAN CEGATAN SUDAH PERNAH SEND JALUR
+        //* TAMBAHAN CEGATAN SUDAH PERNAH SEND JALUR
         $query = '';
         $query .= " SELECT DISTINCT nopicking, nosuratjalan  ";
         $query .= " FROM dpd_idm_ora ";
@@ -1044,7 +1043,7 @@ class Controller extends BaseController
             return true;
         }
 
-        //! GET NO PICK
+        //* GET NO PICK
         // ExecScalar("select nextval('SEQ_PICKING_SPI')", "GET NO PICK", PSP_NoPick)
         // PSP_NoSJ = PSP_NoPick
 
@@ -1059,16 +1058,16 @@ class Controller extends BaseController
         $PSP_TglPick = Carbon::now();
 
 
-        //! DELETE TEMP_DPD_IDM
+        //* DELETE TEMP_DPD_IDM
         DB::table('temp_dpd_idm')->where('req_id', $this->getIP());
 
-        //! DELETE DPD_IDM_NOBARCODE
+        //* DELETE DPD_IDM_NOBARCODE
         DB::table('dpd_idm_nobarcode')->where('req_id', $this->getIP());
 
-        //! DELETE TEMP_HHELD_IDM
+        //* DELETE TEMP_HHELD_IDM
         DB::table('temp_hheld_idm')->where('req_id', $this->getIP());
 
-        //! INSERT INTO TEMP_DPD_IDM - BULKY
+        //* INSERT INTO TEMP_DPD_IDM - BULKY
         $query = '';
         $query .= "INSERT INTO TEMP_DPD_IDM ( ";
         $query .= "  FMNDOC, ";
@@ -1216,7 +1215,7 @@ class Controller extends BaseController
         $query .= "ORDER BY koderak, nour ";
         DB::insert($query);
 
-        //! INSERT INTO DPD_IDM_NOBARCODE - BULKY
+        //* INSERT INTO DPD_IDM_NOBARCODE - BULKY
         $query = '';
         $query .= "INSERT INTO DPD_IDM_NOBARCODE ( ";
         $query .= "  FMNDOC, ";
@@ -1343,7 +1342,7 @@ class Controller extends BaseController
         $query .= "ORDER BY koderak, nour ";
         DB::insert($query);
 
-        //! INSERT INTO TEMP_DPD_IDM - PIECES
+        //* INSERT INTO TEMP_DPD_IDM - PIECES
         $query = '';
         $query .= "INSERT INTO TEMP_DPD_IDM ( ";
         $query .= "  FMNDOC, ";
@@ -1490,7 +1489,7 @@ class Controller extends BaseController
         $query .= "ORDER BY koderak, nour ";
         DB::insert($query);
 
-        //! INSERT INTO DPD_IDM_NOBARCODE - PIECES
+        //* INSERT INTO DPD_IDM_NOBARCODE - PIECES
         $query = '';
         $query .= "INSERT INTO DPD_IDM_NOBARCODE ( ";
         $query .= "  FMNDOC, ";
@@ -1616,7 +1615,7 @@ class Controller extends BaseController
         $query .= "ORDER BY koderak, nour ";
         DB::insert($query);
 
-        //! INSERT INTO TEMP_HHELD_IDM
+        //* INSERT INTO TEMP_HHELD_IDM
         $query = '';
         $query .= "INSERT INTO TEMP_HHELD_IDM ( ";
         $query .= "  FMNDOC, ";
@@ -1745,7 +1744,7 @@ class Controller extends BaseController
         $query .= "ORDER BY koderak, nour ";
         DB::insert($query);
 
-        //! HHELD_IDM_ORA
+        //* HHELD_IDM_ORA
         $cek = DB::table('hheld_idm_ora')
             ->where('req_id', $this->getIP())
             ->whereNull('fmrcid')
@@ -1818,7 +1817,7 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! DPD_IDM_ORA
+        //* DPD_IDM_ORA
         $cek = DB::table('dpd_idm_ora')
             ->where('req_id', $this->getIP())
             ->whereNull('fmrcid')
@@ -1911,11 +1910,11 @@ class Controller extends BaseController
             DB::insert($query);
         }
 
-        //! CETAKIN LABEL CONTAINER / BRONJONG UNTUK TOKO YANG PERTAMA HARI ITU
+        //* CETAKIN LABEL CONTAINER / BRONJONG UNTUK TOKO YANG PERTAMA HARI ITU
         $noContainer = 1;
         $noBronjong = 1;
 
-        //! CEK PICKING_ANTRIAN
+        //* CEK PICKING_ANTRIAN
         $query = '';
         $query .= "SELECT COALESCE(COUNT(PIA_KODETOKO),0)  ";
         $query .= "FROM PICKING_ANTRIAN ";
@@ -1985,13 +1984,13 @@ class Controller extends BaseController
 
             $i = 0;
             foreach($dt as $key => $item){
-                //! JIKA ADA CONTAINER
+                //* JIKA ADA CONTAINER
                 if($item->jumlahcontainer > 0){
 
                     // BarcodeContainer = "01" & Strings.Right("0000000" & PSP_NoPick, 7) & Strings.Right("000" & noContainer.ToString, 3)
                     $BarcodeContainer = "01" . str_pad($PSP_NoPick, 7, "0", STR_PAD_LEFT) . str_pad($noContainer, 3, "0", STR_PAD_LEFT);
 
-                    //! INSERT INTO PICKING CONTAINER - Container
+                    //* INSERT INTO PICKING CONTAINER - Container
                     $query = '';
                     $query .= "INSERT INTO PICKING_CONTAINER ( ";
                     $query .= "  PICO_PrinterName, ";
@@ -2046,7 +2045,7 @@ class Controller extends BaseController
                         //                           PSP_KodeToko.Length.ToString, _
                         //                           Errmsg)
 
-                        //! UPDATE PICKING CONTAINER RECID 1 MENANDAKAN SUDAH DI PRINT
+                        //* UPDATE PICKING CONTAINER RECID 1 MENANDAKAN SUDAH DI PRINT
                         $query = '';
                         $query .= "UPDATE Picking_Container ";
                         $query .= "SET Pico_RecordID = '1' ";
@@ -2059,7 +2058,7 @@ class Controller extends BaseController
                     $noContainer += 1;
                 }
 
-                //! JIKA ADA BROJONG
+                //* JIKA ADA BROJONG
                 if($item->JumlahBronjong > 0){
 
                     // BarcodeContainer = "02" & Strings.Right("0000000" & PSP_NoPick, 7) & Strings.Right("000" & noBronjong.ToString, 3)
@@ -2119,7 +2118,7 @@ class Controller extends BaseController
                         //                          PSP_KodeToko.Length.ToString, _
                         //                          Errmsg)
 
-                        //! UPDATE PICKING CONTAINER RECID 1 MENANDAKAN SUDAH DI PRINT
+                        //* UPDATE PICKING CONTAINER RECID 1 MENANDAKAN SUDAH DI PRINT
                         $query = '';
                         $query .= "UPDATE Picking_Container ";
                         $query .= "SET Pico_RecordID = '1' ";
@@ -2134,7 +2133,7 @@ class Controller extends BaseController
             }
         }
 
-        //! ISI PICKING_ANTRIAN
+        //* ISI PICKING_ANTRIAN
         $NoUrutPaket = 1;
         $NoUrutTotal = 1;
 
@@ -2180,17 +2179,15 @@ class Controller extends BaseController
         return true;
     }
 
-    //! NOTE INDOMARET
+    //! NOTE KEVIN
+    //? INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
     public function CetakContainerPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
-        //! INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
-
         return true;
     }
 
-    //! NOTE INDOMARET
+    //! NOTE KEVIN
+    //? INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
     public function CetakBronjongPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
-        //! INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
-
         return true;
     }
 
@@ -2198,14 +2195,14 @@ class Controller extends BaseController
 
         try {
 
-            //! DELETE TBTR_KONVERSI_SPI
+            //* DELETE TBTR_KONVERSI_SPI
             $query = '';
             $query .= "DELETE FROM tbtr_konversi_spi ";
             $query .= "WHERE kvi_tgltrans = ".Carbon::parse($tglTrans)->format('Y-m-d H:i:s')."  ";
             $query .= "AND kvi_notrans = '" . $noTrans . "' ";
             DB::delete($query);
 
-            //! INSERT INTO TBTR_KONVERSI_SPI
+            //* INSERT INTO TBTR_KONVERSI_SPI
             $query = '';
             $query .= "INSERT INTO tbtr_konversi_spi ( ";
             $query .= "  kvi_tgltrans, ";
@@ -2243,7 +2240,7 @@ class Controller extends BaseController
             $query .= "AND obi_recid IS NULL ";
             DB::insert($query);
 
-            //! DELETE TBTR_OBI_D
+            //* DELETE TBTR_OBI_D
             $query = '';
             $query .= "DELETE FROM tbtr_obi_d ";
             $query .= "WHERE obi_tgltrans = ".Carbon::parse($tglTrans)->format('Y-m-d H:i:s')."  ";
@@ -2251,7 +2248,7 @@ class Controller extends BaseController
             $query .= "AND obi_recid IS NULL ";
             DB::delete($query);
 
-            //! INSERT INTO TBTR_OBI_D - NEW KONVERSI
+            //* INSERT INTO TBTR_OBI_D - NEW KONVERSI
             $query = '';
             $query .= "INSERT INTO tbtr_obi_d ( ";
             $query .= "  obi_tgltrans, ";
@@ -2303,7 +2300,7 @@ class Controller extends BaseController
             $query .= "ORDER BY plu ";
             DB::insert($query);
 
-            //! UPDATE TBTR_OBI_H - OBI_ITEMORDER
+            //* UPDATE TBTR_OBI_H - OBI_ITEMORDER
             $query = '';
             $query .= "SELECT * FROM tbtr_obi_d ";
             $query .= "WHERE obi_tgltrans = ".Carbon::parse($tglTrans)->format('Y-m-d H:i:s')."  ";

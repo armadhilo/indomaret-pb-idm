@@ -11,14 +11,11 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GeneralExcelExport;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use ZipArchive;
@@ -35,77 +32,75 @@ class KlikIgrController extends Controller
 
     public function index(){
 
-        // $pdf = PDF::loadView('pdf.klik-igr-listing-delivery');
-        // return $pdf->stream();
-        // $this->createTableIPP_ONL();
-        // // $this->getKonversiItemPerishable(true);
+        $this->createTableIPP_ONL();
+        $this->getKonversiItemPerishable(true);
 
-        // if(session('flagSPI')){
-        //     $this->createTablePSP_SPI();
-        //     $this->addColHitungUlang_SPI();
-        //     $this->alterDPDNOIDCTN();
+        if(session('flagSPI')){
+            $this->createTablePSP_SPI();
+            $this->addColHitungUlang_SPI();
+            $this->alterDPDNOIDCTN();
 
-        //     $data['cbAutoSendHH'] = false;
-        // }else{
-        //     $this->createLogUpdateRealisasiKlik();
-        //     $this->alterTablePickingRakToko();
+            $data['cbAutoSendHH'] = false;
+        }else{
+            $this->createLogUpdateRealisasiKlik();
+            $this->alterTablePickingRakToko();
 
-        //     $data['cbAutoSendHH'] = true;
-        // }
+            $data['cbAutoSendHH'] = true;
+        }
 
-        // //! Picking Rak Toko hanya IGRBDG
-        // $data['cbPickRakToko'] = false;
-        // if(session('KODECABANG') == '04'){
-        //     $data['cbPickRakToko'] = true;
-        // }
+        //* Picking Rak Toko hanya IGRBDG
+        $data['cbPickRakToko'] = false;
+        if(session('KODECABANG') == '04'){
+            $data['cbPickRakToko'] = true;
+        }
 
-        // $this->createAlasanBatalKlik();
-        // $this->alterTableSendHHotomatis();
-        // $this->alterTableCODVA();
-        // $this->alterTableCODPOIN();
-        // $this->alterTBTR_TRANSAKSI_VA();
+        $this->createAlasanBatalKlik();
+        $this->alterTableSendHHotomatis();
+        $this->alterTableCODVA();
+        $this->alterTableCODPOIN();
+        $this->alterTBTR_TRANSAKSI_VA();
 
-        // if(session('flagSPI')){
-        //     $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_SPI')->first();
-        // }else{
-        //     $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_KLIK')->first();
-        // }
+        if(session('flagSPI')){
+            $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_SPI')->first();
+        }else{
+            $dtUrl = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_KLIK')->first();
+        }
 
-        // if(!empty($dtUrl)){
-        //     $data['urlUpdateStatusKlik'] = $dtUrl->ws_url . '/updatestatustrx';
-        //     $data['urlUpdateRealisasiKlik'] = $dtUrl->ws_url . '/updtqtyrealisasi';
+        if(!empty($dtUrl)){
+            $data['urlUpdateStatusKlik'] = $dtUrl->ws_url . '/updatestatustrx';
+            $data['urlUpdateRealisasiKlik'] = $dtUrl->ws_url . '/updtqtyrealisasi';
 
-        //     $this->urlUpdateRealisasiKlik = $dtUrl->ws_url . '/updtqtyrealisasi';
-        // }
+            $this->urlUpdateRealisasiKlik = $dtUrl->ws_url . '/updtqtyrealisasi';
+        }
 
-        // if(session('flagSPI')){
-        //     if (str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
-        //         $data['statusGroupBox'] = "SPI";
-        //         $data['statusSiapPicking'] = "Siap Send HH";
-        //         $data['statusSiapPacking'] = "Siap Packing";
-        //         $data['btnSendJalur'] = "Send Handheld";
-        //     }elseif(str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D')){
-        //         $data['statusGroupBox'] = "SPI";
-        //         $data['statusSiapPicking'] = "Siap Send DPD";
-        //         $data['statusSiapPacking'] = "Siap Scanning";
-        //         $data['btnSendJalur'] = "Send DPD";
-        //     }else{
-        //         $data['statusGroupBox'] = "SPI";
-        //         $data['statusSiapPicking'] = "Siap Send Jalur";
-        //         $data['statusSiapPacking'] = "Siap Scanning";
-        //         $data['btnSendJalur'] = "Send Jalur";
+        if(session('flagSPI')){
+            if (str_contains(session('flagHHSPI'), 'H') AND !str_contains(session('flagHHSPI'), 'D')){
+                $data['statusGroupBox'] = "SPI";
+                $data['statusSiapPicking'] = "Siap Send HH";
+                $data['statusSiapPacking'] = "Siap Packing";
+                $data['btnSendJalur'] = "Send Handheld";
+            }elseif(str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D')){
+                $data['statusGroupBox'] = "SPI";
+                $data['statusSiapPicking'] = "Siap Send DPD";
+                $data['statusSiapPacking'] = "Siap Scanning";
+                $data['btnSendJalur'] = "Send DPD";
+            }else{
+                $data['statusGroupBox'] = "SPI";
+                $data['statusSiapPicking'] = "Siap Send Jalur";
+                $data['statusSiapPacking'] = "Siap Scanning";
+                $data['btnSendJalur'] = "Send Jalur";
 
-        //         $data['btnCetakIIK'] = false;
-        //         $data['btnPBBatal'] = 'List PB dan Item Batal';
-        //     }
-        // }else{
+                $data['btnCetakIIK'] = false;
+                $data['btnPBBatal'] = 'List PB dan Item Batal';
+            }
+        }else{
             $data['statusGroupBox'] = "KLIK IGR";
             $data['statusSiapPicking'] = "Siap Send HH";
             $data['statusSiapPacking'] = "Siap packing";
             $data['btnSendJalur'] = "Send Handheld";
 
             $data['btnPBBatal'] = 'List Item PB Batal';
-        // }
+        }
 
         $firstTwoChars = substr(session("KODECABANG"), 0, 2);
 
@@ -115,8 +110,7 @@ class KlikIgrController extends Controller
             $data["cbPickRakTokoVisible"] = false;
         }
 
-        //!! FUNCTION BELUM DIBUAT
-        // $this->bersihBersihIntransit();
+        $this->bersihBersihIntransit();
 
         $data['FlagProcess'] = False;
         $data['FlagSendHH'] = False;
@@ -125,47 +119,88 @@ class KlikIgrController extends Controller
         $data['btnKonfirmasiBayar'] = False;
         $data['dgv_notrans'] = false;
 
-        //!! FUNCTION BELUM DIBUAT
-        // $this->updateDataVoid();
+        $this->updateDataVoid();
 
-        // if(session('flagSPI')){
-        //     $this->cekPBAkanBatal();
-        // }
+        if(session('flagSPI')){
+            $this->cekPBAkanBatal();
+        }
 
         $this->cekItemBatal(True);
 
         return view('menu.klik-igr', $data);
     }
 
-    public function connectToWebservice(Request $request){
-        $url = $request->url;
-        $method = strtoupper($request->method);
-        $data = $request->input('data', '');
-        // Define the request headers
-        $headers = [
-            'User-Agent' => 'Mozilla/5.0 (Windows; U; Windows NT 6.1; ru; rv:1.9.2.3) Gecko/20100401 Firefox/4.0 (.NET CLR 3.5.30729)',
-            'Content-Type' => 'application/x-www-form-urlencoded',
-            'Referer' => $request->url,
-        ];
+    //! NOTE KEVIN
+    //? ini beberapa query di VB nya dicomment untuk proses nya jadi engga di migrasi
+    protected function bersihBersihIntransit(){
+        DB::select("DELETE FROM log_hitung_promoklik WHERE DATE_TRUNC('DAY',create_dt) < DATE_TRUNC('DAY',CURRENT_DATE) - INTERVAL '3' MONTH");
+        return true;
+    }
 
-        // Make the request
-        if ($method === 'POST') {
-            $response = Http::withHeaders($headers)
-                            ->withOptions(['verify' => false])
-                            ->asForm()
-                            ->post($request->url, [
-                                'body' => $data
-                            ]);
-        } else {
-            $response = Http::withHeaders($headers)
-                            ->withOptions(['verify' => false])
-                            ->get($request->url, [
-                                'query' => $data
-                            ]);
+    protected function updateDataVoid(){
+        if(session('flagSPI')){
+            $query = '';
+            $query .= "SELECT obi_recid recid, obi_notrans notrans, obi_nopb nopb, to_char(obi_tgltrans,'DD-MM-YYYY') tgltrans ";
+            $query .= " from tbtr_obi_h ";
+            $query .= " WHERE obi_recid IS NULL ";
+            $query .= " AND UPPER(obi_attribute2) IN ('KLIKIGR','SPI') ";
+            $query .= " AND CURRENT_DATE >= obi_expireddt ";
+        }else{
+            $query = '';
+            $query .= "SELECT obi_recid recid, obi_notrans notrans, obi_nopb nopb, to_char(obi_tgltrans,'DD-MM-YYYY') tgltrans ";
+            $query .= " from tbtr_obi_h ";
+            $query .= " WHERE ( ";
+            $query .= "   obi_recid IS NULL OR ";
+            $query .= "   (COALESCE(obi_recid,'0') = '1' AND  ";
+            $query .= "     (SELECT SUM(d.obi_qtyrealisasi) FROM tbtr_obi_d d ";
+            $query .= "       WHERE d.obi_tgltrans = tbtr_obi_h.obi_tgltrans  ";
+            $query .= "         AND d.obi_notrans = tbtr_obi_h.obi_notrans ";
+            $query .= "         AND d.obi_recid IS NULL) = 0 ";
+            $query .= "   ) ";
+            $query .= " ) ";
+            $query .= " AND UPPER(obi_attribute2) IN ('KLIKIGR','CORP','SPI') ";
+            $query .= " AND CURRENT_DATE >= obi_expireddt ";
         }
 
-        // Return the response body as a string
-        return response($response->body(), $response->status());
+        $dtPBBatal = DB::select($query);
+
+        if(count($dtPBBatal) > 0){
+            foreach($dtPBBatal as $item){
+                if(isset($item->recid)){
+                    if(in_array($item->recid, [2,3,4,7])){
+                        $this->prosesBatalPB($item->notrans, $item->nopb);
+                    }
+
+                    //* BATAL SETELAH DRAFT STRUK (RECID 4) - KURANG INTRANSIT
+                    if(in_array($item->recid, [4])){
+                        $this->updateIntransit(false, $item->notrans, $item->tgltrans);
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    protected function prosesBatalPB($notrans, $nopb){
+        $mydt = DB::select("select obi_prdcd PLU, obi_qtyrealisasi QTYREAL from tbtr_obi_d where obi_notrans = '" . $notrans . "' and obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_notrans = '" . $notrans . "' AND obi_nopb = '" . $nopb . "') and obi_qtyrealisasi > 0");
+        if(count($mydt)){
+            foreach($mydt as $item){
+                $query = '';
+                $query .= "Insert into tbhistory_obi_batal(obi_notrans, obi_tgltrans, obi_prdcd, obi_qtyorder, obi_qtyrealisasi) ";
+                $query .= " select h.obi_notrans, h.obi_tgltrans, obi_prdcd, obi_qtyorder, obi_qtyrealisasi ";
+                $query .= " from tbtr_obi_h h join tbtr_obi_d d ";
+                $query .= " on h.obi_notrans = d.obi_notrans and h.obi_tgltrans = d.obi_tgltrans ";
+                $query .= " where h.obi_notrans = '" . $notrans . "' and h.obi_nopb = '" . $nopb . "' and d.obi_prdcd = '" . $item->plu . "'";
+                DB::insert($query);
+
+                $query = '';
+                $query .= "Update tbtr_obi_d set obi_recid = '1' ";
+                $query .= "where obi_notrans = '" . $notrans . "' and obi_prdcd = '" . $item->plu . "' ";
+                $query .= "and obi_tgltrans = (select obi_tgltrans from tbtr_obi_h where obi_nopb = '" . $nopb . "' and obi_notrans = '" . $notrans . "') ";
+                DB::update($query);
+            }
+        }
     }
 
     public function actionGlobalDownloadZip(Request $request){
@@ -296,17 +331,15 @@ class KlikIgrController extends Controller
         $query .= "    FROM tbtr_obi_h  ";
         $query .= "    LEFT JOIN tbmaster_customer ON obi_kdmember = cus_kodemember ";
         $query .= "    LEFT JOIN tbtr_transaksi_va ON SUBSTR(obi_nopb, 0, 6)= tva_trxid AND obi_tglpb = tva_tglpb ";
-
-        //! IRVAN | DUMMY DATATABLES QUERY
-        // $query .= "   WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($tanggal_trans)->format('Y-m-d H:i:s')."'  ";
+        $query .= "   WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($tanggal_trans)->format('Y-m-d H:i:s')."'  ";
 
         // Adding conditional clause
-        // if (session('flagSPI') == true) {
-        //     $query .= "     AND UPPER(obi_nopb) LIKE '%SPI%' ";
-        // } else {
-        //     $query .= "     AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
-        // }
-        $query .= ") p LIMIT 25";
+        if (session('flagSPI') == true) {
+            $query .= "     AND UPPER(obi_nopb) LIKE '%SPI%' ";
+        } else {
+            $query .= "     AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+        }
+        $query .= ") p";
 
 
         $data = DB::select($query);
@@ -316,6 +349,9 @@ class KlikIgrController extends Controller
             ->make(true);
     }
 
+    //! NOTE KEVIN
+    //? khusus function ini transaction ada di private functionnya
+    //? ada di private function AutoSendHH
     public function SendHH_Tick(Request $request){
         if(session("flagIGR") && !session("flagSPI")){
             $query = "";
@@ -820,12 +856,11 @@ class KlikIgrController extends Controller
                     }
                 }
 
-                // DB::commit();
+                DB::commit();
 
                 if($flagKG){
                     $this->rptJalurKertasPerishable($tgltrans, $notrans, $nopb, $member);
                 }
-
 
                 if(count($dtNonPerishable) == 0 && count($dtPerishable) > 0){
                     $this->logUpdateStatus($notrans, $tgltrans, $nopb, "2", "2");
@@ -957,10 +992,10 @@ class KlikIgrController extends Controller
         }
 
         $query = "SELECT to_char(" . $tmpCashbackOrder . ", '99,999,999') AS total_cashback_order, ";
-        $query .= "       to_char(" . $tmpCashbackReal . ", '99,999,999') AS total_cashback_real, ";
-        $query .= "       to_char(" . $tmpKupon . ", '99,999,999') AS total_kupon, ";
-        $query .= "       to_char(" . ($tmpTotalOrder - $tmpKupon - $tmpCashbackOrder) . ", '99,999,999') AS total_order, ";
-        $query .= "       to_char(" . (($tmpTotalReal - $tmpKupon - $tmpCashbackReal) < 0 ? 0 : ($tmpTotalReal - $tmpKupon - $tmpCashbackReal)) . ", '99,999,999') AS total_real ";
+        $query .= " to_char(" . $tmpCashbackReal . ", '99,999,999') AS total_cashback_real, ";
+        $query .= " to_char(" . $tmpKupon . ", '99,999,999') AS total_kupon, ";
+        $query .= " to_char(" . ($tmpTotalOrder - $tmpKupon - $tmpCashbackOrder) . ", '99,999,999') AS total_order, ";
+        $query .= " to_char(" . (($tmpTotalReal - $tmpKupon - $tmpCashbackReal) < 0 ? 0 : ($tmpTotalReal - $tmpKupon - $tmpCashbackReal)) . ", '99,999,999') AS total_real ";
 
         $tmpHarga = DB::select($query);
 
@@ -1097,15 +1132,16 @@ class KlikIgrController extends Controller
         $data['no_trans_detail_transaksi_tab5'] = $selectedRow["notrans"];
 
         if (session("flagIGR") && !session("flagSPI")) {
-            // $query = "SELECT OBR_BARCODE AS NO_KOLI,
-            //             OBR_PRINTERNAME AS NAMA_PRINTER,
-            //             OBR_CREATE_BY AS CHECKER_ID,
-            //             TO_CHAR(OBR_CREATE_DT, 'DD-MM-YYYY') AS TGL_PB
-            //         FROM TBMASTER_OBI_BARCODE
-            //         WHERE OBR_BARCODE LIKE '%' || substr('" . $request->tanggal_trans . "', -2) || substr('" . $request->tanggal_trans . "', 3, 2) || substr('" . $request->tanggal_trans . "', 0, 2) || str_pad(substr('" . $selectedRow["notrans"] . "', -4), 4, '0', STR_PAD_LEFT) || '%'
-            //         ORDER BY obr_barcode DESC";
+            $query = "SELECT OBR_BARCODE AS NO_KOLI,
+                    OBR_PRINTERNAME AS NAMA_PRINTER,
+                    OBR_CREATE_BY AS CHECKER_ID,
+                    TO_CHAR(OBR_CREATE_DT, 'DD-MM-YYYY') AS TGL_PB
+                FROM TBMASTER_OBI_BARCODE
+                WHERE OBR_BARCODE LIKE '%' || substr('" . $request->tanggal_trans . "', -2) || substr('" . $request->tanggal_trans . "', 3, 2) || substr('" . $request->tanggal_trans . "', 0, 2) || str_pad(substr('" . $selectedRow["notrans"] . "', -4), 4, '0', STR_PAD_LEFT) || '%'
+                ORDER BY obr_barcode DESC";
         } else {
-            //! IRVAN | COLUMN PICO_CHECKERID TIDAK ADA
+            //! NOTE KEVIN
+            //? COLUMN PICO_CHECKERID TIDAK ADA
             $query = "SELECT PICO_BARCODEKOLI AS NO_KOLI,
                         PICO_PRINTERNAME AS NAMA_PRINTER,
                         -- PICO_CHECKERID AS CHECKER_ID,
@@ -1158,11 +1194,11 @@ class KlikIgrController extends Controller
 
     //? DONE
     //* btnSendJalur_Click
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionSendHandHelt(Request $request){
         try{
 
             //* Send Jalur No Trans = " & dgv_notrans & " Ini?
-            //! dgv_notrans tidak boleh null atau '';
 
             if($request->status != $request->statusSiapPicking){
                 return ApiFormatter::error(400, 'Bukan Data Yang Siap Send Jalur!');
@@ -1173,7 +1209,7 @@ class KlikIgrController extends Controller
             if(session('flagSPI') == true AND session('flagIGR') == false){
                 if (str_contains(session('flagHHSPI'), 'H') AND str_contains(session('flagHHSPI'), 'D') ) {
                     //? kalo susah form ini tampil diawal aja karena cuma buat dapet variable $pilihan
-                    //! open form -> frmOpsiPickSPI
+                    //* open form -> frmOpsiPickSPI
                     if($request->pilihan == 1){
                         $file_content = $this->sendSPI($request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
                     }elseif($request->pilihan == 2){
@@ -1190,35 +1226,56 @@ class KlikIgrController extends Controller
                 $file_content = $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
             }
 
-            DB::commit();
+            // DB::commit();
+
             return ApiFormatter::success(200, 'Proses Send HandHelt berhasil', $file_content);
 
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
         }catch(\Exception $e){
-            $response = json_decode($e->getResponse()->getContent(), true);
-            if($response["code"] === 401){
-                return response()->json([
-                    'code' => 401,
-                    'message' => $response["message"],
-                    'data' => $response["data"]
-                ], 401);
-            }
+
+            DB::rollBack();
+
             $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
             return ApiFormatter::error(400, $message);
         }
     }
 
     //* btnOngkir_Click
-    //! IRVAN | Bingung pas Form Nanti tanyakan
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionOngkosKirim(Request $request){
-        if(!isset($request->no_trans)){
-            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        }
+        DB::beginTransaction();
+        try{
 
-        if(strtolower($request->status) != 'Set Ongkir'){
-            return ApiFormatter::error(400, 'Belum Dapat Melakukan Set Ongkos Kirim!');
-        }
+            if(!isset($request->no_trans)){
+                return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+            }
 
-        $this->setOngkir($request->flagBayar, $request->nopb, $request->tanggal_pb, $request->no_trans, $request->freeOngkir, $request->jarakKirim, $request->kode_member);
+            if(strtolower($request->status) != 'Set Ongkir'){
+                return ApiFormatter::error(400, 'Belum Dapat Melakukan Set Ongkos Kirim!');
+            }
+
+            $this->setOngkir($request->flagBayar, $request->nopb, $request->tanggal_pb, $request->no_trans, $request->freeOngkir, $request->jarakKirim, $request->kode_member);
+
+            //DB::commit();
+
+            return ApiFormatter::success(200, 'Data Ongkos Kirim Berhasil Disimpan');
+
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
+        }
     }
 
     public function getOngkosHitungBiaya(Request $request){
@@ -1239,139 +1296,178 @@ class KlikIgrController extends Controller
         $query .= "  FROM tbmaster_obi_zona ";
         $query .= " WHERE toz_kodeekspedisi = '" . $request->kodeEkspedisi . "' ";
 
-
-
         $data = DB::select($query);
         return ApiFormatter::success(200, "success", $data);
     }
 
     //* Lanjutan Form Ongkir With Form
+    //! NOTE KEVIN | USE TRANSACTION
     public function ongkosKirimWithForm(Request $request){
-        $dgv_nopb = $request->nopb;
-        $dgv_tglpb = $request->tanggal_pb;
-        $dgv_notrans = $request->no_trans;
-        $dgv_freeongkir = $request->freeOngkir;
-        $dgv_jarakkirim = $request->jarakKirim;
-        $dgv_memberigr = $request->kode_member;
 
-        if($dgv_freeongkir == 'Y'){
-            $data["flagFree"] = true;
-        }else{
-            $data["flagFree"] = false;
-        }
+        DB::beginTransaction();
+        try{
 
-        $jarakKlik = $dgv_jarakkirim;
+            $dgv_nopb = $request->nopb;
+            $dgv_tglpb = $request->tanggal_pb;
+            $dgv_notrans = $request->no_trans;
+            $dgv_freeongkir = $request->freeOngkir;
+            $dgv_jarakkirim = $request->jarakKirim;
+            $dgv_memberigr = $request->kode_member;
 
-        if($jarakKlik > 0){
-            $data["jarakKirim"] = $jarakKlik;
-            $flagLockJarak = true;
-        }else{
-            $query = '';
-            $query .= "SELECT COALESCE(hj_jarak, 0) jarakkirim  ";
-            $query .= "  FROM history_jarak ";
-            $query .= " WHERE hj_kodeigr = '" . session('KODECABANG') . "' ";
-            $query .= "   AND hj_kdmember = '" . $dgv_memberigr . "' ";
-            $query .= "   AND hj_alamat = ( ";
-            $query .= "                    SELECT amm_namaalamat ";
-            $query .= "                      FROM tbtr_alamat_mm ";
-            $query .= "                     WHERE amm_kodemember = '" . $dgv_memberigr . "' ";
-            $query .= "                       AND amm_notrans = '" . $dgv_notrans . "' ";
-            $query .= "                       AND amm_nopb = '" . $dgv_nopb . "' ";
-            $dtJarak = DB::select($query);
+            if($dgv_freeongkir == 'Y'){
+                $data["flagFree"] = true;
+            }else{
+                $data["flagFree"] = false;
+            }
 
-            if(count($dtJarak)){
-                $jarakKlik = $dtJarak[0]->jarakkirim;
+            $jarakKlik = $dgv_jarakkirim;
+
+            if($jarakKlik > 0){
                 $data["jarakKirim"] = $jarakKlik;
                 $flagLockJarak = true;
             }else{
-                $data["jarakKirim"] = 0;
-                $flagLockJarak = false;
+                $query = '';
+                $query .= "SELECT COALESCE(hj_jarak, 0) jarakkirim  ";
+                $query .= "  FROM history_jarak ";
+                $query .= " WHERE hj_kodeigr = '" . session('KODECABANG') . "' ";
+                $query .= "   AND hj_kdmember = '" . $dgv_memberigr . "' ";
+                $query .= "   AND hj_alamat = ( ";
+                $query .= "                    SELECT amm_namaalamat ";
+                $query .= "                      FROM tbtr_alamat_mm ";
+                $query .= "                     WHERE amm_kodemember = '" . $dgv_memberigr . "' ";
+                $query .= "                       AND amm_notrans = '" . $dgv_notrans . "' ";
+                $query .= "                       AND amm_nopb = '" . $dgv_nopb . "' ";
+                $dtJarak = DB::select($query);
+
+                if(count($dtJarak)){
+                    $jarakKlik = $dtJarak[0]->jarakkirim;
+                    $data["jarakKirim"] = $jarakKlik;
+                    $flagLockJarak = true;
+                }else{
+                    $data["jarakKirim"] = 0;
+                    $flagLockJarak = false;
+                }
             }
-        }
 
-        //* SHOW FORM -> frmEkspedisi
-        $FlagEkspedisi = $request->formData['FlagEkspedisi'];
-        $biayaEkspedisi = $request->formData['biayaEkspedisi'];
-        $zona = $request->formData['zona'];
-        $kdEkspedisi = $request->formData['kdEkspedisi'];
-        $beratEkspedisi = $request->formData['beratEkspedisi'];
+            //* open form -> frmEkspedisi
+            $FlagEkspedisi = $request->formData['FlagEkspedisi'];
+            $biayaEkspedisi = $request->formData['biayaEkspedisi'];
+            $zona = $request->formData['zona'];
+            $kdEkspedisi = $request->formData['kdEkspedisi'];
+            $beratEkspedisi = $request->formData['beratEkspedisi'];
 
-        if($FlagEkspedisi == 'Y' OR $FlagEkspedisi == 'YY'){
-            $nmEks = $kdEkspedisi;
-            if($kdEkspedisi > 1){
-                $nmEks = DB::select("select eks_namaekspedisi from tbmaster_obi_ekspedisi where eks_kodeekspedisi = '" . $kdEkspedisi . "'")[0]->eks_namaekspedisi;
-            }else{
-                $nmEks = '-';
-            }
+            if($FlagEkspedisi == 'Y' OR $FlagEkspedisi == 'YY'){
+                $nmEks = $kdEkspedisi;
+                if($kdEkspedisi > 1){
+                    $nmEks = DB::select("select eks_namaekspedisi from tbmaster_obi_ekspedisi where eks_kodeekspedisi = '" . $kdEkspedisi . "'")[0]->eks_namaekspedisi;
+                }else{
+                    $nmEks = '-';
+                }
 
-            $query = "";
-            $query .= "UPDATE tbtr_obi_h ";
-            $query .= "   SET obi_ekspedisi = '" . $biayaEkspedisi . "', ";
-            $query .= "       obi_jrkekspedisi = '" . $beratEkspedisi . "', ";
-            $query .= "       obi_kdekspedisi = '" . $nmEks . "', ";
-            $query .= "       obi_zona = '" . $zona . "', ";
-            $query .= "       obi_recid = '3' ";
-            $query .= " WHERE obi_nopb = '" . $dgv_nopb . "', ";
-            $query .= "   AND obi_tglpb = '" . Carbon::parse($dgv_tglpb)->format('Y-m-d H:i:s') . "', ";
-            $query .= "   AND obi_notrans = '" . $dgv_notrans . "'";
-            DB::update($query);
-
-            if($flagLockJarak == false){
                 $query = "";
-                $query .= "INSERT INTO history_jarak ";
-                $query .= "SELECT obi_kodeigr, ";
-                $query .= "       obi_kdmember, ";
-                $query .= "       amm_namaalamat, ";
-                $query .= "       obi_jrkekspedisi ";
-                $query .= "  FROM tbtr_obi_h ";
-                $query .= "  JOIN tbtr_alamat_mm ";
-                $query .= "    ON amm_kodemember = obi_kdmember ";
-                $query .= "   AND amm_notrans = obi_notrans ";
-                $query .= "   AND amm_nopb = obi_nopb ";
-                $query .= " WHERE obi_kdmember = '" . $dgv_memberigr . "' ";
-                $query .= "   AND obi_notrans = '" . $dgv_notrans . "' ";
-                $query .= "   AND obi_nopb = '" . $dgv_nopb . "' ";
-                DB::insert($query);
+                $query .= "UPDATE tbtr_obi_h ";
+                $query .= "   SET obi_ekspedisi = '" . $biayaEkspedisi . "', ";
+                $query .= "       obi_jrkekspedisi = '" . $beratEkspedisi . "', ";
+                $query .= "       obi_kdekspedisi = '" . $nmEks . "', ";
+                $query .= "       obi_zona = '" . $zona . "', ";
+                $query .= "       obi_recid = '3' ";
+                $query .= " WHERE obi_nopb = '" . $dgv_nopb . "', ";
+                $query .= "   AND obi_tglpb = '" . Carbon::parse($dgv_tglpb)->format('Y-m-d H:i:s') . "', ";
+                $query .= "   AND obi_notrans = '" . $dgv_notrans . "'";
+                DB::update($query);
+
+                if($flagLockJarak == false){
+                    $query = "";
+                    $query .= "INSERT INTO history_jarak ";
+                    $query .= "SELECT obi_kodeigr, ";
+                    $query .= "       obi_kdmember, ";
+                    $query .= "       amm_namaalamat, ";
+                    $query .= "       obi_jrkekspedisi ";
+                    $query .= "  FROM tbtr_obi_h ";
+                    $query .= "  JOIN tbtr_alamat_mm ";
+                    $query .= "    ON amm_kodemember = obi_kdmember ";
+                    $query .= "   AND amm_notrans = obi_notrans ";
+                    $query .= "   AND amm_nopb = obi_nopb ";
+                    $query .= " WHERE obi_kdmember = '" . $dgv_memberigr . "' ";
+                    $query .= "   AND obi_notrans = '" . $dgv_notrans . "' ";
+                    $query .= "   AND obi_nopb = '" . $dgv_nopb . "' ";
+                    DB::insert($query);
+                }
             }
+
+            //DB::commit();
 
             $message = 'Data Ongkos Kirim Berhasil Disimpan.';
             return ApiFormatter::success(200, $message);
+
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
         }
+
     }
 
-    //? DONE
     //* btnStruk_Click
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionDraftStruk(Request $request){
-        $itemReal = $this->cekItemRealisasi($request->selectedRow["no_trans"], $request->selectedRow["no_pb"]);
-        if(!isset($request->selectedRow["no_trans"])){
-            return ApiFormatter::error(400, 'Data Tidak Memiliki !');
+
+        DB::beginTransaction();
+        try{
+
+            $itemReal = $this->cekItemRealisasi($request->selectedRow["no_trans"], $request->selectedRow["no_pb"]);
+            if(!isset($request->selectedRow["no_trans"])){
+                return ApiFormatter::error(400, 'Data Tidak Memiliki !');
+            }
+
+            if(strtolower($request->selectedRow["status"]) != 'set ongkir'){
+                return ApiFormatter::error(400, 'Bukan Data Yang Siap Draft Struk!');
+            }
+
+            if($itemReal == 0){
+                return ApiFormatter::error(400, 'Tidak Ada Data Realisasi!');
+            }
+
+            $this->draftStruk($request->kode_web, $request->selectedRow["kode_member"], $request->selectedRow["no_trans"], $request->selectedRow["no_pb"], $request->selectedRow["tgl_pb"], $request->tanggal_trans, $request->selectedRow["free_ongkir"], $request->selectedRow["tipe_kredit"], $request->selectedRow["flagbayar"], $request->selectedRow["tipe_bayar"], $request->selectedRow["tipe_kredit"], $request->selectedRow);
+
+            $data['pathStorage'] = "temp_nota_new";
+
+            //DB::commit();
+
+            return ApiFormatter::success(200, "Draft Struk Berhasil", $data);
+
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
         }
-
-        if(strtolower($request->selectedRow["status"]) != 'set ongkir'){
-            return ApiFormatter::error(400, 'Bukan Data Yang Siap Draft Struk!');
-        }
-
-        if($itemReal == 0){
-            return ApiFormatter::error(400, 'Tidak Ada Data Realisasi!');
-        }
-
-        $this->draftStruk($request->kode_web, $request->selectedRow["kode_member"], $request->selectedRow["no_trans"], $request->selectedRow["no_pb"], $request->selectedRow["tgl_pb"], $request->tanggal_trans, $request->selectedRow["free_ongkir"], $request->selectedRow["tipe_kredit"], $request->selectedRow["flagbayar"], $request->selectedRow["tipe_bayar"], $request->selectedRow["tipe_kredit"], $request->selectedRow);
-
-        $data['pathStorage'] = "temp_nota_new";
-
-        return ApiFormatter::success(200, "Draft Struk Berhasil", $data);
     }
 
-    //! IRVAN | API UNATUHORIZED & IP BLOCK
     //* btnPembayaranVA_Click
+    //! NOTE KEVIN | API UNATUHORIZED & IP BLOCK
     public function actionPembayaranVA(Request $request){
-        // if (str_contains($request->tipe_bayar, 'COD')) {
+
+        if (str_contains($request->tipe_bayar, 'COD')) {
             $query = '';
             $query .= " SELECT TO_CHAR(COALESCE(dsp_totalbayar,0),'9,999,999,999') TOTAL_BAYAR  ";
             $query .= " FROM tbtr_dsp_spi LIMIT 25";
-            // $query .= " WHERE dsp_notrans = '" . $request->no_trans . "' ";
-            // $query .= " AND dsp_nopb = '" . $request->nopb . "' ";
-            // $query .= " AND dsp_kodemember = '" . $request->member_igr . "' ";
+            $query .= " WHERE dsp_notrans = '" . $request->no_trans . "' ";
+            $query .= " AND dsp_nopb = '" . $request->nopb . "' ";
+            $query .= " AND dsp_kodemember = '" . $request->member_igr . "' ";
             $data["dt"] = DB::select($query);
 
             if(session("flagSPI")){
@@ -1401,60 +1497,102 @@ class KlikIgrController extends Controller
             // frm.labelAmount.Text = dt.Rows(0).Item("TOTAL_BAYAR").ToString
 
             //* open form -> frmVirtualAccount
-        // }
+        }
     }
 
-    //? DONE
     //* btnKonfirmasiBayar_Click_1
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionKonfirmasiPembayaran(Request $request){
-        if(!isset($request->no_trans)){
-            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        }
 
-        if(strtolower($request->status) != 'konfirmasi pembayaran'){
-            return ApiFormatter::error(400, 'Bukan Data Yang Siap Konfirmasi Pembayaran!');
-        }
+        DB::beginTransaction();
+        try{
 
-        return $this->konfirmasiBayar($request->nopb, $request->kode_member, $request->no_trans);
+            if(!isset($request->no_trans)){
+                return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+            }
+
+            if(strtolower($request->status) != 'konfirmasi pembayaran'){
+                return ApiFormatter::error(400, 'Bukan Data Yang Siap Konfirmasi Pembayaran!');
+            }
+
+            $konfirmasi_bayar = $this->konfirmasiBayar($request->nopb, $request->kode_member, $request->no_trans);
+
+            // DB::commit();
+
+            return ApiFormatter::success(200, 'Konfirmasi Pembyaran Berhasil', $konfirmasi_bayar);
+
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
+        }
     }
 
-    //? DONE
     //* btnSales_Click
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionSales(Request $request){
-        $trxid = substr($request->nopb, 0, 6);
 
-        if(!isset($request->no_trans)){
-            return ApiFormatter::error(400, 'Pilih Data Dahulu!');
-        }
+        DB::beginTransaction();
+        try{
 
-        if($request->status == 'Siap Struk'){
+            $trxid = substr($request->nopb, 0, 6);
 
-            if($request->tipe_bayar == 'COD'){
-                return ApiFormatter::error(400, 'Pembayaran Transaksi COD menggunakan Program POS !');
+            if(!isset($request->no_trans)){
+                return ApiFormatter::error(400, 'Pilih Data Dahulu!');
+            }
 
-            }elseif($request->tipe_bayar == 'COD-VA'){
-                if($this->CheckTransaksiVALunas($trxid, $request->tanggal_pb) == false){
-                    return ApiFormatter::error(400, 'Pembayaran Transaksi Virtual Account belum lunas !');
+            if($request->status == 'Siap Struk'){
+
+                if($request->tipe_bayar == 'COD'){
+                    return ApiFormatter::error(400, 'Pembayaran Transaksi COD menggunakan Program POS !');
+
+                }elseif($request->tipe_bayar == 'COD-VA'){
+                    if($this->CheckTransaksiVALunas($trxid, $request->tanggal_pb) == false){
+                        return ApiFormatter::error(400, 'Pembayaran Transaksi Virtual Account belum lunas !');
+                    }
+
+                    goto PrintStruk;
+
+                }else{
+                    PrintStruk:
+                    return $this->InsertTransaksi($request->kode_web, $request->nopb, $request->kode_member,$request->no_trans, $request->tanggal_pb, $request->tipe_kredit, $request->tanggal_trans, $request->tipe_bayar, $request->selectedRow);
                 }
 
-                goto PrintStruk;
-
             }else{
-                PrintStruk:
-                return $this->InsertTransaksi($request->kode_web, $request->nopb, $request->kode_member,$request->no_trans, $request->tanggal_pb, $request->tipe_kredit, $request->tanggal_trans, $request->tipe_bayar, $request->selectedRow);
+                if($request->status == 'Selesai Struk'){
+                    return ApiFormatter::error(400, 'Sudah Selesai Struk!');
+                }else{
+                    return ApiFormatter::error(400, 'Belum Siap Struk!, Barang masih dipacking');
+                }
             }
 
-        }else{
-            if($request->status == 'Selesai Struk'){
-                return ApiFormatter::error(400, 'Sudah Selesai Struk!');
-            }else{
-                return ApiFormatter::error(400, 'Belum Siap Struk!, Barang masih dipacking');
-            }
+            //DB::commit();
+
+            return ApiFormatter::success(200, 'Proses Sales berhasil dilakukan');
+
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
+
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
         }
     }
 
-    //? DONE
     //* btnCetakSJ_Click
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionCetakSuratJalan(Request $request){
 
         DB::beginTransaction();
@@ -1497,7 +1635,7 @@ class KlikIgrController extends Controller
                 $data["nama_file"] = $this->rptSuratJalan($selectedRow['notrans'], $selectedRow['kodeweb'], $selectedRow['no_pb'], $selectedRow['kode_member'], $selectedRow['free_ongkir'], $selectedRow['flagbayar'], $request->tanggal_trans);
             }
 
-            DB::commit();
+            // DB::commit();
 
             return ApiFormatter::success(200, 'success action cetak surat jalan', $data);
 
@@ -1514,8 +1652,7 @@ class KlikIgrController extends Controller
         }
     }
 
-    //? DONE
-    //! btnCetakIIK_Click
+    //* btnCetakIIK_Click
     public function actionCetakIIK(Request $request){
 
         $selectedRow = $request->selectedRow;
@@ -1548,18 +1685,18 @@ class KlikIgrController extends Controller
         return ApiFormatter::success(200, 'Action cetak IKK berhasil', $data);
     }
 
-    //? DONE
-    //! btnPBBatal_Click
+    //* btnPBBatal_Click
     public function actionPbBatal(){
         if(session('flagSPI') == true){
-            return $this->cekPBAkanBatal();
+            $data = $this->cekPBAkanBatal();
         }else{
-            return $this->cekItemBatal(true);
+            $data = $this->cekItemBatal(true);
         }
+
+        return $data;
     }
 
-    //? DONE
-    //! btnIntransit_Click
+    //* btnIntransit_Click
     public function actionItemPickingBelumTransit(){
         $query = '';
         $query .= "WITH tbtr_obi AS ( ";
@@ -1620,18 +1757,16 @@ class KlikIgrController extends Controller
             File::makeDirectory($filePath, 0755, true);
         }
 
-
         $filePath = $filePath . "/" . $nama_file;
 
         file_put_contents($filePath, $pdf->output());
 
         return ApiFormatter::success(200, "Report List Item Picking Belum Transit Berhasil Didownload", $nama_file);
 
-        //* buka form -> rptItemBelumDSP
+        //* open form -> rptItemBelumDSP
     }
 
-    //? DONE
-    //! btnLOPP_Click
+    //* btnLOPP_Click
     public function actionLoppCod(Request $request){
 
         //* sebelum itu buka form -> frmSortingLOPP untuk mendapatkan value $kolomSortBy
@@ -1705,19 +1840,16 @@ class KlikIgrController extends Controller
 
         //* form reportnya -> rptOutsCODSPI
         return ApiFormatter::success(200, "Sorting LOPP Berhasil", $data);
-
     }
 
-    //? DONE
-    //! btnMaxSertim_Click
+    //* btnMaxSertim_Click
     public function actionListPBLebihDariMaxSerahTerima(){
         $data = $this->cekNotifMaxSerahTerima(true);
         return ApiFormatter::success(200, "Success", $data);
     }
 
-    //? DONE
-    //? LANJUTAN FUNCTION di FormPickerClickController
-    //! btnPicker_Click
+    //* btnPicker_Click
+    //! NOTE KEVIN | LANJUTAN FUNCTION di FormPickerClickController
     public function actionMasterPickingHHPrep(){
         //* atur judulnya
         if(session('flagIGR')){
@@ -1735,8 +1867,7 @@ class KlikIgrController extends Controller
         return ApiFormatter::success(200, "Berhasil Menampilkan Modal Master Picker HH", $data);
     }
 
-    //? DONE
-    //! btnDelivery_Click_New
+    //* btnDelivery_Click_New
     public function actionListingDeliveryPrep(Request $request){
         $selectedRow = $request->selectedRow;
 
@@ -1833,12 +1964,12 @@ class KlikIgrController extends Controller
 
             return ApiFormatter::success(200, "Success", $data);
 
-
         } else {
             return ApiFormatter::error(400, "Belum Proses Serah Terima !");
         }
     }
 
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionListingDelivery(Request $request){
 
         DB::beginTransaction();
@@ -1995,18 +2126,7 @@ class KlikIgrController extends Controller
                 return ApiFormatter::error(400, 'List Delivery tidak ditemukan.');
             }
 
-            // rptDelivery.SetParameterValue("cabang", IIf(flagIGR, "INDOGROSIR", "STOCK POINT INDOGROSIR"))
-            // rptDelivery.SetParameterValue("kdIGR", KodeIGR & " - " & NamaIGR)
-            // rptDelivery.SetParameterValue("user_id", UserMODUL)
-            // rptDelivery.SetParameterValue("nopol", nopol)
-            // rptDelivery.SetParameterValue("driver", driver)
-            // rptDelivery.SetParameterValue("deliveryman", deliveryman)
-            // rptDelivery.SetParameterValue("noListing", noListing)
-            // rptDelivery.SetParameterValue("tglListing", tglListing)
-
-            //* form report -> rptListDeliverySPI
-
-            DB::commit();
+            // DB::commit();
 
             $data['noListing'] = $noListing;
             $data['tglListing'] = $tglListing;
@@ -2053,8 +2173,7 @@ class KlikIgrController extends Controller
         }
     }
 
-    //? DONE
-    //! btnReCreateAWB_Click
+    //* btnReCreateAWB_Click
     public function actionReCreateAWB(){
         $query = '';
         $query .= " SELECT  ";
@@ -2076,7 +2195,6 @@ class KlikIgrController extends Controller
         $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC ";
         $dtPB = DB::select($query);
 
-
         if(count($dtPB) == 0){
             return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
         }
@@ -2089,6 +2207,7 @@ class KlikIgrController extends Controller
         return ApiFormatter::success(200, "success", $data);
     }
 
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionReCreateAWBProses(Request $request){
         DB::beginTransaction();
         try{
@@ -2106,7 +2225,7 @@ class KlikIgrController extends Controller
                 }
             }
 
-            DB::commit();
+            // DB::commit();
 
             return ApiFormatter::success(200, 'Selesai Proses Re-Create AWB IPP');
 
@@ -2124,8 +2243,7 @@ class KlikIgrController extends Controller
         }
     }
 
-    //? DONE
-    //! btnAlasanBatalKirim_Click Datatables
+    //* btnAlasanBatalKirim_Click Datatables
     public function actionMasterAlasanBatalKirimDatatables($flagMode){
         if($flagMode == "AlasanBatalKirim"){
             $tableName = 'TBMASTER_MOBIL_SPI';
@@ -2146,11 +2264,8 @@ class KlikIgrController extends Controller
 
             $query = "";
             $query .= "SELECT mob_nopol No_Polisi ";
-            // $query .= "mob_attribute1 Atribut1 ";
-            // $query .= "mob_attribute2 Atribut2 ";
             $query .= "FROM TBMASTER_MOBIL_SPI ";
             $query .= "ORDER BY No_Polisi ASC ";
-
 
             $data = DB::select($query);
 
@@ -2178,12 +2293,12 @@ class KlikIgrController extends Controller
         return ApiFormatter::success(200, "Nomor Polisi Berhasil Dihapus!");
     }
 
-    //! btnBASPI_Click
-    //? DONE
+    //* btnBASPI_Click
     public function actionBAPengembalianDanaGetHistory(){
-        // if(session('flagSPI') == false){
-        //     return ApiFormatter::error(400, 'Khusus SPI');
-        // }
+        //! NOTE KEVIN | UNCOMMENT FOR TEST
+        if(session('flagSPI') == false){
+            return ApiFormatter::error(400, 'Khusus SPI');
+        }
 
         $data = DB::SELECT("SELECT DISTINCT brs_noba noba, TO_CHAR(brs_tglba,'DD-MM-YYYY') tglba FROM tbtr_barefund_spi ORDER BY brs_noba DESC");
         return ApiFormatter::success(200, "Berhasil Mendapatakan Data History", $data);
@@ -2248,7 +2363,9 @@ class KlikIgrController extends Controller
             ->make(true);
     }
 
+    //! NOTE KEVIN | USE TRANSACTION
     public function actionBAPengembalianDana(Request $request){
+
         DB::beginTransaction();
         try{
             if($request->isHistory == 1){
@@ -2337,7 +2454,7 @@ class KlikIgrController extends Controller
             $data['noBA'] = $seqBA;
             $data['tglBA'] = $tglBA;
 
-            DB::commit();
+            // DB::commit();
 
             $pdf = PDF::loadView('pdf.klik-igr-ba-dana-spi', $data);
 
@@ -2377,8 +2494,7 @@ class KlikIgrController extends Controller
         }
     }
 
-    //! btnBARusakSPI_Click
-    //? DONE
+    //* btnBARusakSPI_Click
     public function actionBaRusakKemasan(Request $request){
         $selectedRow = $request->selectedRow;
 
@@ -2465,14 +2581,12 @@ class KlikIgrController extends Controller
         }
     }
 
-    //? DONE
-    //! btnFormPengembalianBarang_Click
+    //* btnFormPengembalianBarang_Click
     public function actionCetakFormPengembalianBarang(Request $request){
         return $this->cetakFormPengembalianBarang();
     }
 
-    //? DONE
-    //! btnLaporanPenyusutan_Click
+    //* btnLaporanPenyusutan_Click
     public function actionLaporanPenyusutanHarian(Request $request){
 
         //? Cetak Laporan Penyusutan Harian?
@@ -2491,17 +2605,9 @@ class KlikIgrController extends Controller
             ->header('Content-Disposition', 'attachment; filename="RPT-PENYUSUTAN-HARIAN.pdf"');
     }
 
-    //? DONE
-    //! btnPesananExpired_Click
+    //* btnPesananExpired_Click
     public function actionLaporanPesananExpired(Request $request){
-        //! open form -> frmPeriodePesanan
-
-        //! action dari frmPeriodePesanan
-        //! dummy variable
-        $isCetak = true;
-        $periodeAwal = '';
-        $periodeAkhir = '';
-        $namaPT = '';
+        //* open form -> frmPeriodePesanan
 
         $query = '';
         $query .= " SELECT  ";
@@ -2551,8 +2657,7 @@ class KlikIgrController extends Controller
             ->header('Content-Disposition', 'attachment; filename="LAPORAN PESANAN EXPIRED.pdf"');
     }
 
-    //? DONE
-    //! btnSerahTerimaKardus_Click
+    //* btnSerahTerimaKardus_Click
     public function actionBuktiSerahTerimaKardus(Request $request){
         if($request->isShowDatatables == 1){
             if(session('flagSPI')){
@@ -2564,15 +2669,17 @@ class KlikIgrController extends Controller
             $query .= "ORDER BY stk_noserahterima DESC ";
             $data["cbSTK"] = DB::select($query);
 
-            //! open form -> frmSerahTerimaKardus
+            //* open form -> frmSerahTerimaKardus
 
-            //! tampil di datatable frmSerahTerimaKardus
+            //* tampil di datatable frmSerahTerimaKardus
             //* Query Tampilan Datagridview
 
             return ApiFormatter::success(200, "success", $data);
+
         } else {
             DB::beginTransaction();
             try{
+
                 if($request->isHistory == 1){
                     $seqSTK = $request->noSTK;
                     $tglSTK = $request->tglSTK;
@@ -2661,7 +2768,6 @@ class KlikIgrController extends Controller
                 $query .= "ORDER BY no_pesanan ASC, no_koli ASC ";
                 $dtItem = DB::select($query);
 
-
                 if(count($dtItem) == 0){
                     return ApiFormatter::error(400, 'List Delivery tidak ditemukan.');
                 }
@@ -2670,7 +2776,7 @@ class KlikIgrController extends Controller
                 $data['noSTK'] = $seqSTK;
                 $data['tglSTK'] = $tglSTK;
 
-                DB::commit();
+                // DB::commit();
 
                 $pdf = PDF::loadView('pdf.klik-igr-stk', $data);
 
@@ -2696,19 +2802,26 @@ class KlikIgrController extends Controller
 
                 return ApiFormatter::success(200, "Cetak Serah Terima Kardus Berhasil!", $response);
 
-                //! open form -> rptSTKardus
+                //* open form -> rptSTKardus
 
                 // rptSTKardus.SetParameterValue("kdIGR", NamaIGR)
                 // rptSTKardus.SetParameterValue("user_id", UserMODUL)
                 // rptSTKardus.SetParameterValue("noSTKrat", seqSerahTerimaKardus)
                 // rptSTKardus.SetParameterValue("tglSTKrat", tglSTK)
-            }catch (\Exception $e) {
+
+            } catch (HttpResponseException $e) {
+                // Handle the custom response exception
+                throw new HttpResponseException($e->getResponse());
+
+            }catch(\Exception $e){
 
                 DB::rollBack();
-                return ApiFormatter::error(400, $e->getMessage());
+
+                $message = "Oops! Something wrong ( $e )";
+                throw new HttpResponseException(ApiFormatter::error(400, $message));
+                return ApiFormatter::error(400, $message);
             }
         }
-
     }
 
     public function actionBuktiSerahTerimaKardusDatatables($history = 0){
@@ -2826,7 +2939,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
 
-        //! GET RESPONSE DARI ConToWebServiceNew
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = null;
 
@@ -2851,7 +2964,7 @@ class KlikIgrController extends Controller
 
         try{
 
-            //! GET RESPONSE DARI ConToWebServiceNew
+            //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
             $response_code = null;
             $response_message = '';
             $noAWB = null;
@@ -2922,7 +3035,7 @@ class KlikIgrController extends Controller
                 $query .= " WHERE amm_nopb = '" & $noPB & "' ";
                 $query .= "   AND amm_notrans = '" & $noTrans & "' ";
 
-                //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                //* UPDATE TBTR_OBI_H - OBI_TRXIDNEW
                 $query = '';
                 $query .= "UPDATE tbtr_obi_h ";
                 $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
@@ -2932,7 +3045,7 @@ class KlikIgrController extends Controller
                 $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
                 DB::update($query);
 
-                //UPDATE FLAG BATAL DELIVERY
+                //* UPDATE FLAG BATAL DELIVERY
                 $query = '';
                 $query .= " UPDATE TBTR_DELIVERY_SPI ";
                 $query .= " SET del_flagbatal = 'Y' ";
@@ -2940,7 +3053,7 @@ class KlikIgrController extends Controller
                 $query .= " AND del_kodemember = '" & $kdMember & "' ";
                 DB::update($query);
 
-                //UPDATE STATUS DSP SPI
+                //* UPDATE STATUS DSP SPI
                 $query = '';
                 $query .= " UPDATE TBTR_DSP_SPI ";
                 $query .= " SET dsp_status = 'DSP', ";
@@ -2951,7 +3064,7 @@ class KlikIgrController extends Controller
                 $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
                 DB::update($query);
 
-                //UPDATE TBTR_AWB_IPP - TRXID
+                //* UPDATE TBTR_AWB_IPP - TRXID
                 $query = '';
                 $query .= "UPDATE tbtr_awb_ipp ";
                 $query .= "   SET awi_status = 'BATAL', ";
@@ -2976,7 +3089,7 @@ class KlikIgrController extends Controller
 
                 if(count($dt) > 0 ){
 
-                    //UPDATE TBTR_ALAMAT_MM
+                    //* UPDATE TBTR_ALAMAT_MM
                     $query = '';
                     $query .= "UPDATE tbtr_alamat_mm ";
                     $query .= "   SET amm_noawb = '" & $noAWB & "' ";
@@ -2984,7 +3097,7 @@ class KlikIgrController extends Controller
                     $query .= "   AND amm_notrans = '" & $noTrans & "' ";
                     DB::update($query);
 
-                    //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                    //* UPDATE TBTR_OBI_H - OBI_TRXIDNEW
                     $query = '';
                     $query .= "UPDATE tbtr_obi_h ";
                     $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
@@ -2994,7 +3107,7 @@ class KlikIgrController extends Controller
                     $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
                     DB::update($query);
 
-                    //UPDATE FLAG BATAL DELIVERY
+                    //* UPDATE FLAG BATAL DELIVERY
                     $query = '';
                     $query .= " UPDATE TBTR_DELIVERY_SPI ";
                     $query .= " SET del_flagbatal = 'Y' ";
@@ -3002,7 +3115,7 @@ class KlikIgrController extends Controller
                     $query .= " AND del_kodemember = '" & $kdMember & "' ";
                     DB::update($query);
 
-                    //UPDATE STATUS DSP SPI
+                    //* UPDATE STATUS DSP SPI
                     $query = '';
                     $query .= " UPDATE TBTR_DSP_SPI ";
                     $query .= " SET dsp_status = 'DSP', ";
@@ -3013,7 +3126,7 @@ class KlikIgrController extends Controller
                     $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
                     DB::update($query);
 
-                    //UPDATE TBTR_AWB_IPP - TRXID
+                    //* UPDATE TBTR_AWB_IPP - TRXID
                     $query = '';
                     $query .= "UPDATE tbtr_awb_ipp ";
                     $query .= "   SET awi_status = 'BATAL', ";
@@ -3067,7 +3180,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlKLIK, $apiName, $apiKey, $postData);
 
-        //! GET RESPONSE DARI ConToWebServiceNew
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = null;
 
@@ -3092,7 +3205,7 @@ class KlikIgrController extends Controller
 
         try{
 
-            //! GET RESPONSE DARI ConToWebServiceNew
+            //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
             $response_code = null;
             $response_message = '';
             $noAWB = null;
@@ -3163,7 +3276,7 @@ class KlikIgrController extends Controller
                 $query .= " WHERE amm_nopb = '" & $noPB & "' ";
                 $query .= "   AND amm_notrans = '" & $noTrans & "' ";
 
-                //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                //* UPDATE TBTR_OBI_H - OBI_TRXIDNEW
                 $query = '';
                 $query .= "UPDATE tbtr_obi_h ";
                 $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
@@ -3173,7 +3286,7 @@ class KlikIgrController extends Controller
                 $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
                 DB::update($query);
 
-                //UPDATE FLAG BATAL DELIVERY
+                //* UPDATE FLAG BATAL DELIVERY
                 $query = '';
                 $query .= " UPDATE TBTR_DELIVERY_SPI ";
                 $query .= " SET del_flagbatal = 'Y' ";
@@ -3181,7 +3294,7 @@ class KlikIgrController extends Controller
                 $query .= " AND del_kodemember = '" & $kdMember & "' ";
                 DB::update($query);
 
-                //UPDATE STATUS DSP SPI
+                //* UPDATE STATUS DSP SPI
                 $query = '';
                 $query .= " UPDATE TBTR_DSP_SPI ";
                 $query .= " SET dsp_status = 'DSP', ";
@@ -3192,7 +3305,7 @@ class KlikIgrController extends Controller
                 $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
                 DB::update($query);
 
-                //UPDATE TBTR_AWB_IPP - TRXID
+                //* UPDATE TBTR_AWB_IPP - TRXID
                 $query = '';
                 $query .= "UPDATE tbtr_awb_ipp ";
                 $query .= "   SET awi_status = 'BATAL', ";
@@ -3217,7 +3330,7 @@ class KlikIgrController extends Controller
 
                 if(count($dt) > 0 ){
 
-                    //UPDATE TBTR_ALAMAT_MM
+                    //* UPDATE TBTR_ALAMAT_MM
                     $query = '';
                     $query .= "UPDATE tbtr_alamat_mm ";
                     $query .= "   SET amm_noawb = '" & $noAWB & "' ";
@@ -3225,7 +3338,7 @@ class KlikIgrController extends Controller
                     $query .= "   AND amm_notrans = '" & $noTrans & "' ";
                     DB::update($query);
 
-                    //UPDATE TBTR_OBI_H - OBI_TRXIDNEW
+                    //* UPDATE TBTR_OBI_H - OBI_TRXIDNEW
                     $query = '';
                     $query .= "UPDATE tbtr_obi_h ";
                     $query .= "   SET obi_trxidnew = '" & $newTrxid & "' ";
@@ -3235,7 +3348,7 @@ class KlikIgrController extends Controller
                     $query .= "   AND obi_kdmember = '" & $kdMember & "' ";
                     DB::update($query);
 
-                    //UPDATE FLAG BATAL DELIVERY
+                    //* UPDATE FLAG BATAL DELIVERY
                     $query = '';
                     $query .= " UPDATE TBTR_DELIVERY_SPI ";
                     $query .= " SET del_flagbatal = 'Y' ";
@@ -3243,7 +3356,7 @@ class KlikIgrController extends Controller
                     $query .= " AND del_kodemember = '" & $kdMember & "' ";
                     DB::update($query);
 
-                    //UPDATE STATUS DSP SPI
+                    //* UPDATE STATUS DSP SPI
                     $query = '';
                     $query .= " UPDATE TBTR_DSP_SPI ";
                     $query .= " SET dsp_status = 'DSP', ";
@@ -3254,7 +3367,7 @@ class KlikIgrController extends Controller
                     $query .= " AND dsp_kodemember = '" & $kdMember & "' ";
                     DB::update($query);
 
-                    //UPDATE TBTR_AWB_IPP - TRXID
+                    //* UPDATE TBTR_AWB_IPP - TRXID
                     $query = '';
                     $query .= "UPDATE tbtr_awb_ipp ";
                     $query .= "   SET awi_status = 'BATAL', ";
@@ -3274,10 +3387,9 @@ class KlikIgrController extends Controller
             $message = "Oops! Something wrong ( $e )";
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
-
-
     }
 
+    //! NOTE KEVIN
     //? param $responseData digunakan untuk menentukan data yang di return
     //? apabila TRUE maka response akan berbentuk data sehingga perlu diolah di function yang memanggilnya
     //? apabila FALSE maka akan langsung return ke FE
@@ -3379,7 +3491,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
 
-        //! GET RESPONSE DARI ConToWebServiceNew
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = '';
 
@@ -3404,7 +3516,7 @@ class KlikIgrController extends Controller
 
         try{
 
-             //! GET RESPONSE DARI ConToWebServiceNew
+             //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
              $response_code = null;
              $noAWB = null;
              $cost = null;
@@ -3500,9 +3612,9 @@ class KlikIgrController extends Controller
 
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
-
     }
 
+    //! NOTE KEVIN
     //? param $responseData digunakan untuk menentukan data yang di return
     //? apabila TRUE maka response akan berbentuk data sehingga perlu diolah di function yang memanggilnya
     //? apabila FALSE maka akan langsung return ke FE
@@ -3604,7 +3716,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlKlik, $apiName, $apiKey, $postData);
 
-        //! GET RESPONSE DARI ConToWebServiceNew
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = '';
 
@@ -3629,7 +3741,7 @@ class KlikIgrController extends Controller
 
         try{
 
-             //! GET RESPONSE DARI ConToWebServiceNew
+             //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
              $response_code = null;
              $noAWB = null;
              $cost = null;
@@ -3781,12 +3893,11 @@ class KlikIgrController extends Controller
         }
 
         if(count($mydt) > 0){
-            //* form -> LstNotifMaxSerahTerima
+            //* open form -> LstNotifMaxSerahTerima
             return [
                 "showForm" => $showForm,
                 "data" => $mydt,
             ];
-
         }
     }
 
@@ -3808,11 +3919,12 @@ class KlikIgrController extends Controller
         $mydt = DB::select($query);
 
         if(count($mydt) > 0){
-            //* buka form -> LstPBAkanBatal
+            //* open form -> LstPBAkanBatal
             $data["data"] = $mydt;
             $data["type"] = "PB";
             $data["showForm"] = true;
-            return ApiFormatter::success(200, "Berhasil Menampilakn List PB Akan batal", $data);
+
+            return $data;
         }
     }
 
@@ -3830,7 +3942,7 @@ class KlikIgrController extends Controller
         $data["showForm"] = false;
         if($showFrm == true){
             if(count($mydt) > 0){
-                //* form -> LstNonValidasi
+                //* open form -> LstNonValidasi
                 $data["showForm"] = true;
 
                 $data["labelItemBatal"] = true;
@@ -3861,7 +3973,8 @@ class KlikIgrController extends Controller
             }
         }
         $data["type"] = "ITEM";
-        return ApiFormatter::success(200, "Berhasil Menampilkan List ITEM Akan batal", $data);
+
+        return $data;
     }
 
     protected function PrintNotaIIK($NoTrans, $noContainer, $kodeWeb, $nopb, $tglpb){
@@ -4046,7 +4159,7 @@ class KlikIgrController extends Controller
                             $query .= ") ";
                             DB::insert($query);
 
-                            $noAWB = null; //! berasal dari return ConToWebService
+                            $noAWB = null; //! NOTE KEVIN | berasal dari return ConToWebService
 
                             $query = '';
                             $query .= "UPDATE tbtr_alamat_mm ";
@@ -4089,7 +4202,6 @@ class KlikIgrController extends Controller
                     throw new HttpResponseException(ApiFormatter::error(400, $message));
                 }
             }
-
         }
 
         //* UPDATE STATUS GURIH - 6
@@ -4174,12 +4286,12 @@ class KlikIgrController extends Controller
         $data['dtDetailSJ'] = DB::select($query);
 
         if(str_contains($nopb, '/500/')){
-            //* form -> frmSuratJalanGurih
+            //* open form -> frmSuratJalanGurih
             $nama_file = "SURAT_JALAN_GURIH" . Carbon::now()->format('Ymd_His') . ".pdf";
             $data["tipe_pdf"] = "Gurih";
             $pdf = PDF::loadView('pdf.klik-igr-surat-jalan-klik', $data);
         }else{
-            //* form -> frmSuratJalan
+            //* open form -> frmSuratJalan
             $nama_file = "SURAT_JALAN_KLIK" . Carbon::now()->format('Ymd_His') . ".pdf";
             $data["tipe_pdf"] = "Klik";
             $pdf = PDF::loadView('pdf.klik-igr-surat-jalan-klik', $data);
@@ -4241,8 +4353,8 @@ class KlikIgrController extends Controller
         $query .= " '" . $notrx . "', ";
         $query .= " '" . $statusID . "', ";
         $query .= " '" . $urlGurih . "', ";
-        $query .= " '" . $postData . "', "; //! dummy -> harusnya response dari ConToWebService
-        $query .= " '" . $response . " ', "; //! dummy -> harusnya response dari ConToWebService
+        $query .= " '" . $postData . "', "; //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
+        $query .= " '" . $response . " ', "; //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $query .= " now() ";
         $query .= ") ";
     }
@@ -4322,7 +4434,7 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        //! dummy (bisa dicomment untuk run)
+        //! NOTE KEVIN | UNCOMMENT FOR TEST
         if (strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "KURIR INDOGROSIR") !== false ||
             strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "AMBIL DI STOCK POINT INDOGROSIR") !== false ||
             strpos(strtoupper($dtCek[0]->obi_kdekspedisi), "AMBIL DI TOKO INDOGROSIR") !== false ||
@@ -4373,7 +4485,7 @@ class KlikIgrController extends Controller
                         $query .= ") ";
                         DB::insert($query);
 
-                        $noAWB = null; //! berasal dari return ConToWebService
+                        $noAWB = null; //! NOTE KEVIN | berasal dari return ConToWebService
 
                         $query = '';
                         $query .= "UPDATE tbtr_alamat_mm ";
@@ -4415,7 +4527,7 @@ class KlikIgrController extends Controller
         $query .= " AND amm_kodemember = '" . $dgv_memberigr . "' ";
         $data['dtDetailSJ'] = DB::select($query);
 
-        //! TIDAK DIGUNAKAN
+        //! NOTE KEVIN | TIDAK DIGUNAKAN
         $query = '';
         $query .= "SELECT del_nopol nopol, del_driver driver, del_deliveryman deliveryman ";
         $query .= "FROM tbtr_delivery_spi ";
@@ -4496,7 +4608,7 @@ class KlikIgrController extends Controller
 
         return $nama_file;
 
-        //* form -> frmSuratJalanSPI_NEW
+        //* open form -> frmSuratJalanSPI_NEW
 
         // rpt.SetParameterValue("kdIGR", KodeIGR & " - " & NamaIGR)
         // _rpt.SetParameterValue("penerima", _dtDetailSJ.Rows(0).Item("kode_member").ToString & " - " &
@@ -4536,56 +4648,44 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        try{
-            $kodeigr = session('KODECABANG');
-            $UserMODUL = session('userid');
+        $kodeigr = session('KODECABANG');
+        $UserMODUL = session('userid');
 
-            $master_comp = DB::table('tbmaster_computer')
-                ->where([
-                    'kodeigr' => $kodeigr,
-                    'ip' => $this->getIP(),
-                ])->first();
+        $master_comp = DB::table('tbmaster_computer')
+            ->where([
+                'kodeigr' => $kodeigr,
+                'ip' => $this->getIP(),
+            ])->first();
 
-            if($master_comp == null){
-                throw new \Exception("Master Computer Tidak Ditemukan");
-            }
-
-            $procedure = DB::select("call sp_create_sales_obi('$dgv_nopb', '$dgv_tglpb', '$dgv_memberigr', '$master_comp->station', '$UserMODUL', '$kodeigr', '$dgv_notrans', '')");
-            $procedure = $procedure[0]->p_status;
-
-            if (str_contains($procedure, 'Sukses')) {
-
-                if (!str_contains($dgv_nopb, 'TMI') AND session('flagSPI') == false) {
-                    $this->updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr);
-                }
-
-                if(session('flagSPI') == true){
-                    $this->PrintNotaNewKlikSPI('N','STRUK', 'SPI', $dgv_tipe_kredit, $selectedRow);
-                }else{
-                    $this->PrintNotaNewKlikSPI('N','STRUK', 'KLIK', $dgv_tipe_kredit, $selectedRow);
-                }
-
-                if($dgv_tipebayar == 'COD-VA'){
-                    $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "6", "8");
-                }else{
-                    $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "6", "6");
-                }
-                $data['pathStorage'] = "temp_nota_new";
-
-                DB::commit();
-                return ApiFormatter::success(200, "success", $data);
-            }
-
-            throw new \Exception("Procedure Error");
+        if($master_comp == null){
+            throw new HttpResponseException(ApiFormatter::error(400, 'Master Computer Tidak Ditemukan'));
         }
 
-        catch (QueryException $e) {
-            DB::rollBack();
-            return ApiFormatter::error(500, "Error Insert Transaksi");
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return ApiFormatter::error(400, $e->getMessage());
+        $procedure = DB::select("call sp_create_sales_obi('$dgv_nopb', '$dgv_tglpb', '$dgv_memberigr', '$master_comp->station', '$UserMODUL', '$kodeigr', '$dgv_notrans', '')");
+        $procedure = $procedure[0]->p_status;
+
+        if (!str_contains($procedure, 'Sukses')) {
+            throw new HttpResponseException(ApiFormatter::error(400, 'Procedure sp_create_sales_obi bermasalah'));
         }
+
+        if (!str_contains($dgv_nopb, 'TMI') AND session('flagSPI') == false) {
+            $this->updateReal($dgv_nopb, $dgv_notrans, $dgv_tglpb, $dgv_memberigr);
+        }
+
+        if(session('flagSPI') == true){
+            $this->PrintNotaNewKlikSPI('N','STRUK', 'SPI', $dgv_tipe_kredit, $selectedRow);
+        }else{
+            $this->PrintNotaNewKlikSPI('N','STRUK', 'KLIK', $dgv_tipe_kredit, $selectedRow);
+        }
+
+        if($dgv_tipebayar == 'COD-VA'){
+            $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "6", "8");
+        }else{
+            $this->logUpdateStatus($dgv_notrans, $dtTrans, $dgv_nopb, "6", "6");
+        }
+        $data['pathStorage'] = "temp_nota_new";
+
+        return true;
     }
 
     protected function PrintNotaNewKlikSPI($Reprint, $judul, $type, $flagKredit, $selectedRow){
@@ -4711,7 +4811,7 @@ class KlikIgrController extends Controller
         $kode_member = $selectedRow['kode_member'];
         $no_trans = $selectedRow['no_trans'];
 
-        //! MASIH DIBENERIN
+        //! NOTE KEVIN | ANOMALI | MASIH DIBENERIN
         $formattedDate = Carbon::parse($selectedRow['tgl_pb'])->format('Y-m-d H:i:s');
         $temp_tgl_pb = "AND hdr.obi_TGLpb = '$formattedDate'";
         $temp_no_pb = "AND hdr.obi_nopb = '$no_pb'";
@@ -5291,6 +5391,7 @@ class KlikIgrController extends Controller
             }
         }
 
+        //! NOTE KEVIN | ANOMALI
         //! INI NANTI CHECK LAGI DI VB NYA (BELUM SELESAI)
         //! KARENA INI BUAT FILE BARU -> $str3
         $str3 = "";
@@ -5340,7 +5441,7 @@ class KlikIgrController extends Controller
 
         //! END KARENA INI BUAT FILE BARU -> $str3
 
-        //! SETELAH INI ADA ENCRPYPT UNTUK QR CODE DI SKIP BINGUNG (BELUM SELESAI)
+        //! NOTE KEVIN | SETELAH INI ADA ENCRPYPT UNTUK QR CODE DI SKIP AJA (BELUM SELESAI)
 
         $nama_file = "/HITUNGULANG_" . $notrx .'.txt';
 
@@ -5440,7 +5541,7 @@ class KlikIgrController extends Controller
             $apiKey = $cre[0]->cre_key;
             $this->ConToWebServiceNew($this->urlUpdateRealisasiKlik, $apiName, $apiKey, $postData);
 
-            //! GET RESPONSE DARI ConToWebServiceNew
+            //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
             $json = null;
             $ret = null;
 
@@ -5490,92 +5591,79 @@ class KlikIgrController extends Controller
     }
 
     protected function konfirmasiBayar($dgv_nopb, $dgv_memberigr, $dgv_notrans){
-        try{
-            $dtOBI_H = DB::select("SELECT * FROM TBTR_OBI_H WHERE OBI_NOPB = '" . $dgv_nopb . "' AND OBI_KDMEMBER = '" . $dgv_memberigr . "' AND OBI_NOTRANS = '" . $dgv_notrans . "'");
-            if(!count($dtOBI_H)){
-                throw new \Exception("data table TBTR_OBI_H tidak ditemukan");
-            }
-
-            if (str_contains(strtoupper($dgv_nopb), 'OMM') OR str_contains(strtoupper($dgv_nopb), 'TMI') ) {
-                $query = '';
-                $query .= "MERGE INTO tbtr_obi_d d ";
-                $query .= "USING ( ";
-                $query .= " SELECT DISTINCT obi_notrans, ";
-                $query .= "        obi_tgltrans, ";
-                $query .= "        obi_prdcd, ";
-                $query .= "        CASE WHEN COALESCE(prd_flagbkp1,'N') = 'Y' ";
-                $query .= "         THEN round(obi_hargasatuan / (1+(COALESCE(PRD_PPN,0)/100)), 2)  ";
-                $query .= "         ELSE obi_hargasatuan ";
-                $query .= "        END hrgsatuan ";
-                $query .= " FROM tbhistory_obi_d ";
-                $query .= " JOIN tbmaster_prodmast ";
-                $query .= " ON prd_prdcd = obi_prdcd ";
-                $query .= ") dh ";
-                $query .= "ON ( ";
-                $query .= "    d.obi_notrans = dh.obi_notrans ";
-                $query .= "AND d.obi_tgltrans = dh.obi_tgltrans ";
-                $query .= "AND d.obi_prdcd = dh.obi_prdcd ";
-                $query .= ") ";
-                $query .= "WHEN MATCHED THEN ";
-                $query .= "  UPDATE SET d.obi_hargasatuan = dh.hrgsatuan ";
-                $query .= "  WHERE d.obi_notrans = '" . $dtOBI_H[0]->obi_notrans . "'  ";
-                $query .= "  AND DATE_TRUNC('DAY',d.OBI_TGLTRANS) = '" . Carbon::parse($dtOBI_H[0]->obi_tgltrans)->format('Y-m-d H:i:s') ."' ";
-                DB::insert($query);
-            }
-
-            //! GET TRANSAKSI
-            $query = '';
-            $query .= "SELECT obi_notrans notrans, obi_tgltrans tgltrans, obi_prdcd prdcd, ";
-            $query .= "       prd_deskripsipendek deskripsi, ";
-            $query .= "       COALESCE(obi_hargaweb, ROUND((obi_hargasatuan + obi_ppn) * (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END), 0)) hrgjual, ";
-            $query .= "       obi_qtyrealisasi / (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) qty, ";
-            $query .= "       0 diskon, "; //ROUND(obi_diskon * obi_qtyrealisasi,0) diskon
-            $query .= "       COALESCE(obi_hargaweb, ROUND((obi_hargasatuan + obi_ppn) * (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END), 0))*(obi_qtyrealisasi / (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END)) substotal, ";
-            $query .= "       prd_flagbkp1 bkp1, ";
-            $query .= "       prd_flagbkp2 bkp2, ";
-            $query .= "       prd_kodedivisi div, ";
-            $query .= "       prd_kodedepartement || prd_kodekategoribarang depkat, ";
-            $query .= "       (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) frac, ";
-            $query .= "       prd_minjual minjual ";
-            $query .= "FROM TBTR_OBI_D, TBMASTER_PRODMAST  ";
-            $query .= "WHERE OBI_PRDCD = PRD_PRDCD  ";
-            $query .= "AND COALESCE(OBI_QTYREALISASI, 0) > 0 ";
-            $query .= "AND OBI_NOTRANS = '" . $dtOBI_H[0]->obi_notrans . "'  ";
-            $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = '" . Carbon::parse($dtOBI_H[0]->obi_tgltrans)->format('Y-m-d H:i:s') ."' ";
-            $query .= "ORDER BY OBI_SCAN_DT ASC ";
-            $dtOBI_D = DB::select($query);
-
-            // dtOBI_D = QueryOra(sb.ToString)
-            // If dtOBI_D.Rows.Count = 0 Then
-            //     btnKonfirmasiBayar.Visible = True
-            //     MessageDialog.Show(EnumMessageType.Information, EnumCommonButtonMessage.Ok, "Gagal Konfirmasi Pembayaran." & vbCrLf & "Detail transaksi tidak ditemukan", "INDOGROSIR")
-            //     Exit Sub
-            // End If
-
-            if(!count($dtOBI_D)){
-                //* nanti disable button btnKonfirmasiBayar
-                $message = 'Gagal Konfirmasi Pembayaran, Detail transaksi tidak ditemukan';
-                throw new \Exception($message);
-            }
-
-            $query = '';
-            $query .= "UPDATE TBTR_OBI_H SET OBI_RECID = '5' ";
-            $query .= "Where OBI_NOPB = '" . $dgv_nopb . "' ";
-            $query .= "AND OBI_KDMEMBER = '" . $dgv_memberigr . "' ";
-            $query .= "AND OBI_NOTRANS = '" . $dgv_notrans . "' ";
-            $query .= "AND OBI_RECID = '4' ";
-            DB::update($query);
-
-            $this->logUpdateStatus($dgv_notrans, $dtOBI_H[0]->obi_tgltrans, $dgv_nopb, "5", "5");
-
-            $file_content = $this->WRITE_SSO($dtOBI_D, $dgv_memberigr, $dgv_notrans);
-
-            DB::commit();
-            return ApiFormatter::success(200, "Success", $file_content);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return ApiFormatter::error(400, $e->getMessage());
+        $dtOBI_H = DB::select("SELECT * FROM TBTR_OBI_H WHERE OBI_NOPB = '" . $dgv_nopb . "' AND OBI_KDMEMBER = '" . $dgv_memberigr . "' AND OBI_NOTRANS = '" . $dgv_notrans . "'");
+        if(!count($dtOBI_H)){
+            throw new HttpResponseException(ApiFormatter::error(400, 'data table TBTR_OBI_H tidak ditemukan'));
         }
+
+        if (str_contains(strtoupper($dgv_nopb), 'OMM') OR str_contains(strtoupper($dgv_nopb), 'TMI') ) {
+            $query = '';
+            $query .= "MERGE INTO tbtr_obi_d d ";
+            $query .= "USING ( ";
+            $query .= " SELECT DISTINCT obi_notrans, ";
+            $query .= "        obi_tgltrans, ";
+            $query .= "        obi_prdcd, ";
+            $query .= "        CASE WHEN COALESCE(prd_flagbkp1,'N') = 'Y' ";
+            $query .= "         THEN round(obi_hargasatuan / (1+(COALESCE(PRD_PPN,0)/100)), 2)  ";
+            $query .= "         ELSE obi_hargasatuan ";
+            $query .= "        END hrgsatuan ";
+            $query .= " FROM tbhistory_obi_d ";
+            $query .= " JOIN tbmaster_prodmast ";
+            $query .= " ON prd_prdcd = obi_prdcd ";
+            $query .= ") dh ";
+            $query .= "ON ( ";
+            $query .= "    d.obi_notrans = dh.obi_notrans ";
+            $query .= "AND d.obi_tgltrans = dh.obi_tgltrans ";
+            $query .= "AND d.obi_prdcd = dh.obi_prdcd ";
+            $query .= ") ";
+            $query .= "WHEN MATCHED THEN ";
+            $query .= "  UPDATE SET d.obi_hargasatuan = dh.hrgsatuan ";
+            $query .= "  WHERE d.obi_notrans = '" . $dtOBI_H[0]->obi_notrans . "'  ";
+            $query .= "  AND DATE_TRUNC('DAY',d.OBI_TGLTRANS) = '" . Carbon::parse($dtOBI_H[0]->obi_tgltrans)->format('Y-m-d H:i:s') ."' ";
+            DB::insert($query);
+        }
+
+        //* GET TRANSAKSI
+        $query = '';
+        $query .= "SELECT obi_notrans notrans, obi_tgltrans tgltrans, obi_prdcd prdcd, ";
+        $query .= "       prd_deskripsipendek deskripsi, ";
+        $query .= "       COALESCE(obi_hargaweb, ROUND((obi_hargasatuan + obi_ppn) * (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END), 0)) hrgjual, ";
+        $query .= "       obi_qtyrealisasi / (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) qty, ";
+        $query .= "       0 diskon, "; //ROUND(obi_diskon * obi_qtyrealisasi,0) diskon
+        $query .= "       COALESCE(obi_hargaweb, ROUND((obi_hargasatuan + obi_ppn) * (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END), 0))*(obi_qtyrealisasi / (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END)) substotal, ";
+        $query .= "       prd_flagbkp1 bkp1, ";
+        $query .= "       prd_flagbkp2 bkp2, ";
+        $query .= "       prd_kodedivisi div, ";
+        $query .= "       prd_kodedepartement || prd_kodekategoribarang depkat, ";
+        $query .= "       (CASE WHEN prd_unit = 'KG' THEN 1 ELSE prd_frac END) frac, ";
+        $query .= "       prd_minjual minjual ";
+        $query .= "FROM TBTR_OBI_D, TBMASTER_PRODMAST  ";
+        $query .= "WHERE OBI_PRDCD = PRD_PRDCD  ";
+        $query .= "AND COALESCE(OBI_QTYREALISASI, 0) > 0 ";
+        $query .= "AND OBI_NOTRANS = '" . $dtOBI_H[0]->obi_notrans . "'  ";
+        $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = '" . Carbon::parse($dtOBI_H[0]->obi_tgltrans)->format('Y-m-d H:i:s') ."' ";
+        $query .= "ORDER BY OBI_SCAN_DT ASC ";
+        $dtOBI_D = DB::select($query);
+
+        if(!count($dtOBI_D)){
+            //* nanti disable button btnKonfirmasiBayar
+            $message = 'Gagal Konfirmasi Pembayaran, Detail transaksi tidak ditemukan';
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+        }
+
+        $query = '';
+        $query .= "UPDATE TBTR_OBI_H SET OBI_RECID = '5' ";
+        $query .= "Where OBI_NOPB = '" . $dgv_nopb . "' ";
+        $query .= "AND OBI_KDMEMBER = '" . $dgv_memberigr . "' ";
+        $query .= "AND OBI_NOTRANS = '" . $dgv_notrans . "' ";
+        $query .= "AND OBI_RECID = '4' ";
+        DB::update($query);
+
+        $this->logUpdateStatus($dgv_notrans, $dtOBI_H[0]->obi_tgltrans, $dgv_nopb, "5", "5");
+
+        $file_content = $this->WRITE_SSO($dtOBI_D, $dgv_memberigr, $dgv_notrans);
+
+        return $file_content;
     }
 
     protected function WRITE_SSO($dtOBI_D, $dgv_memberigr, $NoTrans){
@@ -5648,7 +5736,6 @@ class KlikIgrController extends Controller
         $query .= "'" . session('userid') . "', ";
         $query .= "NOW())";
 
-        //! BELUM SELESAI (GIMANA BENTUK NOTANYA)
         return $this->PrintNotaSSO($dtOBI_D, $NoTrans, $dgv_memberigr);
     }
 
@@ -5825,7 +5912,6 @@ class KlikIgrController extends Controller
                 $query .= " WHERE h.obi_kdmember = '" . $kdMember . "' ";
                 $query .= "   AND h.obi_notrans = '" . $noTrans . "' ";
                 $query .= "   AND h.obi_nopb = '" . $noPB . "' ";
-                //$query .= "   AND d.obi_recid IS NULL ";
                 $query .= " GROUP BY SUBSTR(obi_prdcd,1,6) || '0' ";
                 $query .= " ORDER BY 1 ";
                 $dt = DB::select($query);
@@ -5847,7 +5933,7 @@ class KlikIgrController extends Controller
                 }
 
             }else{
-                //! KALAU TIDAK ADA YANG SELISIH, FULL SEMUA
+                //* KALAU TIDAK ADA YANG SELISIH, FULL SEMUA
                 $query = "UPDATE promo_klikigr ";
                 $query .= "SET cashback_real = cashback_order, kelipatan = cashback_order::numeric / reward_per_promo::numeric ";
                 $query .= "WHERE kode_member = '" . $kdMember . "' ";
@@ -5869,14 +5955,14 @@ class KlikIgrController extends Controller
             }
         }
 
-        //! JALANKAN FUNGSI DRAFT STRUK
+        //* JALANKAN FUNGSI DRAFT STRUK
         if($memberOK == true AND $alamatOK == true){
             $status = '';
             $userMODUL = session('userid');
             $KodeIGR = session('KODECABANG');
 
             if($kdWeb = 'WebMM'){
-                //! BELUM SELESAI (PROCEDURE INI TIDAK ADA)
+                //! NOTE KEVIN | PROCEDURE INI TIDAK ADA
                 $procedure = DB::select("call sp_create_draftstruk_mm ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
             }else{
                 $procedure = DB::select("call sp_create_draftstrukobi ('$noPB','$tglPB','$noTrans', '$userMODUL', '$KodeIGR', '')");
@@ -5913,7 +5999,7 @@ class KlikIgrController extends Controller
                         DB::update($query);
 
 
-                        //! Kalo COD-POIN balikin ke COD
+                        //* Kalo COD-POIN balikin ke COD
                         $query = '';
                         $query .= "UPDATE TBTR_OBI_H ";
                         $query .= "SET OBI_TIPEBAYAR = 'COD' ";
@@ -5922,7 +6008,7 @@ class KlikIgrController extends Controller
                         $query .= "    AND OBI_TIPEBAYAR = 'COD-POIN' ";
                         DB::update($query);
 
-                        //! BATALIN Realisasi Promo Klikigr
+                        //* BATALIN Realisasi Promo Klikigr
                         $query = '';
                         $query .= "UPDATE promo_klikigr ";
                         $query .= "   SET cashback_real = NULL, gift_real = NULL, kelipatan = 1 ";
@@ -5931,7 +6017,7 @@ class KlikIgrController extends Controller
                         $query .= "  AND no_pb = '" . $noPB . "' ";
                         DB::update($query);
 
-                        //! BATALIN DSP SPI
+                        //* BATALIN DSP SPI
                         $query = '';
                         $query .= "DELETE FROM tbtr_dsp_spi ";
                         $query .= " WHERE dsp_kodemember = '" . $kdMember . "' ";
@@ -5939,7 +6025,7 @@ class KlikIgrController extends Controller
                         $query .= "  AND dsp_nopb = '" . $noPB . "' ";
                         DB::delete($query);
 
-                        //! BATALIN DRAFT STRUK - KURANG INTRANSIT
+                        //* BATALIN DRAFT STRUK - KURANG INTRANSIT
                         $query = '';
                         $query .= "SELECT obi_nopb ";
                         $query .= "FROM tbtr_obi_h ";
@@ -5988,7 +6074,7 @@ class KlikIgrController extends Controller
                 }
                 return true;
             } else {
-                throw new HttpResponseException(ApiFormatter::error(400, "Terjadi Kesalahan"));
+                throw new HttpResponseException(ApiFormatter::error(400, "Terjadi Kesalahan pada proses procedure"));
             }
         }
     }
@@ -6026,7 +6112,7 @@ class KlikIgrController extends Controller
 
         $strResponse = $this->ConToWebServiceNew($urlPromo, $apiName, $apiKey, $postData);
 
-        //! GET RESPONSE DARI ConToWebServiceNew
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $statusMessage = 'OK';
         $data = [];
         $type = 0;
@@ -6213,14 +6299,14 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        //! CEK DATA ALAMAT
+        //* CEK DATA ALAMAT
         $check = DB::select("SELECT * FROM Tbtr_ALAMAT_MM, TBTR_OBI_H WHERE amm_kodemember = obi_kdmember AND amm_nopb = obi_nopb AND amm_notrans = obi_notrans AND amm_tglpb = obi_tglpb AND obi_notrans = ? AND obi_tgltrans = ?", [$noTrans, $dtTrans]);
 
         if(!count($check)){
             throw new HttpResponseException(ApiFormatter::error(400, "Kode alamat tidak terdaftar. Apabila data tidak lengkap, tidak dapat melakukan Draft Struk"));
         }
 
-        //! CEK DATA PERSONAL MEMBER
+        //* CEK DATA PERSONAL MEMBER
         $check = DB::select("SELECT * FROM TBMASTER_CUSTOMER, TBTR_OBI_H
                             WHERE cus_kodemember = obi_kdmember
                             AND obi_notrans = ?
@@ -6350,8 +6436,7 @@ class KlikIgrController extends Controller
                     DB::insert($query);
                 }
 
-                $message = 'Data Ongkos Kirim Berhasil Disimpan.';
-                throw new HttpResponseException(ApiFormatter::success(200, $message));
+                return true;
             }
 
         }
@@ -6365,7 +6450,7 @@ class KlikIgrController extends Controller
         $noPick = null;
         $noSJ = null;
 
-        //! TOLAKAN ZONA, JALUR, LOKASI, NOID
+        //* TOLAKAN ZONA, JALUR, LOKASI, NOID
         $query = '';
         $query .= "SELECT obi_prdcd  ";
         $query .= "FROM tbtr_obi_d  ";
@@ -6400,7 +6485,7 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        //! TOLAKAN STOCK
+        //* TOLAKAN STOCK
         $query = '';
         $query .= "SELECT obi_prdcd ";
         $query .= "FROM tbtr_obi_d ";
@@ -6425,7 +6510,7 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        //! TOLAKAN QTY PLANO
+        //* TOLAKAN QTY PLANO
         $query = '';
         $query .= "SELECT plu ";
         $query .= "FROM ( ";
@@ -6490,8 +6575,8 @@ class KlikIgrController extends Controller
 
             $this->logUpdateStatus($notrans, $tglTrans, $nopb, "1", "2");
 
-            // DB::commit();
             return $file_content;
+
         }else{
             throw new HttpResponseException(ApiFormatter::error(400, 'GAGAL Send Jalur SPI'));
         }
@@ -6503,7 +6588,7 @@ class KlikIgrController extends Controller
         $memberigr = $dgv_memberigr;
         $listPLUMasalah = [];
 
-        //! TOLAKAN TAG TIDAK BOLEH JUAL
+        //* TOLAKAN TAG TIDAK BOLEH JUAL
         $query = '';
         $query .= "SELECT obi_prdcd  ";
         $query .= "FROM tbtr_obi_d  ";
@@ -6532,7 +6617,7 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        //! CEK ITEM UNIT KG
+        //* CEK ITEM UNIT KG
         $query = '';
         $query .= "SELECT obi_prdcd  ";
         $query .= "FROM tbtr_obi_d  ";
@@ -6548,7 +6633,7 @@ class KlikIgrController extends Controller
         if(count($dt) == 0){
             $flagKG = false;
         }else{
-            //! CEK DATA KONVERSI ITEM UNIT KG
+            //* CEK DATA KONVERSI ITEM UNIT KG
             $query = '';
             $query .= "SELECT obi_prdcd  ";
             $query .= "FROM tbtr_obi_d  ";
@@ -6577,7 +6662,7 @@ class KlikIgrController extends Controller
                 throw new HttpResponseException(ApiFormatter::error(400, $message));
             }
 
-            //! KASIH FLAG OBI_ITEMKG DI TBTR_OBI_D
+            //* KASIH FLAG OBI_ITEMKG DI TBTR_OBI_D
             $query = '';
             $query .= "UPDATE tbtr_obi_d ";
             $query .= "SET obi_itemkg = 1, ";
@@ -6598,7 +6683,7 @@ class KlikIgrController extends Controller
             DB::update($query);
         }
 
-        //! GROUP PICKING
+        //* GROUP PICKING
         $query = '';
         $query .= "SELECT pk_group ";
         $query .= "FROM ( ";
@@ -6762,7 +6847,7 @@ class KlikIgrController extends Controller
             $dt = DB::select($query);
 
             if(count($dt)){
-                //! PROSES MENGHASILKAN FILE
+                //* PROSES MENGHASILKAN FILE
                 $file_content = $this->logPLUtanpaLokasi($dgv_nopb, $dgv_tglpb, $dt);
 
                 $txtPlu = '';
@@ -6839,7 +6924,7 @@ class KlikIgrController extends Controller
                 DB::update($query);
             }
 
-            //! Update lokasi picking rak biasa
+            //* Update lokasi picking rak biasa
             $query .= "UPDATE tbtr_obi_d ";
             $query .= "SET (obi_koderak, obi_kodesubrak, obi_tiperak, obi_shelvingrak, obi_nourut) ";
             $query .= "= ( ";
@@ -6926,7 +7011,7 @@ class KlikIgrController extends Controller
         $query .= "and obi_nopb =  '" . $dgv_nopb . "' ";
         DB::insert($query);
 
-        //! BATALIN Realisasi Promo Klikigr
+        //* BATALIN Realisasi Promo Klikigr
         $query = '';
         $query .= "UPDATE promo_klikigr ";
         $query .= "   SET cashback_real = NULL, gift_real = NULL, kelipatan = 1 ";
@@ -6935,7 +7020,7 @@ class KlikIgrController extends Controller
         $query .= "  AND no_pb = '" . $dgv_nopb . "' ";
         DB::insert($query);
 
-        //! BATALIN DSP SPI
+        //* BATALIN DSP SPI
         $query = '';
         $query .= "DELETE FROM tbtr_dsp_spi ";
         $query .= "WHERE dsp_kodemember = '" . $dgv_memberigr . "' ";
@@ -6943,7 +7028,7 @@ class KlikIgrController extends Controller
         $query .= "  AND dsp_nopb = '" . $dgv_nopb . "' ";
         DB::insert($query);
 
-        //! BATALIN DRAFT STRUK - KURANG INTRANSIT
+        //* BATALIN DRAFT STRUK - KURANG INTRANSIT
         $query = '';
         $query .= "SELECT obi_nopb ";
         $query .= "FROM tbtr_obi_h ";
@@ -7037,38 +7122,6 @@ class KlikIgrController extends Controller
         $files_content['content'] = $str;
         $files_content['nama_file'] = "NOPICK_" . $data[0]->nopick . '.txt';
         return $files_content;
-
-        //! REPORTNYA
-        // Dim tglPicking As String = dtPicking.Rows(0).Item("TGLPICK").ToString.ToString
-        // Dim nopick As String = dtPicking.Rows(0).Item("NOPICK").ToString
-        // Dim str As String = ""
-        // str &= vbCrLf
-        // str &= "            PICKING LIST SPI            " & vbCrLf
-        // str &= "========================================" & vbCrLf
-        // str &= "No.PB   : " & nopb & vbCrLf
-        // str &= "No.Pick : " & nopick.PadRight(8, " ") & " Tgl.Pick : " & tglPicking & vbCrLf
-        // str &= "KD Member : " & kodemember & vbCrLf
-        // str &= "========================================" & vbCrLf
-        // str &= "No PLU - NAMA BARANG                    " & vbCrLf
-        // str &= "   ALAMAT PICKING - QTYPB " & vbCrLf
-        // str &= "========================================" & vbCrLf
-        // For i As Integer = 0 To dtPicking.Rows.Count - 1
-        //     Dim nourut As Integer = i + 1
-        //     Dim plu As String = dtPicking(i).Item("PLU").ToString
-        //     Dim deskripsi As String = dtPicking(i).Item("DESKRIPSI").ToString
-        //     Dim alamat As String = dtPicking(i).Item("ALAMAT").ToString
-        //     Dim qty As String = dtPicking(i).Item("QTYORDER").ToString
-
-        //     str &= (nourut).ToString.PadLeft(2, " ").ToString & " "
-        //     str &= plu.PadRight(7, " ") & " - " & deskripsi.ToString.PadRight(25, " ")
-        //     str &= vbNewLine
-
-        //     str &= "   " & alamat.PadRight(15, " ") & "- " & qty
-        //     str &= vbNewLine
-        // Next
-        // str &= "========================================" & vbCrLf
-        // str &= vbNewLine
-        // str &= Chr(&H1D) & "V" & Chr(66) & Chr(0)
     }
 
     protected function rptPenyusutanHarianPerishable($tanggal_trans){
@@ -7158,6 +7211,8 @@ class KlikIgrController extends Controller
         //* report -> rptJalurKertasKlikIGR
     }
 
+    //! KEVIN | ADA TRANSACTION
+    //! NOTE KEVIN | ANOMALI | ini digunakan untuk apa?
     protected function ReaktivasiPB($no_trans, $nopb, $tanggal_trans){
 
         DB::beginTransaction();
@@ -7204,7 +7259,7 @@ class KlikIgrController extends Controller
             $query .= "   AND lr_nopb =  '" . $nopb . "' ";
             DB::insert($query);
 
-            //! REAKTIVASI PB SESUDAH DRAFT STRUK (RECID 4) - TAMBAH INTRANSIT
+            //* REAKTIVASI PB SESUDAH DRAFT STRUK (RECID 4) - TAMBAH INTRANSIT
             $query = '';
             $query .= "SELECT obi_nopb ";
             $query .= "FROM tbtr_obi_h ";
@@ -7344,7 +7399,7 @@ class KlikIgrController extends Controller
     }
 
     protected function createTableIPP_ONL(){
-        //! CREATE TABLE TBTR_DSP_SPI
+        //* CREATE TABLE TBTR_DSP_SPI
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_DSP_SPI'")
             ->count();
@@ -7366,7 +7421,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBTR_AWB_IPP
+        //* CREATE TABLE TBTR_AWB_IPP
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_AWB_IPP'")
             ->count();
@@ -7400,7 +7455,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBTR_SERAHTERIMA_IPP
+        //* CREATE TABLE TBTR_SERAHTERIMA_IPP
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->count();
@@ -7444,7 +7499,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_CODVALUE
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_CODVALUE
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_CODVALUE'")
@@ -7454,7 +7509,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_CODVALUE NUMERIC");
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_CODPAYMENTCODE
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_CODPAYMENTCODE
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_CODPAYMENTCODE'")
@@ -7464,7 +7519,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_CODPAYMENTCODE VARCHAR(100)");
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_CODPAYMENTBILLER
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_CODPAYMENTBILLER
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_CODPAYMENTBILLER'")
@@ -7474,7 +7529,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_CODPAYMENTBILLER VARCHAR(100)");
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_PAYMENTTYPE
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_PAYMENTTYPE
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_PAYMENTTYPE'")
@@ -7484,7 +7539,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_PAYMENTTYPE VARCHAR(100)");
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_DRIVERID
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_DRIVERID
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_DRIVERID'")
@@ -7494,7 +7549,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_DRIVERID VARCHAR(20)");
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_DRIVERNAME
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_DRIVERNAME
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_DRIVERNAME'")
@@ -7504,7 +7559,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_DRIVERNAME VARCHAR(50)");
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_DRIVERPHONE
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_DRIVERPHONE
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_DRIVERPHONE'")
@@ -7514,7 +7569,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_DRIVERPHONE VARCHAR(20)");
         }
 
-        //! ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_VEHICLENO
+        //* ADD COLUMN TBTR_SERAHTERIMA_IPP - STI_VEHICLENO
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->whereRaw("upper(column_name) = 'STI_VEHICLENO'")
@@ -7524,7 +7579,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_SERAHTERIMA_IPP ADD COLUMN STI_VEHICLENO VARCHAR(20)");
         }
 
-        //! CREATE TABLE TBTR_SERAHTERIMA_IPP
+        //* CREATE TABLE TBTR_SERAHTERIMA_IPP
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBTR_SERAHTERIMA_IPP'")
             ->count();
@@ -7532,7 +7587,7 @@ class KlikIgrController extends Controller
 
         }
 
-        //! CREATE TABLE LOG_SERAHTERIMA_IPP
+        //* CREATE TABLE LOG_SERAHTERIMA_IPP
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'LOG_SERAHTERIMA_IPP'")
             ->count();
@@ -7550,7 +7605,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBMASTER_BTTB
+        //* CREATE TABLE TBMASTER_BTTB
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBMASTER_BTTB'")
             ->count();
@@ -7568,7 +7623,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CREATE TABLE TBMASTER_CREDENTIAL
+        //* CREATE TABLE TBMASTER_CREDENTIAL
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'TBMASTER_CREDENTIAL'")
             ->count();
@@ -7582,7 +7637,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CEK URL IPP_SPI DI TBMASTER_WEBSERVICE
+        //* CEK URL IPP_SPI DI TBMASTER_WEBSERVICE
         $count = DB::table('tbmaster_webservice')
             ->whereRaw("upper(ws_nama) = 'IPP_SPI'")
             ->count();
@@ -7605,7 +7660,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! INSERT SPI_IPP - TBMASTER_CREDENTIAL
+        //* INSERT SPI_IPP - TBMASTER_CREDENTIAL
         $count = DB::table('tbmaster_credential')
             ->whereRaw("upper(cre_type) = 'IPP_SPI'")
             ->count();
@@ -7624,7 +7679,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CEK URL IPP_KLIK DI TBMASTER_WEBSERVICE
+        //* CEK URL IPP_KLIK DI TBMASTER_WEBSERVICE
         $count = DB::table('tbmaster_webservice')
             ->whereRaw("upper(ws_nama) = 'IPP_KLIK'")
             ->count();
@@ -7647,7 +7702,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! INSERT IPP_KLIK - TBMASTER_CREDENTIAL
+        //* INSERT IPP_KLIK - TBMASTER_CREDENTIAL
         $count = DB::table('tbmaster_credential')
             ->whereRaw("upper(cre_type) = 'IPP_KLIK'")
             ->count();
@@ -7666,7 +7721,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CEK URL IPP_SPI DI TBMASTER_WEBSERVICE
+        //* CEK URL IPP_SPI DI TBMASTER_WEBSERVICE
         $count = DB::table('tbmaster_webservice')
             ->whereRaw("upper(ws_nama) = 'WS_SPI'")
             ->count();
@@ -7689,7 +7744,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! INSERT WS_IPP - TBMASTER_CREDENTIAL
+        //* INSERT WS_IPP - TBMASTER_CREDENTIAL
         $count = DB::table('tbmaster_credential')
             ->whereRaw("upper(cre_type) = 'WS_SPI'")
             ->count();
@@ -7708,7 +7763,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! CEK URL WS_KLIK DI TBMASTER_WEBSERVICE
+        //* CEK URL WS_KLIK DI TBMASTER_WEBSERVICE
         $count = DB::table('tbmaster_webservice')
             ->whereRaw("upper(ws_nama) = 'WS_KLIK'")
             ->count();
@@ -7731,7 +7786,7 @@ class KlikIgrController extends Controller
             DB::insert($query);
         }
 
-        //! INSERT WS_IPP - TBMASTER_CREDENTIAL
+        //* INSERT WS_IPP - TBMASTER_CREDENTIAL
         $count = DB::table('tbmaster_credential')
             ->whereRaw("upper(cre_type) = 'WS_KLIK'")
             ->count();
@@ -7753,7 +7808,7 @@ class KlikIgrController extends Controller
 
     protected function getKonversiItemPerishable($flagMsg){
 
-        //! CEK HARI INI UDAH PERNAH GET DATA KONVERSI ITEM PERISHABLE
+        //* CEK HARI INI UDAH PERNAH GET DATA KONVERSI ITEM PERISHABLE
         $cek =  DB::table('log_konversi_klikigr')
             ->whereRaw("WHERE DATE_TRUNC('DAY',create_dt) = DATE_TRUNC('DAY',CURRENT_DATE)")
             ->count();
@@ -7762,7 +7817,7 @@ class KlikIgrController extends Controller
             throw new HttpResponseException(ApiFormatter::error(400, $message));
         }
 
-        //! CEK URL KONVERSI_KLIKIGR DI TBMASTER_WEBSERVICE
+        //* CEK URL KONVERSI_KLIKIGR DI TBMASTER_WEBSERVICE
         $cek = DB::table('tbmaster_webservice')
             ->whereRaw("WHERE upper(ws_nama) = 'KONVERSI_KLIKIGR'")
             ->first();
@@ -7775,18 +7830,18 @@ class KlikIgrController extends Controller
 
         $response = $this->ConToWebService($url);
 
-        //! INSERT LOG_KONVERSI_KLIKIGR
+        //* INSERT LOG_KONVERSI_KLIKIGR
         DB::table('log_konversi_klikigr')
             ->insert([
                 'kodeigr' => session('KODECABANG'),
                 'url' => $url,
-                'response' => '', //! harusnya dari response ConToWebService
+                'response' => '', //! NOTE KEVIN | GET RESPONSE DARI ConToWebService
                 'ip' => $this->getIP(),
                 'create_by' => session('userid'),
                 'create_dt' => Carbon::now(),
             ]);
 
-        //! GET RESPONSE DARI ConToWebService
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebService
         $data = [];
 
         if(count($data)){
@@ -7816,17 +7871,17 @@ class KlikIgrController extends Controller
     }
 
     protected function satuanProdmast($plu){
-        // Query to get PRD_UNIT
+        //* Query to get PRD_UNIT
         $unit = DB::table('tbmaster_prodmast')
                     ->where('prd_prdcd', $plu)
                     ->value('prd_unit');
 
-        // Check and convert unit if needed
+        //* Check and convert unit if needed
         if (strtoupper($unit) === 'KG') {
             $unit = 'GR';
         }
 
-        // Query to get PRD_ISIBELI
+        //* Query to get PRD_ISIBELI
         $minItem = DB::table('tbmaster_prodmast')
                     ->where('prd_prdcd', $plu)
                     ->value('prd_isibeli');
@@ -7838,7 +7893,7 @@ class KlikIgrController extends Controller
     }
 
     protected function alterDPDNOIDCTN(){
-        //! ADD COLUMN NO_NOIDCTN
+        //* ADD COLUMN NO_NOIDCTN
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBMASTER_NOID'")
             ->whereRaw("upper(column_name) = 'NO_NOIDCTN'")
@@ -7848,7 +7903,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBMASTER_NOID ADD COLUMN NO_NOIDCTN VARCHAR(10)");
         }
 
-        //! ADD COLUMN LKS_NOIDCTN
+        //* ADD COLUMN LKS_NOIDCTN
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBMASTER_LOKASI'")
             ->whereRaw("upper(column_name) = 'LKS_NOIDCTN'")
@@ -7860,7 +7915,7 @@ class KlikIgrController extends Controller
     }
 
     protected function createLogUpdateRealisasiKlik(){
-        //! CREATE NEW LOG_ALASAN_BATAL
+        //* CREATE NEW LOG_ALASAN_BATAL
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'LOG_OBI_REALISASI'")
             ->count();
@@ -7884,7 +7939,7 @@ class KlikIgrController extends Controller
     }
 
     protected function alterTablePickingRakToko(){
-        //! ADD COLUMN PRS_FLAG_PICKINGKLIK
+        //* ADD COLUMN PRS_FLAG_PICKINGKLIK
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBMASTER_PERUSAHAAN'")
             ->whereRaw("upper(column_name) = 'PRS_FLAG_PICKINGKLIK'")
@@ -7896,7 +7951,7 @@ class KlikIgrController extends Controller
     }
 
     protected function createAlasanBatalKlik(){
-        //! CREATE TABLE LOG_ALASAN_BATAL
+        //* CREATE TABLE LOG_ALASAN_BATAL
         $count = DB::table('information_schema.tables')
             ->whereRaw("upper(table_name) = 'LOG_ALASAN_BATAL'")
             ->count();
@@ -7920,7 +7975,7 @@ class KlikIgrController extends Controller
     }
 
     protected function alterTableSendHHotomatis(){
-        //! ADD COLUMN OBI_FLAGSENDHH
+        //* ADD COLUMN OBI_FLAGSENDHH
         $count = DB::table('information_schema.columns')
         ->whereRaw("upper(table_name) = 'TBTR_OBI_H'")
         ->whereRaw("upper(column_name) = 'OBI_FLAGSENDHH'")
@@ -7932,7 +7987,7 @@ class KlikIgrController extends Controller
     }
 
     protected function alterTableCODVA(){
-        //! ADD COLUMN DEL_PINCOD
+        //* ADD COLUMN DEL_PINCOD
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_PINCOD'")
@@ -7944,7 +7999,7 @@ class KlikIgrController extends Controller
     }
 
     protected function alterTableCODPOIN(){
-        //! PAYMENT_KLIKIGR
+        //* PAYMENT_KLIKIGR
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'PAYMENT_KLIKIGR'")
             ->whereRaw("upper(column_name) = 'COD_NONPAID'")
@@ -7954,7 +8009,7 @@ class KlikIgrController extends Controller
             DB::statement("ALTER TABLE PAYMENT_KLIKIGR ADD COD_NONPAID VARCHAR(2)");
         }
 
-        //! TBTR_DSP_SPI
+        //* TBTR_DSP_SPI
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DSP_SPI'")
             ->whereRaw("upper(column_name) = 'DSP_TOTALDSP'")
@@ -7964,7 +8019,7 @@ class KlikIgrController extends Controller
             DB::select("ALTER TABLE TBTR_DSP_SPI ADD DSP_TOTALDSP NUMERIC");
         }
 
-        //! TBTR_DELIVERY_SPI
+        //* TBTR_DELIVERY_SPI
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_DELIVERY_SPI'")
             ->whereRaw("upper(column_name) = 'DEL_NILAICOD'")
@@ -7976,7 +8031,7 @@ class KlikIgrController extends Controller
     }
 
     protected function alterTBTR_TRANSAKSI_VA(){
-        //! COLUMN TVA_URL DI TBTR_TRANSAKSI_VA
+        //* COLUMN TVA_URL DI TBTR_TRANSAKSI_VA
         $count = DB::table('information_schema.columns')
             ->whereRaw("upper(table_name) = 'TBTR_TRANSAKSI_VA'")
             ->whereRaw("upper(column_name) = 'TVA_URL'")

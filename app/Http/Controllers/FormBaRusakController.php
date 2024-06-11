@@ -1177,7 +1177,7 @@ class FormBaRusakController extends KlikIgrController
 
         $strResponse = $this->ConToWebServiceNew($urlPromo, $apiName, $apiKey, $postData);
 
-        //* GET RESPONSE DARI ConToWebServiceNew
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $statusMessage = 'OK';
         $data = [];
         $type = 0;
@@ -1469,7 +1469,7 @@ class FormBaRusakController extends KlikIgrController
 
         $strResponse = $this->ConToWebServiceNew($urlSPI, $apiName, $apiKey, $postData);
 
-        //! GET RESPONSE DARI ConToWebServiceNew
+        //! NOTE KEVIN | GET RESPONSE DARI ConToWebServiceNew
         $strPostData = null;
         $strResponse = null;
 

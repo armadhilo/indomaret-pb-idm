@@ -103,7 +103,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             //* MasterPickingAction
             Route::post("/actionMasterPickingHHSimpan", [FormPickerClickController::class, 'actionSimpan']);
             Route::post("/actionMasterPickingHHHapus", [FormPickerClickController::class, 'actionHapus']);
-            
+
             //* ListingDelivery Additional
             Route::post("/actionListingDeliveryPrep", [KlikIgrController::class, 'actionListingDeliveryPrep']);
             Route::get("/actionListingDeliveryDatatables", [KlikIgrController::class, 'actionListingDeliveryDatatables']);
@@ -136,18 +136,6 @@ Route::get('/logout', [LoginController::class, 'logout']);
             foreach ($functionKeys as $key) {
                 Route::post("/$key", [KlikIgrFooterController::class, "action$key"]);
             }
-
-            //! KEVIN ROUTE
-            Route::post("/action-cetak-surat-jalan", [KlikIgrController::class, 'actionCetakSuratJalan']);
-            Route::post("/action-cetak-ikk", [KlikIgrController::class, 'actionCetakIKK']);
-            Route::post("/action-list-item-pb-batal", [KlikIgrController::class, 'actionListItemPBBatal']);
-            Route::post("/action-item-picking-belum-transit", [KlikIgrController::class, 'actionItemPickingBelumTransit']);
-            Route::post("/action-listing-delivery", [KlikIgrController::class, 'actionListingDelivery']);
-            Route::post("/action-list-pb-lebih-dari-max-serah-terima", [KlikIgrController::class, 'actionListPBLebihDariMaxSerahTerima']);
-            Route::post("/action-recreate-awb", [KlikIgrController::class, 'actionReCreateAWB']);
-            Route::post("/action-bap-pengembalian-dana", [KlikIgrController::class, 'actionBAPengembalianDana']);
-            Route::post("/action-ba-rusak-kemasan", [KlikIgrController::class, 'actionBARusakKemasan']);
-
         });
     });
 
