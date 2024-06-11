@@ -46,7 +46,7 @@ class Controller extends BaseController
 
 
     //? use on logUpdateStatus
-    private function updateStatus($status, $noPB){
+    public function updateStatus($status, $noPB){
         if(session('flagSPI') == true){
             $dtCek = DB::table('tbmaster_webservice')->where('ws_nama', 'WS_SPI')->first();
             $dtApiKey = DB::table('tbmaster_credential')->selectRaw("cre_name as api_name, cre_key as api_key")->where('cre_type', 'WS_SPI')->first();
@@ -86,7 +86,7 @@ class Controller extends BaseController
         }
     }
 
-    private function ORADataFound($table, $where){
+    public function ORADataFound($table, $where){
         $cek = DB::table($table)
             ->whereRaw($where)
             ->count();
@@ -98,12 +98,12 @@ class Controller extends BaseController
         }
     }
 
-    //! NOTE INDOMARET
-    private function ConToWebService($endpoint, $postData = []){
+    //! NOTE KEVIN
+    //? INFO DARI PIHAK IDM PROSES DI COMMENT AJA
+    //? LANGSUNG RETURN TRUE
+    //? FR KEVIN (INFO PAK EVAN 02/05/2024)
+    public function ConToWebService($endpoint, $postData = []){
 
-        //! INFO DARI PIHAK IDM PROSES DI COMMENT AJA
-        //! LANGSUNG RETURN TRUE
-        //! FR KEVIN (INFO PAK EVAN 02/05/2024)
 
         $headers = [
             'X-Authorization' => '4b8bf8518b027f7adbf0e6c367ccb204b397566e',
@@ -126,12 +126,12 @@ class Controller extends BaseController
         return true;
     }
 
-    //! NOTE INDOMARET
-    private function ConToWebServiceNew($endpoint, $apiName, $apiKey, $postData = []){
+    //! NOTE KEVIN
+    //? INFO DARI PIHAK IDM PROSES DI COMMENT AJA
+    //? LANGSUNG RETURN TRUE
+    //? FR KEVIN (INFO PAK EVAN 02/05/2024)
+    public function ConToWebServiceNew($endpoint, $apiName, $apiKey, $postData = []){
 
-        //! INFO DARI PIHAK IDM PROSES DI COMMENT AJA
-        //! LANGSUNG RETURN TRUE
-        //! FR KEVIN (INFO PAK EVAN 02/05/2024)
         // $headers = [
         //     'Authorization' => 'Bearer your_access_token',
         //     $apiName => $apiKey,
@@ -2181,20 +2181,20 @@ class Controller extends BaseController
     }
 
     //! NOTE INDOMARET
-    private function CetakContainerPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+    public function CetakContainerPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
         //! INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
 
         return true;
     }
 
     //! NOTE INDOMARET
-    private function CetakBronjongPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
+    public function CetakBronjongPSP($nmPrnter, $NoPick, $TglPick, $ContainerZona, $Gate, $KodeToko, $NamaToko, $BarcodeKoli, $NoUrutToko, $JumlahToko){
         //! INI DIRETURN TRUE AJA KARENA HARUS KE PRINTER
 
         return true;
     }
 
-    private function konversi_SPI($noTrans, $tglTrans){
+    public function konversi_SPI($noTrans, $tglTrans){
 
         try {
 

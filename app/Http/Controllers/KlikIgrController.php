@@ -355,14 +355,14 @@ class KlikIgrController extends Controller
                 $data["listPLUMasalah"] = $error["listPLUMasalah"];
                 $data["content"] = $error["strListError"];
                 if($error["flagSendHHGagal"]){
-                    return ApiFormatter::success(201, "success", $data);    
+                    return ApiFormatter::success(201, "success", $data);
                 }
-                return ApiFormatter::success(200, "success");    
+                return ApiFormatter::success(200, "success");
             } else {
                 return ApiFormatter::error(400, "Data PB Send HH Kosong!");
             }
         }
-        return ApiFormatter::success(200, "success");   
+        return ApiFormatter::success(200, "success");
     }
 
     private function AutoSendHH($nopb, $notrans, $tgltrans, $member, $cbPickRakToko, $error){
@@ -571,7 +571,7 @@ class KlikIgrController extends Controller
             $error['strListError'] .= $error['countGagal'] . ". Master Picking Belum Disetting Untuk: " . $lok . " pada nomor pb " . $nopb;
             $error['flagSendHHGagal'] = true;
         }
-        
+
         $query = "";
         $query .= "SELECT COUNT(1) FROM ( ";
         $query .= "    SELECT D.*, COALESCE( ";
@@ -671,7 +671,7 @@ class KlikIgrController extends Controller
                     $error['listPLUMasalah'][] = $item->obi_prdcd;
                 }
             }
-            
+
 
             $plu = substr($plu, 0, strlen($plu) - 1);
             $plu = str_replace(',', ', ', $plu);
@@ -764,7 +764,7 @@ class KlikIgrController extends Controller
                 $query .= "        ORDER BY COALESCE(lks_noid,'99999') ASC, SUBSTRING(lks_koderak FROM 1 FOR 1) ASC, pk_urutan ASC ";
                 $query .= "        ) AS dt ";
                 $query .= "    WHERE lks_prdcd = SUBSTRING(obi_prdcd, 1, 6) || '0' ";
-                $query .= "    LIMIT 1 "; 
+                $query .= "    LIMIT 1 ";
                 $query .= ") ";
                 $query .= "WHERE OBI_RECID IS NULL AND COALESCE(OBI_ITEMKG,0) = 0 ";
                 $query .= "AND DATE_TRUNC('DAY',OBI_TGLTRANS) = TO_DATE('" . $tgltrans . "','dd-MM-yyyy') ";
@@ -834,7 +834,7 @@ class KlikIgrController extends Controller
                 }
 
                 return $error;
-            
+
             } catch (\Exception $e) {
                 DB::rollBack();
                 $error['countGagal'] += 1;
@@ -1556,10 +1556,6 @@ class KlikIgrController extends Controller
         }else{
             return $this->cekItemBatal(true);
         }
-
-        //! NOTE KEVIN
-        //? untuk protected function cekPBAkanBatal dan cekItemBatal sudah dicek dan aman
-        //? tinggal lanjut ke next form di setiap protected functionnya
     }
 
     //? DONE
@@ -1630,9 +1626,6 @@ class KlikIgrController extends Controller
         file_put_contents($filePath, $pdf->output());
 
         return ApiFormatter::success(200, "Report List Item Picking Belum Transit Berhasil Didownload", $nama_file);
-
-        //! NOTE KEVIN
-        //? untuk query sudah di check dan aman tinggal lanjut proses buka form
 
         //* buka form -> rptItemBelumDSP
     }
@@ -2083,11 +2076,11 @@ class KlikIgrController extends Controller
         $query .= " ORDER BY obi_tgltrans DESC, obi_notrans ASC ";
         $dtPB = DB::select($query);
 
-        
+
         if(count($dtPB) == 0){
             return ApiFormatter::error(400, 'Tidak ada PB yang gagal serah terima!');
         }
-        
+
         //* ADD PILIHAN ALASAN BATAL KIRIM
         $alasanBtl = DB::select("SELECT ROW_NUMBER() OVER () AS NO, ALASAN FROM (SELECT abk_alasan AS alasan FROM tbmaster_alasan_batal_kirim ORDER BY 1) AS alasan");
         $data["alasanBatal"] = $alasanBtl[0]->alasan;
@@ -2370,10 +2363,6 @@ class KlikIgrController extends Controller
 
             return ApiFormatter::success(200, "Cetak BA Pengembalian Dana SPI Berhasil!", $response);
 
-
-            //! NOTE KEVIN
-            //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
-
             //! open report -> rptBA
 
             // rptBA.SetParameterValue("tglBA", tglBA)
@@ -2427,7 +2416,7 @@ class KlikIgrController extends Controller
     }
 
     public function action_approve(Request $request){
-        
+
         if($request->userlevel == 990){
             $ds = DB::select("SELECT * FROM TBMASTER_USER WHERE RECORDID IS NULL AND USERID = '" . $request->username . "' AND USERPASSWORD = '" . $request->password . "' AND KODEIGR = '" . session("KODECABANG") . "' AND UPPER(email) LIKE 'IC%INDOMARET.%' ");
         } else if ($request->userlevel == 991){
@@ -3976,9 +3965,7 @@ class KlikIgrController extends Controller
         file_put_contents($filePath, $str);
 
         //! NOTE KEVIN
-        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
-
-        //! ADA CETAK PRINTER CUMA BINGUNG (FR KEVIN) 03/05/2024
+        //? ADA CETAK PRINTER CUMA BINGUNG 03/05/2024
     }
 
     protected function rptSuratJalan($dgv_notrans, $dgv_kodeWeb, $dgv_nopb, $dgv_memberigr, $dgv_freeongkir, $dgv_flagBayar, $dtTrans){
@@ -4185,9 +4172,6 @@ class KlikIgrController extends Controller
         $query .= " WHERE obi_notrans = '" . $notrans . "' ";
         $query .= " AND obi_nopb = '" . $nopb . "' ";
         $data['dtDetailSJ'] = DB::select($query);
-
-        //! NOTE KEVIN
-        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
 
         if(str_contains($nopb, '/500/')){
             //* form -> frmSuratJalanGurih
@@ -4511,9 +4495,6 @@ class KlikIgrController extends Controller
         file_put_contents($filePath, $pdf->output());
 
         return $nama_file;
-
-        //! NOTE KEVIN
-        //? sampai sini sudah berhasil tinggal lanjut proses ke formnya
 
         //* form -> frmSuratJalanSPI_NEW
 
@@ -8004,10 +7985,5 @@ class KlikIgrController extends Controller
         if($count == 0){
             DB::select("ALTER TABLE TBTR_TRANSAKSI_VA ADD COLUMN TVA_URL VARCHAR(100)");
         }
-    }
-
-    //! IRVAN | ConToWebServiceNew does not exist WALAUPUN DI CONTROLLER.php ADA FUNCTIONNYA SEMENTARA DIHARDCODE DLU
-    protected function ConToWebServiceNew($endpoint, $apiName, $apiKey, $postData = []){
-        return true;
     }
 }

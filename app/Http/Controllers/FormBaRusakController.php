@@ -367,7 +367,7 @@ class FormBaRusakController extends KlikIgrController
             $query .= "     brk_modify_dt = NOW() ";
             $query .= " WHERE brk_nopb = '" . $selectedRow['no_pb'] . "' ";
             $query .= " AND brk_kodemember = '" . $selectedRow['kode_member'] . "' ";
-    
+
             DB::update($query);
 
             DB::commit();
@@ -1146,7 +1146,6 @@ class FormBaRusakController extends KlikIgrController
         }
     }
 
-    //! ADA NOTE KEVIN
     private function requestPromoBARK($transKlik, $kdMember, $noTrans, $noPB, $flagHitungUlang = false){
 
         $query = '';
