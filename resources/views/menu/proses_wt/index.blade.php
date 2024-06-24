@@ -6,10 +6,10 @@
 @section('css')
 <style>
     /** max width card */
-        .max-width-card {
-            max-width: 156px;
-            min-width: 156px;
-        }
+    .max-width-card {
+        max-width: 156px;
+        min-width: 156px;
+    }
     /* Add your styling table_plu_seasonal */
     #table_plu {
         border-collapse: collapse;
@@ -29,6 +29,11 @@
 
     #table_plu tbody tr.selected {
         background-color: #a6e7ff; /* Change the background color when selected */
+    }
+
+    .selected-row {
+        background-color: #007bff;
+        color: #ffffff;
     }
 
 </style>
@@ -106,12 +111,16 @@
                             <div class="row p-5">
                                 <div class="col-md-6">
                                     <div class="card border-3 p-5" style="height:210px; background-color:#FAFAFA;">
+                                        @if((int)session()->get('flagIGR'))
                                         <form action="{{url('api/proseswt/send')}}" method="post" id="form_wt">
                                             @csrf
                                             <input type="file" name="file" id="file" onchange="submit_wt()">
                                         </form>
                                         <button type="button" class="btn btn-md btn-primary"> Proses WT</button>
-                                        <!-- <button type="button" class="btn btn-md btn-primary"> Proses SPH</button> -->
+                                        @else
+                                        <button type="button" class="btn btn-md btn-primary"> Proses SPH</button>
+                                        @endif
+
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -141,7 +150,8 @@
                                                         <!-- Add more headers as needed -->
                                                         </tr>
                                                     </thead>
-                                                    <tbody id="table-content-proseswt" style="height:420px;">
+                                                    <!-- <tbody id="table-content-proseswt" style="height:420px;"> -->
+                                                    <tbody id="table-content-proseswt" style="">
                                                     
                                                     </tbody>
                                                     </table>

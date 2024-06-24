@@ -28,7 +28,13 @@ class ReturController extends Controller
     }
 
     public function index(){
-        return view("menu.retur.index");
+        $flag = [
+            "flagFTZ" => session()->get('flagFTZ'),
+            "flagIGR" => session()->get('flagIGR'),
+            "flagSPI" => session()->get('flagSPI'),
+            "flagHHSPI" => session()->get('flagHHSPI')
+        ];
+        return view("menu.retur.index",compact('flag');
     }
     public function get_data_toko(){
         $data = $this->DB_PGSQL

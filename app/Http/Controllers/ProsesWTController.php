@@ -28,16 +28,23 @@ class ProsesWTController extends Controller
     }
 
     public function index(){
-        return view("menu.proses_wt.index");
+        $flag = [
+            "flagFTZ" => session()->get('flagFTZ'),
+            "flagIGR" => session()->get('flagIGR'),
+            "flagSPI" => session()->get('flagSPI'),
+            "flagHHSPI" => session()->get('flagHHSPI')
+        ];
+        return view("menu.proses_wt.index",compact('flag'));
     }
 
-    public function send_file(Request $request){
+    public function list_file(Request $request){
         // dd($request->all());
         $file = $request->file;
         $fileName = $request->file('file')->getClientOriginalName();
         $array_csv = $this->csv_to_array($file);
         $temp_csv = [];
         $list_toko = [];
+        $flagSudahProses = 0;
         $tolakan = 0;
         $nDataProses = 0;
         $hdr = 0;
@@ -51,24 +58,25 @@ class ProsesWTController extends Controller
         $noPb = null;
         $toko = null;
         $KodeIGR = '28';//session('KODECABANG'); // Replace with actual value
-        $flagFTZ = false; // Replace with actual logic
-        $flagDoubleDspb = false;
-        $flagSudahProses = null;
+        // $KodeIGR = session('KODECABANG'); // Replace with actual value
         $dtKey = [];
+        // dd($array_csv);
     
 
         foreach ($array_csv as $key => $value) {
             $temp_csv[$value['TOKO']] [] = $value;
         }
+        
         foreach ($temp_csv as $key => $value) {
             // get nama toko
             $get_nama_toko = $this->DB_PGSQL 
                               ->table("tbmaster_tokoigr")
                               ->selectRaw("TKO_NAMAOMI")
-                              ->whereRaw("TKO_KODEIGR =  '".session('KODECABANG')."'") 
+                              ->whereRaw("TKO_KODEIGR =  '".$KodeIGR."'") 
                               ->whereRaw("TKO_KODEOMI = '$key'") 
                               ->whereRaw("TKO_NAMASBU = 'INDOMARET'") 
                               ->get();
+
             if (!isset($get_nama_toko[0]->tko_namaomi)) {
                 $nama_toko = "Nama Toko Tidak Ditemukan";
             }else {
@@ -87,45 +95,48 @@ class ProsesWTController extends Controller
             foreach ($data_toko_csv as $key => $value) {
                 if ($value['RTYPE'] === "B" || $value['RTYPE'] === "K") {
                     if ($value['TOKO'] === "" || $value['SHOP'] === "") {
-                        $this->record_tolakan("Field Toko atau Shop Kosong!");
+                        // dd('masuk 1.1');
+                        $this->recordTolakan("Field Toko atau Shop Kosong!",$nama_toko,$value['TOKO']);
                         $tolakan += 1;
                         break;
                     }
                     if ($value['TOKO'] === "GI" . $KodeIGR  && $value['RTYPE'] === "B") {
+                        // dd('masuk 1.2');
                         // Process "B" type records
                         if ($value['TOKO'] === "GI" . $KodeIGR  && $value['RTYPE'] === "B") {
 
                             if ($noDspb !== $value['DOCNO2'] || $noPb !== $value['INVNO'] || $toko !== $value['SHOP']) {
 
                                 $flagDoubleDspb = false;
-                                // if ($noDspb !== null) {
-                                //     for ($i = 0; $i < 11; $i++) {
-                                //         if ($array[$i] === null) {
-                                //             $array[$i] = $noDspb;
-                                //             break;
-                                //         } else if ($array[$i] === $value['DOCNO2'] ) {
-                                //             $flagDoubleDspb = true;
-                                //         }
-                                //     }
-                                // }
+                                if ($noDspb !== null) {
+                                    for ($i = 0; $i < 11; $i++) {
+                                        if ($array[$i] === null) {
+                                            $array[$i] = $noDspb;
+                                            break;
+                                        } else if ($array[$i] === $value['DOCNO2'] ) {
+                                            $flagDoubleDspb = true;
+                                        }
+                                    }
+                                }
                                 
                                 $dt = $this->DB_PGSQL 
                                            ->table($this->DB_PGSQL->raw("tbmaster_pbomi, tbtr_idmkoli"))
                                            ->selectRaw("
                                                 SUM(COALESCE(pbo_ttlnilai, 0)) AS dpp, SUM(COALESCE(pbo_ttlppn, 0)) AS ppn, COALESCE(IKL_RECORDID, '1') AS PROSES
                                            ")
-                                           ->whereRaw("pbo_tglpb = TO_DATE(ikl_tglpb, 'YYYY-MM-dd')")
+                                           ->whereRaw("pbo_tglpb::date = ikl_tglpb::date")
                                            ->whereRaw("pbo_nopb = ikl_nopb")
                                            ->whereRaw("pbo_kodeomi = ikl_kodeidm")
                                            ->whereRaw("pbo_nokoli = ikl_nokoli")
-                                           ->whereRaw("ikl_registerrealisasi = '".$value['DOCNO2']."'")
-                                           ->whereRaw("ikl_nopb = '".$value['INVNO']."'")
-                                           ->whereRaw("ikl_kodeidm = '".$value['SHOP']."'")
+                                           ->whereRaw("ikl_registerrealisasi = '".$value['DOCNO2']."'")  // commend for debug
+                                           ->whereRaw("ikl_nopb = '".$value['INVNO']."'")  // commend for debug
+                                           ->whereRaw("ikl_kodeidm = '".$value['SHOP']."'")  // commend for debug
                                            ->groupBy("ikl_recordid")
-                                           ->get();
-
+                                        //    ->limit(10) // debug
+                                           ->toSql();
+dd($dt);
                                 foreach ($dt as $row) {
-                                    $flagSudahProses = $row->PROSES;
+                                    $flagSudahProses = $row->proses;
                                     if (!$flagDoubleDspb) {
                                         if ($flagSudahProses == "1") {
                                             $dppIgr += (int)str_replace('.', ',', $row->dpp);
@@ -156,6 +167,9 @@ class ProsesWTController extends Controller
 
                             } 
 
+                            if ($key == 10) {
+                                dd($noDspb,$dt);
+                            }
                             if ($flagSudahProses == "1") {
                                 $qty = (int)str_replace('.', ',', $value['QTY']) ?: 0;
                                 $ppn = (int)str_replace('.', ',', $value['PPNRP_IDM']) ?: 0;
@@ -245,5 +259,30 @@ class ProsesWTController extends Controller
             ]],200);
 
 
+    }
+
+    public function recordTolakan($msg=null, $namawt=null, $toko=null) {
+        try {
+            $this->DB_PGSQL->beginTransaction();
+
+            $this->DB_PGSQL
+            ->table("tbtr_tolakanwt")
+            ->insert([
+                "tlk_namawt"=> $namawt,
+                "tlk_toko"=> $toko,
+                "tlk_message"=> $msg,
+                "tlk_create_dt"=> date('Y-m-d'),
+                "tlk_create_by"=> session()->get('userid'),
+            ]);
+            $this->DB_PGSQL->commit();
+
+            return ['errors'=>true,'messages'=>$msg];
+        } catch (\Throwable $th) {
+            
+            $this->DB_PGSQL->rollBack();
+            // dd($th);
+            return ['errors'=>true,'messages'=>$th->getMessage()];
+        }
+        
     }
 }

@@ -196,7 +196,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
         /*  Proses WT */
         Route::prefix('/proseswt')->group(function () {
 
-            Route::post('/send', [ProsesWTController::class, 'send_file']);
+            Route::post('/send', [ProsesWTController::class, 'list_file']);
 
         });
         /*  Retur */

@@ -27,7 +27,13 @@ class VoucherController extends Controller
     }
 
     public function index(){
-        return view("menu.voucher.index");
+        $flag = [
+            "flagFTZ" => session()->get('flagFTZ'),
+            "flagIGR" => session()->get('flagIGR'),
+            "flagSPI" => session()->get('flagSPI'),
+            "flagHHSPI" => session()->get('flagHHSPI')
+        ];
+        return view("menu.voucher.index",compact('flag'));
     }
 
     public function voucher_load(Request $request){

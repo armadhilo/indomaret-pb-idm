@@ -31,7 +31,13 @@ class MonitoringController extends Controller
     }
 
     public function index(){
-        return view("menu.monitoring.index");
+        $flag = [
+            "flagFTZ" => session()->get('flagFTZ'),
+            "flagIGR" => session()->get('flagIGR'),
+            "flagSPI" => session()->get('flagSPI'),
+            "flagHHSPI" => session()->get('flagHHSPI')
+        ];
+        return view("menu.monitoring.index",compact('flag');
     }
 
     public function monitoring_load(Request $request){

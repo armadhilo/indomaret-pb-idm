@@ -10,44 +10,32 @@ let selectedTable,
 
 $(document).ready(function(){
       /**
-       * table_plu
+       * table_wt
        */
-      // $('#table_plu input[type="checkbox"]').click(function () {
-      //       // Toggle the 'selected' class on the parent row
-      //       $(this).closest('tr').toggleClass('selected-row', this.checked);
-      // });
-      // $('#table_plu tbody').on('click', 'tr', function () {
+      
+      $('#table_proseswt tbody').on('click', 'tr', function () {
 
-      //    $(this).toggleClass('selected-row');
-      //    selectedTablePLU = $(this).find('td').map(function (data) {
-      //          return $(this).text();
-      //    }).get();
-      //    $(this).find('input[type="checkbox"]').prop('checked', function (i, oldProp) {
-      //       if ($(this).is(':checked')) {
-      //          addPlu(selectedTablePLU[1],false)
-      //    } else {
-      //          addPlu(selectedTablePLU[1],true)
-      //    }
-      //       return !oldProp;
-      //    });
+         $(this).toggleClass('selected-row');
+         selectedTable = $(this).find('td').map(function (data) {
+               return $(this).text();
+         }).get();
          
 
-      // });
+      });
 
-      $('.select2').select2({
-         allowClear: false
-      }); 
-      // $("#datepicker").datepicker({
-      //    format: "dd-MM-yyyy",
-      //    autoclose: true,
-      //    todayHighlight: true
-      // });
-      
+      // $('.select2').select2({
+      //    allowClear: false
+      // }); 
       $('#form_wt').submit(function(e){
          e.preventDefault();
            formData = new FormData(this)
       })
 });
+
+click_table=(toko = null)=>{
+   console.log('masuk',dataToko[toko])
+
+}
 
 submit_wt =()=>{
 
@@ -91,7 +79,7 @@ submit_wt =()=>{
 
             $.each(data.data.data_toko,function(key,value) {
                field+=`
-                        <tr>
+                        <tr onclick="click_table('${value.toko}')">
    
                               <td>
                                  ${no++}
