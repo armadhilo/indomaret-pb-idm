@@ -60,7 +60,7 @@ function getCheckedBAPengembalianDana(){
 function getCheckedListingDelivery(){
     var checkedInputs = [];
     $('#modal_listing_delivery_tb tbody tr td input.checkbox-table:checked').each(function() {
-        var row = $(this).closest('tr');    
+        var row = $(this).closest('tr');
         var rowData = {
             tipeBayar: row.find('td:eq(0)').text(),
             noPB: row.find('td:eq(1)').text(),
@@ -75,7 +75,7 @@ function getCheckedListingDelivery(){
 function getCheckedMasterPicking(){
     var checkedInputs = [];
     $('#modal_master_picking_tb1 tbody tr td input.checkbox-table:checked').each(function() {
-        var row = $(this).closest('tr');    
+        var row = $(this).closest('tr');
         var rowData = {
             koderak: row.find('td:eq(0)').text(),
             kodesubrak: row.find('td:eq(1)').text(),
@@ -89,7 +89,7 @@ function getCheckedMasterPicking(){
 function getSelectedMasterPicking2(){
     var selectedInputs = [];
     $('#modal_master_picking_tb2 tbody tr.select-r').each(function() {
-        var row = $(this);    
+        var row = $(this);
         var rowData = {
             urutan: row.find('td:eq(0)').text(),
             koderak: row.find('td:eq(1)').text(),
@@ -103,7 +103,7 @@ function getSelectedMasterPicking2(){
 function getCheckedMasterPickingGroup(){
     var checkedInputs = [];
     $('#modal_master_picking_group_tb1 tbody tr td input.checkbox-table:checked').each(function() {
-        var row = $(this).closest('tr');    
+        var row = $(this).closest('tr');
         var rowData = {
             id: row.find('td:eq(0)').text(),
             nama: row.find('td:eq(1)').text(),
@@ -133,7 +133,7 @@ function getCheckedReCreateAWB(){
 function getCheckedMasterPickingGroup2(){
     var selectedInputs = [];
     $('#modal_master_picking_group_tb2 tbody tr.select-r').each(function() {
-        var row = $(this);    
+        var row = $(this);
         var rowData = {
             grup: row.find('td:eq(0)').text(),
             id: row.find('td:eq(1)').text(),
@@ -183,7 +183,7 @@ function actionAdditionalPesananExpired(){
             responseType: 'blob'
         },
         success: function(response) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             var blob = new Blob([response], { type: 'application/pdf' });
             var link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
@@ -233,8 +233,8 @@ function actionAdditionalHitungUlangEkspedisi(){
         type: "POST",
         data: {pengiriman: $("#pengiriman_modal_ekspedisi").val(), txtNama: $("txt_nama_modal_ekspedisi").val(), jarak: $("#jarak_modal_ekspedisi").val()},
         success: function(response) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
-            
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             Swal.fire({
@@ -315,7 +315,7 @@ function actionAdditionalQueryDatatablesMasterData(flagMode = ""){
         type: "GET",
         success: function(response) {
             setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
-            
+
             if ($.fn.DataTable.isDataTable('#modal_master_data_tb')) {
                 modal_master_data_tb.clear().draw();
                 $("#modal_master_data_tb").dataTable().fnDestroy();
@@ -455,8 +455,8 @@ function actionAdditionalBAPengembalianDanaDatatables(noba, isHistory){
 
 function actionAdditionalBAPengembalianDanaPrepCetak(){
     var isHistory = $("#modal_ba_pengembalian_dana_checkbox").val();
-    var swalText = isHistory == 0 
-    ? "Yakin akan Melakukan Cetak Pengembalian Dana SPI berdasarkan data yang dipilih ?" 
+    var swalText = isHistory == 0
+    ? "Yakin akan Melakukan Cetak Pengembalian Dana SPI berdasarkan data yang dipilih ?"
     : "Yakin akan Melakukan Cetak Pengembalian Dana SPI berdasarkan History BA ?";
 
     Swal.fire({
@@ -468,7 +468,7 @@ function actionAdditionalBAPengembalianDanaPrepCetak(){
     .then((result) => {
         if (result.value) {
             if(isHistory == 1){
-                if($("#modal_ba_pengembalian_dana_select").val() !== ""){   
+                if($("#modal_ba_pengembalian_dana_select").val() !== ""){
                     var data = [];
                     data.push({noBA : $("#modal_ba_pengembalian_dana_select").val()});
                     data.push({tglBA : $('#modal_ba_pengembalian_dana_select option:selected').attr('date-value')});
@@ -1005,8 +1005,8 @@ function actionAdditionalBuktiSerahTerimaKardusDatatables(isHistory = 0){
 
 function actionAdditionalBuktiSerahTerimaKardusPrepCetak(){
     var isHistory = $("#cek_history_stk").val();
-    var swalText = isHistory == 0 
-    ? "Yakin akan Melakukan Cetak Serah Terima Kardus berdasarkan data yang dipilih ?" 
+    var swalText = isHistory == 0
+    ? "Yakin akan Melakukan Cetak Serah Terima Kardus berdasarkan data yang dipilih ?"
     : "Yakin akan Melakukan Cetak Serah Terima Kardus berdasarkan History STK ?";
 
     Swal.fire({
@@ -1018,7 +1018,7 @@ function actionAdditionalBuktiSerahTerimaKardusPrepCetak(){
     .then((result) => {
         if (result.value) {
             if(isHistory == 1){
-                if($("#select_history_stk").val() !== ""){   
+                if($("#select_history_stk").val() !== ""){
                     var data = [];
                     data.push({noSTK : $("#select_history_stk").val()});
                     data.push({tglSTK : $('#select_history_stk option:selected').attr('date-value')});
@@ -1348,7 +1348,7 @@ $("#BtnOK_modal_ekspedisi").click(function(){
     $.ajax({
         url: currentURL + `/action/OngkosKirimWithForm`,
         type: "POST",
-        data: {no_trans: selectedRow.no_trans, status: selectedRow.status, flagBayar: selectedRow.flagbayar, nopb: selectedRow.no_pb, tanggal_pb: selectedRow.tgl_pb, freeOngkir: selectedRow.free_ongkir, jarakKirim: selectedRow.jarakkirim, kode_member: selectedRow.kode_member, 
+        data: {no_trans: selectedRow.no_trans, status: selectedRow.status, flagBayar: selectedRow.flagbayar, nopb: selectedRow.no_pb, tanggal_pb: selectedRow.tgl_pb, freeOngkir: selectedRow.free_ongkir, jarakKirim: selectedRow.jarakkirim, kode_member: selectedRow.kode_member,
         formData: {
             FlagEkspedisi: "Y",
             biayaEkspedisi: $("#modal_ekspedisi").attr("data-ongkos"),
@@ -1404,7 +1404,7 @@ function actionPembayaranVA(){
         type: "POST",
         data: {tipe_bayar: selectedRow.tipe_bayar, tanggal_pb: selectedRow.tgl_pb, nopb: selectedRow.no_pb, no_trans: selectedRow.no_trans, kode_member: selectedRow.kode_member},
         success: function(response) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             var data = response.data;
             $("#bank_modal_pembayaran_va").empty();
             $("#no_pb_modal_pembayaran_va").val(data.request.nopb);
@@ -1582,7 +1582,7 @@ function actionPbBatal(){
                     ]
                     $("#modal_list_pb_batal_title").text("Daftar PB Item Batal Yang Belum Dikembalikan ke Rak");
                 }
-                
+
                 if ($.fn.DataTable.isDataTable('#modal_list_pb_batal_tb')) {
                     tb_periode_pesanan.clear().draw();
                     $("#modal_list_pb_batal_tb").dataTable().fnDestroy();
@@ -1627,7 +1627,7 @@ function actionBaRusakKemasan(){
                     $(`#${field.id}${i}`).val(field.value);
                 });
             }
-            
+
             actionAdditionalReloadTabBaRusakKemasan();
         }, error: function(jqXHR, textStatus, errorThrown) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
@@ -1736,7 +1736,7 @@ function loadItemPbBaRusakKemasan(){
                 },
                 order: [],
                 "paging": false,
-                "searching": false, 
+                "searching": false,
                 "scrollY": "calc(100vh - 650px)",
                 "scrollCollapse": true,
                 columnDefs: [{ className: 'text-center', targets: "_all" }],
@@ -1796,7 +1796,7 @@ function loadItemBaBaRusakKemasan(){
                 },
                 order: [],
                 "paging": false,
-                "searching": false, 
+                "searching": false,
                 "scrollY": "calc(100vh - 650px)",
                 "scrollCollapse": true,
                 columnDefs: [{ className: 'text-center', targets: "_all" }],
@@ -1819,7 +1819,7 @@ function loadItemBaBaRusakKemasan(){
                 },
                 order: [],
                 "paging": false,
-                "searching": false, 
+                "searching": false,
                 "scrollY": "calc(100vh - 650px)",
                 "scrollCollapse": true,
                 columnDefs: [{ className: 'text-center', targets: "_all" }],
@@ -2155,7 +2155,7 @@ function actionAdditionalMasterPickingHHLoadRakAll(disableLoading = true){
     };
     $.ajax({
         url: currentURL + "/action/actionMasterPickingHHLoadRakAll/",
-        type: "POST",    
+        type: "POST",
         contentType: 'application/json',
         data: JSON.stringify(dataToSend),
         async: false,
@@ -2343,7 +2343,7 @@ function actionReCreateAWB(){
                     $("#modal_re_create_awb_tb").dataTable().fnDestroy();
                     $("#modal_re_create_awb_tb thead").empty()
                 }
-    
+
                 modal_re_create_awb_tb = $('#modal_re_create_awb_tb').DataTable({
                     data: response.data.data,
                     language: {
@@ -2370,7 +2370,7 @@ function actionReCreateAWB(){
                         });
                     },
                 });
-    
+
                 $('#modal_loading').modal('hide');
                 // $('#modal_re_create_awb_tb').closest('.dataTables_wrapper').find('.dataTables_scrollHeadInner').css('width', '100%');
             }, 500);
@@ -2425,7 +2425,7 @@ function actionBAPengembalianDana(){
         success: function(response) {
             $("#modal_ba_pengembalian_dana_checkbox").prop("checked", false);
             actionAdditionalBAPengembalianDanaDatatables(null, 0);
-            
+
             if(response.data.length === 0){
                 $("#modal_ba_pengembalian_dana_select").prop("disabled", true);
             }else{
@@ -2546,7 +2546,7 @@ function actionBuktiSerahTerimaKardus(){
         type: "POST",
         data: {isShowDatatables: 1},
         success: function(response) {
-            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);    
+            setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
             var data = response.data;
             $("#select_history_stk").empty();
 
@@ -2753,7 +2753,7 @@ function actionAdditionalApproval(){
                 return;
             }
             if($("#userlevel_approval").val() == 999){
-                //! IRVAN | cURL ERROR Resolve Host
+                //! NOTE KEVIN | cURL ERROR Resolve Host
                 (async () => {
                     var dataValue = await connectToWebService("http://fo.indogrosir.lan/OMIWebService/OMIWebService.asmx/GetOTP?" + "KodeToko=" + '{{ session("KODECABANG") }}' , "POST");
                     if (dataValue) {

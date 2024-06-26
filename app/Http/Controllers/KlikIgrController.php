@@ -689,7 +689,7 @@ class KlikIgrController extends Controller
             $query .= "		   AND COALESCE(OBI_ITEMKG, 0) = 0 ";
             $query .= ") AS outer_lokasi WHERE LOKASI = 0 ";
             $dtprdcd = DB::select($query);
-            //! IRVAN | APAKAH DOWNLOAD MULTIPLE TXT LOG ?
+            //! NOTE KEVIN | APAKAH DOWNLOAD MULTIPLE TXT LOG ?
             $this->logPLUtanpaLokasi($nopb, $tgltrans, $dtprdcd);
 
             $plu = "";
@@ -5780,7 +5780,7 @@ class KlikIgrController extends Controller
 
         return $s;
 
-        //! IRVAN | THERMAL PRINTER MAKSUDNYA GIMANA ?
+        //! NOTE KEVIN | THERMAL PRINTER MAKSUDNYA GIMANA ?
         // If SettingMachine.PRINTERTYPE.ToUpper.Contains("THERMAL") Then
         //     s += Chr(&H1D) & "h" & Chr(50) & Chr(0)
         //     If SettingMachine.PRINTERTYPE.ToUpper.Contains("KECIL") Then

@@ -37,7 +37,7 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::get('/login', [LoginController::class, 'index']);
 Route::get('/logout', [LoginController::class, 'logout']);
 
-// Route::middleware(['mylogin'])->group(function () {
+Route::middleware(['mylogin'])->group(function () {
     //HOME
     Route::group(['prefix' => 'home'], function(){
         Route::get('/', [HomeController::class, 'index']);
@@ -178,11 +178,11 @@ Route::get('/logout', [LoginController::class, 'logout']);
     Route::get('/report', [RPTController::class, 'index']);
     Route::get('/test', [RPTController::class, 'print_cetak_ulang_dsp_test']);
     Route::get('/test2', [RPTController::class, 'print_cetak_ulang_dsp_test2']);
-    
+
     Route::prefix('/api')->group(function () {
-        
+
         Route::get('print/report/{data}', [RPTController::class, 'print_report']);
-    
+
         /*  Monitoring */
         Route::prefix('/monitoring')->group(function () {
 
@@ -213,7 +213,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post('/cetak/sj/ulang', [RPTController::class, 'print_cetak_ulang_sj']);
             Route::post('/struk/hadiah_omi', [RPTController::class, 'print_struk_hadiah_omi']);
             Route::post('/outstanding/dsp', [RPTController::class, 'print_outstanding_dsp']);
-            
+
             Route::post('/cetak/rtbr', [RPTController::class, 'print_rtbr']);
             Route::post('/cetak/tolakan_retur', [RPTController::class, 'print_tolakan_retur']);
             Route::post('/cetak/cetak_ba_acost', [RPTController::class, 'print_cetak_ba_acost']);
@@ -228,7 +228,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::post('/cetak/retur_supplier', [RPTController::class, 'print_retur_supplier']);
             Route::post('/cetak/serah_terima_retur', [RPTController::class, 'print_serah_terima_retur']);
             Route::post('/cetak/cetak_history_qrcode', [RPTController::class, 'print_cetak_history_qrcode']);
-            
+
             Route::post('/cetak/outstanding_dspb', [RPTController::class, 'print_outstanding_dspb']);
             Route::post('/cetak/cetak_hitory_dspb', [RPTController::class, 'print_cetak_hitory_dspb']);
             Route::post('/cetak/struk_hadiah', [RPTController::class, 'print_struk_hadiah']);
@@ -257,4 +257,4 @@ Route::get('/logout', [LoginController::class, 'logout']);
             Route::get('/printreport', [VoucherController::class, 'print_report']);
         });
     });
-// });
+});
