@@ -54,6 +54,38 @@
             <span>History Produk</span></a>
     </li>
 
+        <!-- ================================================================ -->
+    <!-- ======================= START ================================== -->
+    <!-- ================================================================ -->
+    <li class="nav-item @if($sub_url == 'monitoring') active @endif">
+        <a class="nav-link" href="{{ url('/monitoring') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>MONITORING</span></a>
+    </li>
+    <li class="nav-item @if($sub_url == 'voucher') active @endif">
+        <a class="nav-link" href="{{ url('/voucher') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>VOUCHER & MATERIAL</span></a>
+    </li>
+    <li class="nav-item @if($sub_url == 'proses_wt') active @endif">
+        <a class="nav-link" href="{{ url('/proses_wt') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>PROSES_WT</span></a>
+    </li>
+    <li class="nav-item @if($sub_url == 'retur') active @endif">
+        <a class="nav-link" href="{{ url('/retur') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>RETUR</span></a>
+    </li>
+    <li class="nav-item @if($sub_url == 'report') active @endif">
+        <a class="nav-link" href="{{ url('/report') }}">
+            <i class="fas fa-fw fa-tachometer-alt"></i>
+            <span>REPORT</span></a>
+    </li>
+     <!-- ================================================================ -->
+    <!-- ======================= END ================================== -->
+    <!-- ================================================================ -->
+
     <!-- Sidebar Toggler (Sidebar) -->
     <!-- <div class="text-center d-none d-md-inline">
         <button class="rounded-circle border-0" id="sidebarToggle"></button>

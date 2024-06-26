@@ -6,8 +6,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="flag" content="{{ isset($flag)?json_encode($flag):'' }}">
 
     <title>@php echo str_replace("_", " ", env('APP_NAME')); @endphp</title>
+    <!-- CSS Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- CSS Loading -->
+    <link rel="stylesheet" href="{{asset('assets/js/jquery-loading-master/src/loading.css')}}" type="text/css">
+    <!-- <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet"> -->
 
     <link rel="stylesheet" href="{{ asset('fonts/all.min.css')}}">
     <link rel="stylesheet" href="{{ asset('css/sb-admin-2.min.css')}}">
@@ -22,7 +28,6 @@
     <link rel="stylesheet" href="{{ asset('css/print.min.css')}}">
     <link rel="stylesheet" href="{{ asset('css/pace-theme-default.min.css')}}">
     <link rel="stylesheet" href="{{ asset('css/style-additional.css')}}">
-    <link rel="stylesheet" href="{{asset('plugin/select2/dist/css/select2.min.css')}}">
 
     @yield('css')
 
@@ -56,10 +61,13 @@
     <script src="{{ asset('js/buttons.flash.min.js')}}"></script>
     <script src="{{ asset('js/buttons.html5.min.js')}}"></script>
     <script src="{{ asset('js/pace.min.js')}}"></script>
-    <script src="{{ asset('js/moment.min.js')}}"></script>
     <script src="{{ asset('js/print.min.js')}}"></script>
     <script src="{{ asset('js/jquery.number.min.js')}}"></script>
-    <script src="{{ asset('plugin/select2/dist/js/select2.min.js')}}"></script>
+     <!-- JS Select2 -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- JS loading -->
+    <script src="{{asset('assets/js/jquery-loading-master/src/loading.js')}}"></script>   
     {{-- <script src="{{ asset('../resources/js/jquery.number.min.js.map')}}"></script> --}}
     <script>
         setInterval(refreshToken, 3900000); // 65min
@@ -103,18 +111,16 @@
 
                 @yield('content')
 
-                @yield('modal')
                 <!-- Modal Load-->
                 <div class="modal fade" role="dialog" id="modal_loading" data-keyboard="false" data-backdrop="static" style="z-index: 2000">
                     <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
-                        <div class="modal-body pt-0" style="background-color: #F5F7F9; border-radius: 6px;">
+                        <div class="modal-body pt-0" style="background-color: #FAFAF8; border-radius: 6px;">
                             <div class="text-center">
                                 <img style="border-radius: 4px; height: 140px;" src="{{ asset('img/loader_1.gif') }}" alt="Loading">
                                 <h6 style="position: absolute; bottom: 10%; left: 37%;" class="pb-2">Mohon Tunggu..</h6>
                             </div>
                         </div>
-                    </div>
                     </div>
                 </div>
             </div>
@@ -123,6 +129,8 @@
 
     <script>
         var currentURL;
+
+        var link = "{{url('/')}}";
         $(document).ready(function(){
             currentURL = window.location.href;
             if (currentURL.charAt(currentURL.length - 1) === '/') {
@@ -135,19 +143,6 @@
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			}
 		});
-
-        $('.select2').select2();
-
-        function setDateNow(element){
-            var today = moment().format('YYYY-MM-DD');
-            $(element).val(today).trigger('change');
-        }
-
-        function setTimeNow(element) {
-            var currentTime = moment().format('HH:mm');
-            $(element).val(currentTime).trigger('change');
-        }
-
 
         function fungsiRupiah(angka){
             var number_string = angka.toString().replace(/[^,\d]/g, '').toString(),
@@ -179,11 +174,6 @@
             }
             return false;
         };
-
-        function onKeyUpUpperCase(inputValue) {
-            return inputValue.toUpperCase();
-        }
-
     </script>
     @stack('page-script')
 </body>
