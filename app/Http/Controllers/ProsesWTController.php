@@ -54,9 +54,15 @@ class ProsesWTController extends Controller
         $ppnIgr = 0;
         $dppIdm = 0;
         $ppnIdm = 0;
+        $qty = 0;
+        $ppn = 0;
+        $price = 0;
         $noDspb = null;
         $noPb = null;
         $toko = null;
+        $docnoIdm = null;
+        $tglDocnoIdm = null;
+        // $toko = null;
         $KodeIGR = '28';//session('KODECABANG'); // Replace with actual value
         // $KodeIGR = session('KODECABANG'); // Replace with actual value
         $dtKey = [];
@@ -64,7 +70,7 @@ class ProsesWTController extends Controller
     
 
         foreach ($array_csv as $key => $value) {
-            $temp_csv[$value['TOKO']] [] = $value;
+            $temp_csv[$value['SHOP']] [] = $value;
         }
         
         foreach ($temp_csv as $key => $value) {
@@ -76,7 +82,7 @@ class ProsesWTController extends Controller
                               ->whereRaw("TKO_KODEOMI = '$key'") 
                               ->whereRaw("TKO_NAMASBU = 'INDOMARET'") 
                               ->get();
-
+                              
             if (!isset($get_nama_toko[0]->tko_namaomi)) {
                 $nama_toko = "Nama Toko Tidak Ditemukan";
             }else {
@@ -91,12 +97,13 @@ class ProsesWTController extends Controller
 
         }
 
-        foreach ($temp_csv as $toko => $data_toko_csv) {
+        foreach ($temp_csv as $keytoko => $data_toko_csv) {
+  
             foreach ($data_toko_csv as $key => $value) {
                 if ($value['RTYPE'] === "B" || $value['RTYPE'] === "K") {
                     if ($value['TOKO'] === "" || $value['SHOP'] === "") {
                         // dd('masuk 1.1');
-                        $this->recordTolakan("Field Toko atau Shop Kosong!",$nama_toko,$value['TOKO']);
+                        $this->recordTolakan("Field Toko atau Shop Kosong!",$nama_toko,$value['SHOP']);
                         $tolakan += 1;
                         break;
                     }
@@ -112,7 +119,7 @@ class ProsesWTController extends Controller
                                     for ($i = 0; $i < 11; $i++) {
                                         if ($array[$i] === null) {
                                             $array[$i] = $noDspb;
-                                            break;
+                                            // break;
                                         } else if ($array[$i] === $value['DOCNO2'] ) {
                                             $flagDoubleDspb = true;
                                         }
@@ -126,15 +133,15 @@ class ProsesWTController extends Controller
                                            ")
                                            ->whereRaw("pbo_tglpb::date = ikl_tglpb::date")
                                            ->whereRaw("pbo_nopb = ikl_nopb")
-                                           ->whereRaw("pbo_kodeomi = ikl_kodeidm")
-                                           ->whereRaw("pbo_nokoli = ikl_nokoli")
+                                           ->whereRaw("pbo_kodeomi = ikl_kodeidm")  // commend for debug
+                                           ->whereRaw("pbo_nokoli = ikl_nokoli")  // commend for debug
                                            ->whereRaw("ikl_registerrealisasi = '".$value['DOCNO2']."'")  // commend for debug
                                            ->whereRaw("ikl_nopb = '".$value['INVNO']."'")  // commend for debug
                                            ->whereRaw("ikl_kodeidm = '".$value['SHOP']."'")  // commend for debug
                                            ->groupBy("ikl_recordid")
                                         //    ->limit(10) // debug
-                                           ->toSql();
-dd($dt);
+                                           ->get();
+
                                 foreach ($dt as $row) {
                                     $flagSudahProses = $row->proses;
                                     if (!$flagDoubleDspb) {
@@ -167,9 +174,10 @@ dd($dt);
 
                             } 
 
-                            if ($key == 10) {
-                                dd($noDspb,$dt);
-                            }
+                            // if ($key == 10) {
+                            //     dd($noDspb,$dt);
+                            // }
+
                             if ($flagSudahProses == "1") {
                                 $qty = (int)str_replace('.', ',', $value['QTY']) ?: 0;
                                 $ppn = (int)str_replace('.', ',', $value['PPNRP_IDM']) ?: 0;
@@ -179,7 +187,6 @@ dd($dt);
                                 $ppnIdm += $ppn;
                             }
                             
-
 
                         }
                     }elseif ($value['TOKO'] === "GI" . $KodeIGR  && $value['RTYPE'] === "K") {
@@ -193,7 +200,7 @@ dd($dt);
                         $cmdCount = $cmdCount[0]->count;
 
                         if ($cmdCount[0]->count === 0) {
-                            $this->recordTolakan("PLU " . $value['PRDCD'] . " Ini Tidak Ada Di Master IGR!");
+                            $this->recordTolakan("PLU " . $value['PRDCD'] . " Ini Tidak Ada Di Master IGR!",$nama_toko,$value['SHOP']);
                             return response()->json(['message' => 'Proses Retur Di Batalkan!'], 400);
                         }
                         
@@ -202,7 +209,7 @@ dd($dt);
                         $price = (int)str_replace('.', ',', $value['PRICE_IDM']) ?: 0;
 
                         if ($price == 0) {
-                            $this->recordTolakan("Plu " . $value['PRDCD'] . " NRB " . $myRow['DOCNO'] . " Price IDM=0 ");
+                            $this->recordTolakan("Plu " . $value['PRDCD'] . " NRB " . $myRow['DOCNO'] . " Price IDM=0 ",$nama_toko,$value['SHOP']);
                             return response()->json(['message' => 'Plu ' . $value['PRDCD'] . ' Mempunyai Price IDM = 0 , Data WT Ditolak!'], 400);
                         }
 
@@ -223,11 +230,11 @@ dd($dt);
                         if (!$flagFTZ) {
                             if (count($dtGetPPN) > 0) {
                                 if ($dtGetPPN[0]->kfp_statuspajak === "KENA PPN" && $ppn == 0) {
-                                    $this->recordTolakan("PLU " . $value['PRDCD'] . " BKP dan Memiliki PPN = 0!");
+                                    $this->recordTolakan("PLU " . $value['PRDCD'] . " BKP dan Memiliki PPN = 0!",$nama_toko,$value['SHOP']);
                                     return response()->json(['message' => 'Plu ' . $value['PRDCD'] . ' Mempunyai PPN = 0!'], 400);
                                 }
                                 if ($dtGetPPN[0]->kfp_statuspajak === "TIDAK KENA PPN" && $ppn > 0) {
-                                    $this->recordTolakan("PLU " . $value['PRDCD'] . " TIDAK BKP dan Memiliki PPN > 0!");
+                                    $this->recordTolakan("PLU " . $value['PRDCD'] . " TIDAK BKP dan Memiliki PPN > 0!",$nama_toko,$value['SHOP']);
                                     return response()->json(['message' => 'Plu ' . $value['PRDCD'] . ' Mempunyai PPN > 0!'], 400);
                                 }
                             }
@@ -240,22 +247,34 @@ dd($dt);
                 } else {
                     $tolakan += 1;
                 }
+            
                 
             }
-        }
-        
-            return response()->json(['errors'=>true,'messages'=>'Berhasil','data'=>[
-                'data_toko' => $list_toko,
-                'data_file' => $temp_csv,
-                'data_key' => $dtKey,
-                'retur_performa' => $returPerforma,
-                'retur_fisik' => $returFisik,
+
+            $list_input[$keytoko][] = (object)[  
                 'dpp_igr' => $dppIgr,
                 'ppn_igr' => $ppnIgr,
                 'total_igr'=>$dppIgr+$ppnIgr,
                 'dpp_idm' => $dppIdm,
                 'ppn_idm' => $ppnIdm,
-                'total_idm'=>$dppIdm+$ppnIdm
+                'total_idm'=>$dppIdm+$ppnIdm,
+                'retur_performa' => $returPerforma,
+                'retur_fisik' => $returFisik,
+                // 'noDspb' => $noDspb,
+                // 'noPb' => $noPb,
+                // 'toko' => $toko,
+                // 'docnoIdm' => $docnoIdm,
+                // 'tglDocnoIdm' => $tglDocnoIdm,
+            ];
+        }
+        
+
+        
+            return response()->json(['errors'=>true,'messages'=>'Berhasil','data'=>[
+                'data_input' => $list_input,
+                'data_toko' => $list_toko,
+                'data_file' => $temp_csv,
+                'data_key' => $dtKey,
             ]],200);
 
 
