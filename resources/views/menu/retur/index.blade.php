@@ -1,6 +1,6 @@
 @extends('layouts.master')
 @section('title')
-    <h1 class="pagetitle">PROSES WT</h1>
+    <h1 class="pagetitle">RETUR</h1>
 @endsection
 
 @section('css')
