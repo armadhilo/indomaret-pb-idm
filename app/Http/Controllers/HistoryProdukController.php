@@ -30,7 +30,7 @@ class HistoryProdukController extends Controller
 
         //* untuk mode ada 2 yaitu KPH MEAN dan PRODUK BARU
         //* untuk KPH MEAN button upload CSV name jadi 'Upload CSV' (pilihan default)
-        //* untuk KPH MEAN button upload CSV name jadi 'KPH Produk Baru'
+        //* untuk KPH MEAN button upload CSV name jadi 'Minor'
 
         //* diawal akan panggil function datatables
 
@@ -116,65 +116,41 @@ class HistoryProdukController extends Controller
 
     }
 
-    public function actionUploadCsv(){
+    //! NOTE KEVIN | AMBIL FILE DARI FTP (TIDAK DICOBA) 
+    // public function actionUploadCsvFtp(){
+    //     //* Update File PLU IDM via FTP?
 
-        // If mode = "KPH" Then
-        //     btnFTP.Visible = True
-        //     btnHistoryPindahSupply.Visible = False
-        //     pilUpload.Items.Add("MINOR")
-        //     pilUpload.Items.Add("PLUIDM")
-        //     GroupBox1.Text = "Upload File CSV "
-        // ElseIf mode = "P.BARU" Then
-        //     btnFTP.Visible = False
-        //     btnHistoryPindahSupply.Visible = False
-        //     pilUpload.Items.Add("PRODUK BARU")
-        //     GroupBox1.Text = "Upload & Hitung KPH Produk Baru"
-        // Else
-        //     btnFTP.Visible = False
-        //     btnHistoryPindahSupply.Visible = True
-        //     pilUpload.Items.Add("PINDAH SUPPLY")
-        //     GroupBox1.Text = "Upload File CSV Pindah Supply"
-        // End If
+    //     try{
+    //         $kodeigr = session('KODECABANG');
+    //         $UserMODUL = session('userid');
+    //         $procedure = DB::select("call sp_downloadidm('$kodeigr', NULL)");
+    //         $procedure = $procedure[0]->v_msg;
 
-        //! btnMinor_Click
+    //         if (str_contains($procedure, 'selesai')) {
+    //             //! NOTE -> DBNull.Value bingung darimana VB sekarang di default NULL
+    //             $ipModul = str_replace(".", "", $this->getIP());
+    //             $procedure = DB::select("call sp_trf_plu_idm(NULL, '$ipModul', '$kodeigr', '$UserMODUL', NULL)");
+    //             $procedure = $procedure[0]->v_result;
 
-        //! form -> frmUploadMinor
-    }
+    //             if (str_contains($procedure, 'BERHASIL')) {
+    //                 $procedure = DB::select("call sp_update_prodcrm('$kodeigr', '$UserMODUL', NULL)");
+    //                 $procedure = $procedure[0]->p_stat;
 
-    public function actionUploadCsvFtp(){
-        //* Update File PLU IDM via FTP?
+    //                 if (str_contains($procedure, 'SUKSES')) {
+    //                     $this->cetakLaporan('', 1);
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        try{
-            $kodeigr = session('KODECABANG');
-            $UserMODUL = session('userid');
-            $procedure = DB::select("call sp_downloadidm('$kodeigr', NULL)");
-            $procedure = $procedure[0]->v_msg;
+    //     catch(\Exception $e){
 
-            if (str_contains($procedure, 'selesai')) {
-                //! NOTE -> DBNull.Value bingung darimana VB sekarang di default NULL
-                $ipModul = str_replace(".", "", $this->getIP());
-                $procedure = DB::select("call sp_trf_plu_idm(NULL, '$ipModul', '$kodeigr', '$UserMODUL', NULL)");
-                $procedure = $procedure[0]->v_result;
+    //         DB::rollBack();
 
-                if (str_contains($procedure, 'BERHASIL')) {
-                    $procedure = DB::select("call sp_update_prodcrm('$kodeigr', '$UserMODUL', NULL)");
-                    $procedure = $procedure[0]->p_stat;
-
-                    if (str_contains($procedure, 'SUKSES')) {
-                        $this->cetakLaporan('', 1);
-                    }
-                }
-            }
-        }
-
-        catch(\Exception $e){
-
-            DB::rollBack();
-
-            $message = "Oops! Something wrong ( $e )";
-            return ApiFormatter::error(400, $message);
-        }
-    }
+    //         $message = "Oops! Something wrong ( $e )";
+    //         return ApiFormatter::error(400, $message);
+    //     }
+    // }
 
     private function cetakLaporan($pathfile, $code = 0){
 
@@ -235,7 +211,7 @@ class HistoryProdukController extends Controller
 
             foreach($request->filename as $item){
                 //! INSERT TBTEMP_MINORTK - PENGGANTI BULKCOPY
-                DB::table('tbtemp_minortk')
+                DB::table('tbtemp_minortk') 
                     ->insert([
                         'prdcd' => $item['PRDCD'],
                         'desc2' => $item['DESC'],
