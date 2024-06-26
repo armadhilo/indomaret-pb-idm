@@ -37,7 +37,7 @@ class MonitoringController extends Controller
             "flagSPI" => session()->get('flagSPI'),
             "flagHHSPI" => session()->get('flagHHSPI')
         ];
-        return view("menu.monitoring.index",compact('flag');
+        return view("menu.monitoring.index",compact('flag'));
     }
 
     public function monitoring_load(Request $request){
