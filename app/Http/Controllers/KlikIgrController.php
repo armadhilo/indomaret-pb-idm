@@ -1226,7 +1226,7 @@ class KlikIgrController extends Controller
                 $file_content = $this->sendHH($request->nopb, $request->tanggal_pb, $request->no_trans, $request->kode_member, $request->tanggal_trans, $request->pickRakToko);
             }
 
-            // DB::commit();
+            DB::commit();
 
             return ApiFormatter::success(200, 'Proses Send HandHelt berhasil', $file_content);
 
@@ -1517,7 +1517,7 @@ class KlikIgrController extends Controller
 
             $konfirmasi_bayar = $this->konfirmasiBayar($request->nopb, $request->kode_member, $request->no_trans);
 
-            // DB::commit();
+            DB::commit();
 
             return ApiFormatter::success(200, 'Konfirmasi Pembyaran Berhasil', $konfirmasi_bayar);
 
@@ -1635,7 +1635,7 @@ class KlikIgrController extends Controller
                 $data["nama_file"] = $this->rptSuratJalan($selectedRow['notrans'], $selectedRow['kodeweb'], $selectedRow['no_pb'], $selectedRow['kode_member'], $selectedRow['free_ongkir'], $selectedRow['flagbayar'], $request->tanggal_trans);
             }
 
-            // DB::commit();
+            DB::commit();
 
             return ApiFormatter::success(200, 'success action cetak surat jalan', $data);
 
@@ -2126,7 +2126,7 @@ class KlikIgrController extends Controller
                 return ApiFormatter::error(400, 'List Delivery tidak ditemukan.');
             }
 
-            // DB::commit();
+            DB::commit();
 
             $data['noListing'] = $noListing;
             $data['tglListing'] = $tglListing;
@@ -2225,7 +2225,7 @@ class KlikIgrController extends Controller
                 }
             }
 
-            // DB::commit();
+            DB::commit();
 
             return ApiFormatter::success(200, 'Selesai Proses Re-Create AWB IPP');
 
@@ -2454,7 +2454,7 @@ class KlikIgrController extends Controller
             $data['noBA'] = $seqBA;
             $data['tglBA'] = $tglBA;
 
-            // DB::commit();
+            DB::commit();
 
             $pdf = PDF::loadView('pdf.klik-igr-ba-dana-spi', $data);
 
@@ -2776,7 +2776,7 @@ class KlikIgrController extends Controller
                 $data['noSTK'] = $seqSTK;
                 $data['tglSTK'] = $tglSTK;
 
-                // DB::commit();
+                DB::commit();
 
                 $pdf = PDF::loadView('pdf.klik-igr-stk', $data);
 
@@ -7273,7 +7273,7 @@ class KlikIgrController extends Controller
                 $this->updateIntransit(true, $no_trans, $tanggal_trans);
             }
 
-            // DB::commit();
+            DB::commit();
 
             return true;
 
