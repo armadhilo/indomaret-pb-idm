@@ -44,19 +44,17 @@ class RPTController extends Controller
      * IDM1
      */
         public function print_outstanding_dspb(Request $request){
-            $kodetoko = $request->toko;
-            $nopb = explode(" / ",$request->nopb)[0];
-            $tglpb = explode(" / ",$request->nopb)[1];
+            $kodetoko1 = $request->toko;
+            $kodetoko2 = $request->toko2;
             
             $data_report =[];
-            $data_report['kodetoko'] = $kodetoko;
-            $data_report['nopb'] = $nopb;
-            $data_report['tglpb'] = $tglpb;
-            // $data_report['filename'] = 'outstanding_dspb';
-            // $data_report['folder_page'] = 'idm1';
-            $data_report['filename'] ='rtbr';
-            $data_report['folder_page'] = 'idm2';
-            $data_report['jenis_page'] = 'struk-page';
+            $data_report['kodetoko1'] = $kodetoko1;
+            $data_report['kodetoko2'] = $kodetoko2;
+            $data_report['filename'] = 'outstanding_dspb';
+            $data_report['folder_page'] = 'idm1';
+            // $data_report['filename'] ='rtbr'; // for testing
+            // $data_report['folder_page'] = 'idm2'; // for testing
+            $data_report['jenis_page'] = 'default-page';
             $data_report['title_report'] = 'PRINT_OUTSTANDING_DSPB';
             $encrypt_data = base64_encode(json_encode($data_report));   
             $link = url('/api/print/report/'.$encrypt_data);
@@ -65,18 +63,16 @@ class RPTController extends Controller
         }
         public function print_cetak_hitory_dspb(Request $request){
             $kodetoko = $request->toko;
-            $nopb = explode(" / ",$request->nopb)[0];
-            $tglpb = explode(" / ",$request->nopb)[1];
+            $nodspb = $request->dspb;
             
             $data_report =[];
             $data_report['kodetoko'] = $kodetoko;
-            $data_report['nopb'] = $nopb;
-            $data_report['tglpb'] = $tglpb;
-            // $data_report['filename'] = 'cetak_hitory_dspb';
-            // $data_report['folder_page'] = 'idm1';
-            $data_report['filename'] ='rtbr';
-            $data_report['folder_page'] = 'idm2';
-            $data_report['jenis_page'] = 'struk-page';
+            $data_report['nodspb'] = $nodspb;
+            $data_report['filename'] = 'cetak_hitory_dspb';
+            $data_report['folder_page'] = 'idm1';
+            // $data_report['filename'] ='rtbr';
+            // $data_report['folder_page'] = 'idm2';
+            $data_report['jenis_page'] = 'default-page';
             $data_report['title_report'] = 'PRINT_CETAK_HITORY_DSPB';
             $encrypt_data = base64_encode(json_encode($data_report));   
             $link = url('/api/print/report/'.$encrypt_data);
@@ -304,11 +300,309 @@ class RPTController extends Controller
             return response()->json(['errors'=>false,'messages'=>'Berhasil','url'=>$link],200);
         }
 
-        public function data_outstanding_dspb($kodetoko,$nopb,$tglpb){
-             return (object)['errors'=>true];
+        public function data_outstanding_dspb($kodetoko1,$kodetoko2){
+            $toko1 = 'AAAA';
+            $toko2 = 'ZZZZ';
+
+            if (!empty($kodetoko1)) {
+                $toko1 = $kodetoko1;
+            }
+            if (!empty($kodetoko2)) {
+                $toko2 = $kodetoko2;
+            }
+
+            $query = "
+                SELECT HDR.*, TKO_NAMAOMI
+                FROM (
+                    SELECT ikl_kodeidm, ikl_nopb, ikl_tglbpd::date AS ikl_tglbpd,
+                        ikl_registerrealisasi, SUM(ikl_rphdpp) AS dpp, SUM(ikl_rphppn) AS ppn, npb_file AS filenpb
+                    FROM tbtr_idmkoli
+                    JOIN log_npb ON npb_kodetoko = ikl_kodeidm
+                                AND npb_nopb = ikl_nopb
+                                AND npb_nodspb = ikl_registerrealisasi
+                    WHERE ikl_registerrealisasi IS NOT NULL
+                    AND ikl_recordid = '1'
+                    -- AND ikl_kodeidm BETWEEN '$toko1' AND '$toko2' -- command for debug
+                    GROUP BY ikl_kodeidm, ikl_nopb, ikl_tglbpd::date, ikl_registerrealisasi, npb_file
+                    limit 10 -- debug
+                ) HDR
+                JOIN TBMASTER_TOKOIGR ON ikl_kodeidm = tko_kodeomi
+            ";
+
+            $results = $this->DB_PGSQL->select($query);
+
+            if($results){
+
+                return $results;
+            }else {
+                
+                return (object)['errors'=>true];
+            }
+
         }
-        public function data_cetak_hitory_dspb($kodetoko,$nopb,$tglpb){
-             return (object)['errors'=>true];
+        public function data_cetak_hitory_dspb($kodetoko,$nodspb){
+
+            return ['Testing'];
+            
+            $flagFTZ = session()->get("flagFTZ")?true:false;
+            $flagIGR = session()->get("flagIGR")?true:false;
+            $flagPunyaICM = false;
+            $flagByPassICM = false;
+            $skemaICM = '';
+            $data = [];
+            try {
+                $this->DB_PGSQL->beginTransaction();
+                if ($flagFTZ) {
+                    if ($flagIGR) {
+                        $data['jenis_rpt'] = "rptSuratJalan_FTZ";
+                    } else {
+                        $data['jenis_rpt'] = "rptSuratJalanICM_FTZ";
+                    }
+                } else {
+                    if ($flagIGR) {
+                        $data['jenis_rpt'] = "rptSuratJalan";
+                    } else {
+                        $data['jenis_rpt'] = "rptSuratJalanICM";
+                    }
+                }
+                $sql = "SELECT ikl_kodeigr AS kode_igr, ikl_nokoli AS koli, ikl_nocontainer AS CONTAINER, COUNT(pbo_qtyrealisasi) AS item, ";
+
+                // Add conditional parts based on flags
+                if ($flagFTZ) {
+                    $sql .= "SUM(COALESCE(pbo_ttlnilai, 0) + COALESCE(pbo_ttlppn, 0)) AS bkp, 0 AS btkp, 0 AS ppn ";
+                } else {
+                    $sql .= "SUM(CASE WHEN COALESCE(pbo_ttlppn, 0) > 0 THEN COALESCE(pbo_ttlnilai, 0) END) AS bkp, ";
+                    $sql .= "SUM(CASE WHEN COALESCE(pbo_ttlppn, 0) = 0 THEN COALESCE(pbo_ttlnilai, 0) END) AS btkp, ";
+                    $sql .= "SUM(pbo_ttlppn) AS ppn ";
+                }
+            
+                // Continue building the SQL query
+                $sql .= "FROM tbmaster_pbomi 
+                         JOIN tbtr_idmkoli 
+                         ON pbo_tglpb = TO_DATE(ikl_tglpb, 'YYYYMMDD') 
+                         AND pbo_nopb = ikl_nopb 
+                         AND pbo_kodeomi = ikl_kodeidm 
+                         AND pbo_nokoli = ikl_nokoli 
+                         -- AND IKL_REGISTERREALISASI = '$nodspb' -- command for debug
+                         JOIN tbmaster_prodmast 
+                         ON pbo_pluigr = prd_prdcd 
+                         LEFT JOIN tbmaster_kodefp 
+                         ON COALESCE(prd_flagbkp1, 'N') = kfp_flagbkp1 
+                         AND COALESCE(prd_flagbkp2, 'N') = kfp_flagbkp2 
+                         WHERE pbo_qtyrealisasi > 0 
+                         -- AND PBO_KODEOMI = '$kodetoko' -- command for debug
+                         AND PBO_NOKOLI NOT LIKE '04%' 
+                         GROUP BY ikl_kodeigr, IKL_NOKOLI, ikl_nocontainer 
+                         ORDER BY IKL_NOKOLI
+                         limit 10 -- debug";
+            
+                // Execute the query
+                $results = $this->DB_PGSQL->select($sql);
+                // Additional logic based on the results
+                if (condition) {
+                    
+                    // Query to get the creation date
+                    $sql = "SELECT DISTINCT RPB_CREATE_DT 
+                            FROM tbtr_realpb 
+                            -- WHERE rpb_idsuratjalan = '$nodspb'-- command for debug
+                            -- AND RPB_KODEOMI = '$kodetoko'-- command for debug
+                            LIMIT 1";
+                    $data['tgl'] =  $this->DB_PGSQL->selectOne($sql)[0]->rpb_create_dt;
+            
+                    // Query to get the formatted date
+                    $sql = "SELECT TO_CHAR(pbo_create_dt, 'DD-MM-YYYY') AS create_dt 
+                            FROM tbmaster_pbomi 
+                            JOIN tbtr_idmkoli 
+                            ON pbo_tglpb = TO_DATE(ikl_tglpb, 'YYYYMMdd') 
+                            AND pbo_nopb = ikl_nopb 
+                            AND pbo_kodeomi = ikl_kodeidm 
+                            AND pbo_nokoli = ikl_nokoli 
+                            WHERE pbo_qtyrealisasi > 0 
+                            -- AND IKL_REGISTERREALISASI = '$nodspb' -- command for debug
+                            -- AND PBO_KODEOMI = '$kodetoko' -- command for debug
+                            AND PBO_NOKOLI NOT LIKE '04%' 
+                            LIMIT 1";
+                    $data['tglPB'] =  $this->DB_PGSQL->selectOne($sql)[0]->create_dt;
+
+                    $msg = "";
+                    $dtIPP = $this->DB_PGSQL
+                            ->select("
+                                SELECT COUNT(1) AS count
+                                FROM PAKET_IPP
+                                -- WHERE PIP_KODETOKO = '$kodetoko' AND PIP_NODSPB = '$nodspb'  -- command for debug
+                                limit 1 -- debug
+                            ");
+                
+                    if (!empty($dtIPP) && $dtIPP[0]->count > 0) {
+                        $data['msg'] = "*Ambil paket di HUB*";
+                    } else {
+                        $data['msg'] = "-";
+                    }
+                
+                    // Initialize report data variables
+                    $data['cluster'] = "";
+                    $data['group'] = "";
+                    $data['nopaket'] = "";
+                    $data['nopb'] = "";
+                    $data['koli'] = 0;
+                    $data['kardus'] = 0;
+                    $data['bronjong'] = 0;
+                    $data['dolly'] = 0;
+                    $data['koliRetur'] = 0;
+                    $data['dspbKoliRetur'] = "";
+                    $data['pbKoliRetur'] = "";
+                    $data['dtPBICM'] = [];
+                
+                    // GET NOPAKET aka NOSJ
+                    $data['nopaket'] = $this->DB_PGSQL
+                            ->select("
+                                select MAX(ikl_nosj) from tbtr_idmkoli 
+                                -- Where ikl_kodeidm = '$kodetoko'  -- command for debug
+                                -- and ikl_idtransaksi = '$nodspb'  -- command for debug
+                                limit 1 -- debug
+                            ");
+                    // GET NOPB
+                    $data['nopb'] = $this->DB_PGSQL
+                            ->select("
+                                select MAX(ikl_nopb) from tbtr_idmkoli 
+                                -- Where ikl_kodeidm = '$kodetoko'  -- command for debug
+                                -- and ikl_idtransaksi = '$nodspb '  -- command for debug
+                                limit 1 -- debug
+                            ");
+                
+                    // GET CLUSTER TOKO IDM
+                    $data['cluster'] = $this->DB_PGSQL
+                            ->select("
+                                select cls_kode from cluster_idm  
+                                -- Where cls_toko = '$kodetoko ' -- command for debug
+                                limit 1 -- debug
+                            ");
+                
+                    // GET GROUP TOKO IDM
+                    $data['group'] = $this->DB_PGSQL
+                            ->select("
+                                select cls_group from cluster_idm  
+                                -- Where cls_toko = '$kodetoko '  -- command for debug
+                                limit 1 -- debug
+                            ");
+                
+                    // GET JML KOLI
+                    $data['koli'] = $this->DB_PGSQL
+                            ->select("
+                                select count(1) from tbtr_idmkoli  
+                                -- Where ikl_kodeidm = '$kodetoko'    -- command for debug 
+                                -- and ikl_idtransaksi = '$kode'  -- command for debug
+                                -- and coalesce(ikl_kardus,'N') = 'N' -- command for debug  
+                                where coalesce(ikl_kardus,'N') = 'N' -- debug  
+                                and substr(ikl_nokoli,1,2) IN ('01','09')
+                                limit 1 -- debug  
+                            ");
+                
+                    // GET JML BRONJONG
+                    $data['bronjong'] = $this->DB_PGSQL
+                            ->select("
+                                select count(1) from tbtr_idmkoli  
+                                -- Where ikl_kodeidm = '$kodetoko'  -- command for debug
+                                -- and ikl_idtransaksi = '$nodspb'  -- command for debug
+                                -- and coalesce(ikl_kardus,'N') = 'N'  -- command for debug
+                                where coalesce(ikl_kardus,'N') = 'N' -- debug
+                                and substr(ikl_nokoli,1,2) IN ('02','08') 
+                                limit 1 -- debug
+                            ");
+                
+                    // GET JUMLAH KARDUS
+                    $data['kardus'] = $this->DB_PGSQL
+                            ->select("
+                            
+                                select count(1) from tbtr_idmkoli  
+                                -- Where ikl_kodeidm = '$kodetoko' -- command for debug
+                                -- and ikl_idtransaksi = '$nodspb' -- command for debug
+                                -- and coalesce(ikl_kardus,'N') = 'Y'  -- command for debug
+                                where coalesce(ikl_kardus,'N') = 'Y' -- debug
+                                limit 1 -- debug 
+                            ");
+                
+                    // GET JUMLAH DOLLY
+                    $data['dollyData'] = $this->DB_PGSQL
+                            ->select("
+                                SELECT MAX(COALESCE(lki_dolly, 0)) AS jml_dolly
+                                FROM LOADING_KOLI_IDM
+                                WHERE LKI_KODETOKO = '$kodetoko'AND LKI_NOPB = '".$data['nopb'][0]."' -- command for debug
+                                limit 2 -- debug
+                            ");
+                    $data['dolly'] = !empty($dollyData) ? $dollyData[0]->jml_dolly : 0;
+                
+                    // GET KOLI YANG BELUM DIRETUR
+                    $dt = $this->DB_PGSQL
+                            ->select("
+                                    SELECT COALESCE(qtydspb, 0) AS qty, nodspb, nopb
+                                    FROM tbhistory_container_idm
+                                    WHERE qtyretur IS NULL
+                                    AND kodetoko = '$kodetoko' AND nodspb <> '$nodspb'
+                                    AND tgldspb::date <  '".date('Y-m-d', strtotime($data['tglPB']))."'::date
+                                    ORDER BY create_dt ASC
+                                ");
+                    $data['koliRetur'] = !empty($dt) ? $dt[0]->qty : 0;
+                    $data['dspbKoliRetur'] = !empty($dt) ? $dt[0]->nodspb : "";
+                    $data['pbKoliRetur'] = !empty($dt) ? $dt[0]->nopb : "";
+                
+                    // Get No Ref DSPB ICM 
+                    if ($flagIGR && $flagPunyaICM) {
+                        $skemaICM = $skemaICM??'@'.$skemaICM;
+                        $sql = "
+                            SELECT DISTINCT COALESCE(ikl_registerrealisasi,'-') AS NODSPB, pbo_nopb AS NOPB
+                            FROM tbmaster_pbomi" . $skemaICM . "
+                            LEFT JOIN tbtr_idmkoli" . $skemaICM . " ON ikl_kodeidm = pbo_kodeomi
+                            AND ikl_tglpb = TO_CHAR(pbo_tglpb, 'YYYYMMDD')
+                            AND ikl_nokoli = pbo_nokoli
+                            WHERE pbo_create_dt::date = '".$data['tglPB']."'::date
+                            AND pbo_kodeomi = '$kodetoko'
+                            AND pbo_qtyrealisasi > 0
+                        ";
+                        $data['dtPBICM'] = $this->DB_PGSQL
+                                ->select($sql);
+                    }
+                
+                    // Generating the report
+                    $data['list'] = [
+                        'cluster' => "Cluster : " . $data['cluster'][0] . "  Group : " . $data['group'][0] . (($data['nopaket'][0] != "" && $data['nopaket'][0] != "0") ? "  No.Pengiriman : " . $data['nopaket'][0] : ""),
+                        'koli' => $data['koli'][0] . " pcs. (" . $data['kardus'][0] . " pcs.)",
+                        'bronjong' => $data['bronjong'][0] . " pcs.",
+                        'dolly' => $data['dolly'][0] . " pcs.",
+                        'koli_retur' => ($data['koliRetur'][0] == 0) ? "-" : $data['koliRetur'][0] . " pcs. (atas No.DSPB: " . $data['dspbKoliRetur'][0] . " No.PB: " . $data['pbKoliRetur'][0] . ")",
+                        'paket' => $data['msg'][0],
+                    ];
+                
+                    if ($flagIGR && $flagPunyaICM) {
+                        if (!$flagByPassICM) {
+                            if (!empty($dtPBICM)) {
+                                $data['list']['NoDSPBICM'] = !empty($data['dtPBICM'][0]->nodspb) ? $data['dtPBICM'][0]->nodspb : "-";
+                                $data['list']['NoPBICM'] = !empty($data['dtPBICM'][0]->nopb) ? $data['dtPBICM'][0]->nopb : "-";
+                            } else {
+                                $data['list']['NoDSPBICM'] = "-";
+                                $data['list']['NoPBICM'] = "-";
+                            }
+                        } else {
+                            $data['list']['NoDSPBICM'] = "-";
+                            $data['list']['NoPBICM'] = "-";
+                        }
+                    }
+                
+                    
+                    
+                    $this->DB_PGSQL->commit();
+                    return $data;
+                } else {
+                    return (object)['errors'=>true];
+                }
+                
+            } catch (\Throwable $th) {
+                
+                $this->DB_PGSQL->rollBack();
+                // dd($th);
+                return (object)['errors'=>true,'messages'=>$th->getMessage()];
+            }
+
         }
         public function data_struk_hadiah($kodetoko,$nopb,$tglpb){
              return (object)['errors'=>true];
@@ -1820,7 +2114,9 @@ class RPTController extends Controller
                     $jenis_page = $data->jenis_page;
                     $folder_page = $data->folder_page;
                     $title_report = $data->title_report;
-                    $data->data = (object)$this->data_outstanding_dspb($data->kodetoko,$data->nopb,$data->tglpb);
+                    $data->data = $this->data_outstanding_dspb($data->kodetoko1,$data->kodetoko2);
+                    $header_cetak_custom = 'upper';
+                    // dd($data);
                     if (isset($data->data->errors)) {
                         $data = null;
                     }
@@ -1830,7 +2126,8 @@ class RPTController extends Controller
                     $jenis_page = $data->jenis_page;
                     $folder_page = $data->folder_page;
                     $title_report = $data->title_report;
-                    $data->data = (object)$this->data_cetak_hitory_dspb($data->kodetoko,$data->nopb,$data->tglpb);
+                    $data->data = (object)$this->data_cetak_hitory_dspb($data->kodetoko,$data->nodspb);
+                    dd($data);
                     if (isset($data->data->errors)) {
                         $data = null;
                     }

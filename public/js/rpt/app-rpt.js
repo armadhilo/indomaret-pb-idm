@@ -167,17 +167,15 @@ $(document).ready(function(){
      $('.nopb').show();
 });
 
-modal_toko_pb=(jenis = null,text=null,url=null,toko2 = false,omi=false)=>{
+modal_toko_pb=(jenis = null,text=null,url=null,toko2 = false,omi=false,dspb = false,no_pb = false)=>{
     if(toko2){
         $('.toko_2').show();
-        $('.nopb').hide();
     }else{
         $('.toko_2').hide();
-        $('.nopb').show();
 
     }
     if (omi) {
-        if (stauts_toko !== 'omi') {
+        if (stauts_toko == 'omi' || omi) {
             get_toko(true);
             stauts_toko = 'omi';
         }
@@ -186,6 +184,17 @@ modal_toko_pb=(jenis = null,text=null,url=null,toko2 = false,omi=false)=>{
             get_toko(false);
             stauts_toko = 'idm';
         }
+    }
+    if(dspb){
+        $('.dspb').show();
+    }else{
+        $('.dspb').hide();
+
+    }
+    if(no_pb){
+        $('.nopb').show();
+    }else{
+        $('.nopb').hide();
     }
    $('.modal-title').html('');
    $('#modal-pb-toko').modal();

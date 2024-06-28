@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Traits\LibraryCSV;
 use Illuminate\Http\Request;
 use DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class ProsesWTController extends Controller
 {
@@ -35,6 +37,94 @@ class ProsesWTController extends Controller
             "flagHHSPI" => session()->get('flagHHSPI')
         ];
         return view("menu.proses_wt.index",compact('flag'));
+    }
+
+    public function proses_wt(Request $request)
+    {
+        $file = $request->file;
+        $dpp_idm = $request->dpp_idm;
+        $ppn_idm = $request->ppn_idm;
+        $total_idm = $request->total_idm;
+        $dpp_igr = $request->dpp_igr;
+        $ppn_igr = $request->ppn_igr;
+        $total_igr = $request->total_igr;
+        $retur_fisik = $request->retur_fisik;
+        $retur_peforma  = $request->retur_peforma;
+        $UserMODUL = session('userid');
+        $KodeIGR = session('KODECABANG');
+        $StationMODUL = session("SPI_STATION");
+
+        $this->processSalesData($dpp_igr,$ppn_igr, $dpp_idm,$ppn_idm, $retur_fisik,$retur_peforma, $KodeIGR, $UserMODUL, $StationMODUL);
+
+    }
+
+    public function processSalesData($dppIgr, $ppnIgr, $dppIdm, $ppnIdm, $returFisik, $returPerforma, $dtKey,$dtRetur, $KodeIGR, $UserMODUL, $StationMODUL)
+    {
+        $storage_path = "app/WT/";
+        $newFileName = 'WT_FILE.VZG';
+        $dataStruk = [];
+        $filenameFileStorage =  $storage_path.$newFileName;
+        if (abs(($dppIgr + $ppnIgr) - ($dppIdm + $ppnIdm)) < 2000) {
+            if (($returFisik + $returPerforma) || (($dppIgr + $ppnIgr)) > 0) {
+                $filePath = $filenameFileStorage;
+
+                if (File::exists($filePath)) {
+                        $nSukses = 0;
+                        $nTolakan = 0;
+                        $output = "";
+
+                        try {
+                            $this->DB_PGSQL->beginTransaction();
+
+                            foreach ($dtKey as $key => $dt) {
+                                $no_pb = $dt->no_pb;
+                                $no_dspb = $dt->no_dspb;
+                                $toko = $dt->toko;
+                                $sph = $dt->sph;
+                                $tglsph = date("Y-m-d", strtotime($dt->tglsph));
+                                $result = $this->DB_PGSQL->select("CALL sp_create_sales_idm (?, ?, ?, ?, ?, ?, ?, ?, '')", [$no_dspb,$no_pb,$toko,$KodeIGR,$UserMODUL,$StationMODUL,$sph,$tglsph]);
+    
+                                if (count($result) > 0 && $result[0]->p_status === 'S') {
+                                    $nSukses++;
+                                }
+                            }
+                            
+                            $this->DB_PGSQL->commit();
+
+                            if (count($dtKey) == $nSukses) {
+                                if (count($dtKey) > 0) {
+                                    // Creating Struk
+                                    $dataStruk = $this->createStruk();
+                                }
+
+                                if (count($dtRetur) > 0) {
+                                    $this->insertWt($dtRetur, $nTolakan);
+                                }
+
+                                if ($nTolakan == 0 && File::exists($filePath)) {
+                                    unlink(storage_path($filenameFileStorage));
+                                }
+
+                                $detailMessage = $nTolakan > 0 ? ", Data Retur Double/PLu Tidak Dikenal, Proses Retur DITOLAK!" : "";
+                                return ["messages"=>"WT Sales Selesai Diproses ".$detailMessage,"data_struk"=>$dataStruk];
+                            } else {
+                                return ["errors"=>true, "messages"=>"WT Gagal Diproses! INDOGROSIR"];
+                            }
+
+                        } catch (\Exception $e) {
+                           $this->DB_PGSQL->rollBack();
+                           return ["errors"=>true, "messages"=>"Gagal Karena: " . substr($e->getMessage(), 1, 50)];
+                        }
+                } else {
+                    return ["errors"=>true, "messages"=>"File WT Tidak Ada! INDOGROSIR"];
+                }
+            } else {
+                return ["errors"=>true, "messages"=>"WT Tidak Ada Data!"];
+            }
+        } else {
+            $this->recordTolakan("WT Selisih Tidak Bisa Di Proses!");
+            return ["errors"=>true, "messages"=>"WT Selisih Tidak Bisa Di Proses!"];
+        }
     }
 
     public function list_file(Request $request){
@@ -68,6 +158,21 @@ class ProsesWTController extends Controller
         $dtKey = [];
         // dd($array_csv);
     
+        $file = $request->file('file');
+        $storage_path = "app/WT/";
+        $newFileName = 'WT_FILE.VZG';
+        $filenameFileStorage =  $storage_path.$newFileName;
+
+        if (!File::isDirectory(storage_path($storage_path))) {
+            
+            File::makeDirectory(storage_path($storage_path), 0755, true); 
+        }
+        if (file_exists(storage_path($filenameFileStorage))) {
+            
+            unlink(storage_path($filenameFileStorage));
+        } 
+        $PublicStoragePath = $file->storeAs('WT', $newFileName);
+
 
         foreach ($array_csv as $key => $value) {
             $temp_csv[$value['SHOP']] [] = $value;
@@ -98,7 +203,7 @@ class ProsesWTController extends Controller
         }
 
         foreach ($temp_csv as $keytoko => $data_toko_csv) {
-  
+
             foreach ($data_toko_csv as $key => $value) {
                 if ($value['RTYPE'] === "B" || $value['RTYPE'] === "K") {
                     if ($value['TOKO'] === "" || $value['SHOP'] === "") {
@@ -127,20 +232,20 @@ class ProsesWTController extends Controller
                                 }
                                 
                                 $dt = $this->DB_PGSQL 
-                                           ->table($this->DB_PGSQL->raw("tbmaster_pbomi, tbtr_idmkoli"))
-                                           ->selectRaw("
+                                        ->table($this->DB_PGSQL->raw("tbmaster_pbomi, tbtr_idmkoli"))
+                                        ->selectRaw("
                                                 SUM(COALESCE(pbo_ttlnilai, 0)) AS dpp, SUM(COALESCE(pbo_ttlppn, 0)) AS ppn, COALESCE(IKL_RECORDID, '1') AS PROSES
-                                           ")
-                                           ->whereRaw("pbo_tglpb::date = ikl_tglpb::date")
-                                           ->whereRaw("pbo_nopb = ikl_nopb")
-                                           ->whereRaw("pbo_kodeomi = ikl_kodeidm")  // commend for debug
-                                           ->whereRaw("pbo_nokoli = ikl_nokoli")  // commend for debug
-                                           ->whereRaw("ikl_registerrealisasi = '".$value['DOCNO2']."'")  // commend for debug
-                                           ->whereRaw("ikl_nopb = '".$value['INVNO']."'")  // commend for debug
-                                           ->whereRaw("ikl_kodeidm = '".$value['SHOP']."'")  // commend for debug
-                                           ->groupBy("ikl_recordid")
+                                        ")
+                                        ->whereRaw("pbo_tglpb::date = ikl_tglpb::date")
+                                        ->whereRaw("pbo_nopb = ikl_nopb")
+                                        ->whereRaw("pbo_kodeomi = ikl_kodeidm")  // commend for debug
+                                        ->whereRaw("pbo_nokoli = ikl_nokoli")  // commend for debug
+                                        ->whereRaw("ikl_registerrealisasi = '".$value['DOCNO2']."'")  // commend for debug
+                                        ->whereRaw("ikl_nopb = '".$value['INVNO']."'")  // commend for debug
+                                        ->whereRaw("ikl_kodeidm = '".$value['SHOP']."'")  // commend for debug
+                                        ->groupBy("ikl_recordid")
                                         //    ->limit(10) // debug
-                                           ->get();
+                                        ->get();
 
                                 foreach ($dt as $row) {
                                     $flagSudahProses = $row->proses;
@@ -191,12 +296,12 @@ class ProsesWTController extends Controller
                         }
                     }elseif ($value['TOKO'] === "GI" . $KodeIGR  && $value['RTYPE'] === "K") {
                         $cmdCount = $this->DB_PGSQL 
-                                         ->table($this->DB_PGSQL->raw("tbhistory_pluidm, tbmaster_prodmast"))
-                                         ->selectRaw("COUNT(1)")
-                                         ->whereRaw(" his_pluigr = prd_prdcd")
-                                         ->whereRaw(" his_kodeigr = prd_kodeigr")
-                                         ->whereRaw(" his_pluidm = '".$value['PRDCD']."'")
-                                         ->get();
+                                        ->table($this->DB_PGSQL->raw("tbhistory_pluidm, tbmaster_prodmast"))
+                                        ->selectRaw("COUNT(1)")
+                                        ->whereRaw(" his_pluigr = prd_prdcd")
+                                        ->whereRaw(" his_kodeigr = prd_kodeigr")
+                                        ->whereRaw(" his_pluidm = '".$value['PRDCD']."'")
+                                        ->get();
                         $cmdCount = $cmdCount[0]->count;
 
                         if ($cmdCount[0]->count === 0) {
@@ -218,14 +323,14 @@ class ProsesWTController extends Controller
                         
 
                         $dtGetPPN = $this->DB_PGSQL 
-                                         ->table($this->DB_PGSQL->raw("tbhistory_pluidm, tbmaster_prodmast, tbmaster_kodefp"))
-                                         ->selectRaw("UPPER(COALESCE(kfp_statuspajak,'TIDAK KENA PPN')) as status_ppn")
-                                         ->whereRaw(" his_pluigr = prd_prdcd")
-                                         ->whereRaw(" his_kodeigr = prd_kodeigr")
-                                         ->whereRaw(" his_pluidm = '".$value['PRDCD']."'")
-                                         ->whereRaw(" COALESCE(prd_flagbkp1,'N') = kfp_flagbkp1")
-                                         ->whereRaw(" COALESCE(prd_flagbkp2,'N') = kfp_flagbkp2")
-                                         ->get();
+                                        ->table($this->DB_PGSQL->raw("tbhistory_pluidm, tbmaster_prodmast, tbmaster_kodefp"))
+                                        ->selectRaw("UPPER(COALESCE(kfp_statuspajak,'TIDAK KENA PPN')) as status_ppn")
+                                        ->whereRaw(" his_pluigr = prd_prdcd")
+                                        ->whereRaw(" his_kodeigr = prd_kodeigr")
+                                        ->whereRaw(" his_pluidm = '".$value['PRDCD']."'")
+                                        ->whereRaw(" COALESCE(prd_flagbkp1,'N') = kfp_flagbkp1")
+                                        ->whereRaw(" COALESCE(prd_flagbkp2,'N') = kfp_flagbkp2")
+                                        ->get();
                         $dtGetPPN =  $dtGetPPN[0]->status_ppn;
                         if (!$flagFTZ) {
                             if (count($dtGetPPN) > 0) {
@@ -267,15 +372,14 @@ class ProsesWTController extends Controller
                 // 'tglDocnoIdm' => $tglDocnoIdm,
             ];
         }
-        
 
-        
-            return response()->json(['errors'=>true,'messages'=>'Berhasil','data'=>[
-                'data_input' => $list_input,
-                'data_toko' => $list_toko,
-                'data_file' => $temp_csv,
-                'data_key' => $dtKey,
-            ]],200);
+    
+        return response()->json(['errors'=>true,'messages'=>'Berhasil','data'=>[
+            'data_input' => $list_input,
+            'data_toko' => $list_toko,
+            'data_file' => $temp_csv,
+            'data_key' => $dtKey,
+        ]],200);
 
 
     }

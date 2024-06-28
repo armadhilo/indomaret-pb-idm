@@ -89,8 +89,8 @@
                                 </ul>
                                 <div class="tab-content" id="myTabContent">
                                     <div class="tab-pane fade show active" id="IDM1" role="tabpanel" aria-labelledby="IDM1-tab"> 
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding_dspb','Outstanding DSPB','/api/report/cetak/outstanding_dspb',false,false)">Outstanding DSPB</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_hitory_dspb','Cetak Hitory DSPB','/api/report/cetak/cetak_hitory_dspb',false,false)">Cetak Hitory DSPB</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding_dspb','Outstanding DSPB','/api/report/cetak/outstanding_dspb',true,false)">Outstanding DSPB</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_hitory_dspb','Cetak Hitory DSPB','/api/report/cetak/cetak_hitory_dspb',false,false,true)">Cetak Hitory DSPB</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk_hadiah','Struk Hadiah','/api/report/cetak/struk_hadiah',false,false)">Struk Hadiah</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('pemutihan_batch','Pemutihan Batch','/api/report/cetak/pemutihan_batch',false,false)">Pemutihan Batch</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_ba_ulang','Cetak BA Ulang','/api/report/cetak/cetak_ba_ulang',false,false)">Cetak BA Ulang</button>
@@ -122,9 +122,9 @@
                                         
                                     </div>
                                     <div class="tab-pane fade" id="OMI" role="tabpanel" aria-labelledby="OMI-tab">
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-dsp','Cetak Ulang DSP','/api/report/cetak/dsp/ulang',false,true)">Cetak Ulang DSP</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-sj','Cetak Ulang SJ','/api/report/cetak/sj/ulang',false,true)">Cetak Ulang SJ</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk-hadiah','Cetak Struk Hadiah','/api/report/struk/hadiah',false,true)">Struk Hadiah</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-dsp','Cetak Ulang DSP','/api/report/cetak/dsp/ulang',false,true,false,true)">Cetak Ulang DSP</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak-ulang-sj','Cetak Ulang SJ','/api/report/cetak/sj/ulang',false,true,false,true)">Cetak Ulang SJ</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk-hadiah','Cetak Struk Hadiah','/api/report/struk/hadiah',false,true,false,true)">Struk Hadiah</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding-dsp','Cetak Outstanding DSP','/api/report/outstanding/dsp',true,true)">Outstanding DSP</button>
                                     </div>
                                 </div>
@@ -184,6 +184,10 @@
                                             <!-- <option value="all">All</option> -->
                                         
                                 </select>
+                            </div>
+                            <div class="dspb">
+                                <label for="katb">No. DSPB</label>
+                               <input type="text" name="dspb" id="dspb" class="form-control form-control-sm">
                             </div>
                             <input type="hidden" name="text" class="text" value="" >
                         </div>
