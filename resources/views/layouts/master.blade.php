@@ -55,6 +55,7 @@
     {{-- <script src="{{ asset('js/Chart.min.js')}}"></script>
     <script src="{{ asset('js/chart-area-demo.js')}}"></script>
     <script src="{{ asset('js/chart-pie-demo.js')}}"></script> --}}
+    <script src="{{ asset('js/moment.min.js')}}"></script>
     <script src="{{ asset('js/sweatalert.js')}}"></script>
     <script src="{{ asset('js/dataTables.buttons.min.js')}}"></script>
     <script src="{{ asset('js/jszip.min.js')}}"></script>
@@ -111,11 +112,13 @@
 
                 @yield('content')
 
+                @yield('modal')
+
                 <!-- Modal Load-->
                 <div class="modal fade" role="dialog" id="modal_loading" data-keyboard="false" data-backdrop="static" style="z-index: 2000">
                     <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
-                        <div class="modal-body pt-0" style="background-color: #FAFAF8; border-radius: 6px;">
+                        <div class="modal-body pt-0" style="background-color: #F5F7F9; border-radius: 6px;">
                             <div class="text-center">
                                 <img style="border-radius: 4px; height: 140px;" src="{{ asset('img/loader_1.gif') }}" alt="Loading">
                                 <h6 style="position: absolute; bottom: 10%; left: 37%;" class="pb-2">Mohon Tunggu..</h6>
@@ -129,8 +132,6 @@
 
     <script>
         var currentURL;
-
-        var link = "{{url('/')}}";
         $(document).ready(function(){
             currentURL = window.location.href;
             if (currentURL.charAt(currentURL.length - 1) === '/') {
@@ -143,6 +144,19 @@
 				'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
 			}
 		});
+
+        $('.select2').select2();
+
+        function setDateNow(element){
+            var today = moment().format('YYYY-MM-DD');
+            $(element).val(today).trigger('change');
+        }
+
+        function setTimeNow(element) {
+            var currentTime = moment().format('HH:mm');
+            $(element).val(currentTime).trigger('change');
+        }
+
 
         function fungsiRupiah(angka){
             var number_string = angka.toString().replace(/[^,\d]/g, '').toString(),
@@ -174,6 +188,11 @@
             }
             return false;
         };
+
+        function onKeyUpUpperCase(inputValue) {
+            return inputValue.toUpperCase();
+        }
+
     </script>
     @stack('page-script')
 </body>
