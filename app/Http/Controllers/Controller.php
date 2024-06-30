@@ -103,24 +103,23 @@ class Controller extends BaseController
     //? FR KEVIN (INFO PAK EVAN 02/05/2024)
     public function ConToWebService($endpoint, $postData = []){
 
+        // $headers = [
+        //     'X-Authorization' => '4b8bf8518b027f7adbf0e6c367ccb204b397566e',
+        // ];
 
-        $headers = [
-            'X-Authorization' => '4b8bf8518b027f7adbf0e6c367ccb204b397566e',
-        ];
+        // $body = $postData;
 
-        $body = $postData;
+        // //* Make the HTTP request
+        // $response = Http::withHeaders($headers)
+        //     ->post($endpoint, $body);
 
-        //* Make the HTTP request
-        $response = Http::withHeaders($headers)
-            ->post($endpoint, $body);
-
-        //* get data
-        if($response->status() == 200){
-            return true;
-        }else{
-            $message = "Proses update status gagal, terjadi kesalahan pada Web Service ($response)";
-            throw new HttpResponseException(ApiFormatter::error(400, $message));
-        }
+        // //* get data
+        // if($response->status() == 200){
+        //     return true;
+        // }else{
+        //     $message = "Proses update status gagal, terjadi kesalahan pada Web Service ($response)";
+        //     throw new HttpResponseException(ApiFormatter::error(400, $message));
+        // }
 
         return true;
     }

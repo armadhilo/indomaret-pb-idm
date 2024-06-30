@@ -7810,7 +7810,7 @@ class KlikIgrController extends Controller
 
         //* CEK HARI INI UDAH PERNAH GET DATA KONVERSI ITEM PERISHABLE
         $cek =  DB::table('log_konversi_klikigr')
-            ->whereRaw("WHERE DATE_TRUNC('DAY',create_dt) = DATE_TRUNC('DAY',CURRENT_DATE)")
+            ->whereRaw("DATE_TRUNC('DAY',create_dt) = DATE_TRUNC('DAY',CURRENT_DATE)")
             ->count();
         if($cek > 0 AND $flagMsg == true){
             $message = 'Hari ini sudah udah pernah get data konversi item perishable';
@@ -7819,7 +7819,7 @@ class KlikIgrController extends Controller
 
         //* CEK URL KONVERSI_KLIKIGR DI TBMASTER_WEBSERVICE
         $cek = DB::table('tbmaster_webservice')
-            ->whereRaw("WHERE upper(ws_nama) = 'KONVERSI_KLIKIGR'")
+            ->whereRaw("upper(ws_nama) = 'KONVERSI_KLIKIGR'")
             ->first();
         if(empty($cek) || $cek->ws_url == null){
             $message = 'Webservice Konversi Item Klikigr belum terdaftar';
