@@ -91,17 +91,17 @@
                                     <div class="tab-pane fade show active" id="IDM1" role="tabpanel" aria-labelledby="IDM1-tab"> 
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding_dspb','Outstanding DSPB','/api/report/cetak/outstanding_dspb',true,false)">Outstanding DSPB</button>
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_hitory_dspb','Cetak Hitory DSPB','/api/report/cetak/cetak_hitory_dspb',false,false,true)">Cetak Hitory DSPB</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk_hadiah','Struk Hadiah','/api/report/cetak/struk_hadiah',false,false)">Struk Hadiah</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('pemutihan_batch','Pemutihan Batch','/api/report/cetak/pemutihan_batch',false,false)">Pemutihan Batch</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_ba_ulang','Cetak BA Ulang','/api/report/cetak/cetak_ba_ulang',false,false)">Cetak BA Ulang</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_bpbr_ulang','Cetak BPBR Ulang','/api/report/cetak/cetak_bpbr_ulang',false,false)">Cetak BPBR Ulang</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('beban_retur_igr','Beban Retur IGR','/api/report/cetak/beban_retur_igr',false,false)">Beban Retur IGR</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('analisa_crm','Analisa CRM','/api/report/cetak/analisa_crm',false,false)">Analisa CRM</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('absensi_wt','Absensi WT','/api/report/cetak/absensi_wt',false,false)">Absensi WT</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('listing_ba','Listing BA','/api/report/cetak/listing_ba',false,false)">Listing BA</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('retur_idm','Retur IDM','/api/report/cetak/retur_idm',false,false)">Retur IDM</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding_retur','Outstanding Retur','/api/report/cetak/outstanding_retur',false,false)">Outstanding Retur</button>
-                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_ba_bronjong','Cetak BA Bronjong','/api/report/cetak/cetak_ba_bronjong',false,false)">Cetak BA Bronjong</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('struk_hadiah','Struk Hadiah','/api/report/cetak/struk_hadiah',false,false,false,true)">Struk Hadiah</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('pemutihan_batch','Pemutihan Batch','/api/report/cetak/pemutihan_batch',false,false,false,true)">Pemutihan Batch</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_ba_ulang','Cetak BA Ulang','/api/report/cetak/cetak_ba_ulang',false,false,false,false,true,true)">Cetak BA Ulang</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_bpbr_ulang','Cetak BPBR Ulang','/api/report/cetak/cetak_bpbr_ulang',false,false,false,false,true,true)">Cetak BPBR Ulang</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('beban_retur_igr','Beban Retur IGR','/api/report/cetak/beban_retur_igr',false,false,false,false,true,true)">Beban Retur IGR</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('analisa_crm','Analisa CRM','/api/report/cetak/analisa_crm',false,false,false,false,false,false,true)">Analisa CRM</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('absensi_wt','Absensi WT','/api/report/cetak/absensi_wt',false,false,false,false,false,false,true)">Absensi WT</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('listing_ba','Listing BA','/api/report/cetak/listing_ba',false,false,false,false,false,false,true)">Listing BA</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('retur_idm','Retur IDM','/api/report/cetak/retur_idm',false,false,false,false,false,false,true)">Retur IDM</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('outstanding_retur','Outstanding Retur','/api/report/cetak/outstanding_retur')">Outstanding Retur</button>
+                                        <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('cetak_ba_bronjong','Cetak BA Bronjong','/api/report/cetak/cetak_ba_bronjong',false,false,false,false,false,false,false,true,true)">Cetak BA Bronjong</button>
                                     </div>
                                     <div class="tab-pane fade" id="IDM2" role="tabpanel" aria-labelledby="IDM2-tab">
                                         <button type="button" class="btn btn-primary btn-sm btn-block" onclick="modal_toko_pb('rtbr','RTBR','/api/report/cetak/rtbr',false,false)">RTBR</button>
@@ -154,7 +154,7 @@
                 </div>
                 <div class="modal-body">
                 <form action="" method="post" id="modal-form" class="form_data">
-                        <div class="form-group ">
+                        <div class="form-group toko1 ">
                             <div class="row">
                                 <div class="col-md-12">
     
@@ -165,6 +165,16 @@
                                     
                                     </select>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="form-row range_date">
+                            <div class="form-group col-md-6">
+                                <label for="startDate">Tanggal :</label>
+                                <input type="date" class="form-control" id="tgl1" name="tgl1">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="endDate">S.D</label>
+                                <input type="date" class="form-control" id="tgl2" name="tgl2">
                             </div>
                         </div>
                         <div class="form-group ">
@@ -188,6 +198,22 @@
                             <div class="dspb">
                                 <label for="katb">No. DSPB</label>
                                <input type="text" name="dspb" id="dspb" class="form-control form-control-sm">
+                            </div>
+                            <div class="no_bpbr">
+                                <label for="katb">No. BPBR</label>
+                               <input type="text" name="no_bpbr" id="no_bpbr" class="form-control form-control-sm">
+                            </div>
+                            <div class="tgl_ret">
+                                <label for="katb">TGL RET</label>
+                               <input type="date" name="tgl_ret" id="tgl_ret" class="form-control form-control-sm">
+                            </div>
+                            <div class="noba">
+                                <label for="katb">No. BA</label>
+                               <input type="text" name="noba" id="noba" class="form-control form-control-sm">
+                            </div>
+                            <div class="tglba">
+                                <label for="katb">TGL BA</label>
+                               <input type="date" name="tglba" id="tglba" class="form-control form-control-sm">
                             </div>
                             <input type="hidden" name="text" class="text" value="" >
                         </div>

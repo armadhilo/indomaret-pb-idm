@@ -196,7 +196,7 @@
 </main>
 
 <footer>
-    <p class="right" style="font-size: @yield('table_font_size','10px')">@yield('footer',(__('** Akhir dari laporan **')))</p>
+    <!-- <p class="right" style="font-size: @yield('table_font_size','10px')">@yield('footer',(__('** Akhir dari laporan **')))</p> -->
 </footer>
 
 <br>

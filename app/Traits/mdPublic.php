@@ -62,4 +62,37 @@ trait mdPublic
     }
 
 
+
+    public function caesarEncrypt($plainText, $date) {
+        // Define the character arrangement used for encryption
+        $stringArrangement = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; // Adjust according to your arrangement
+        $cipherText = '';
+        $date = strtotime($date); // Convert date string to timestamp
+    
+        // Calculate the password value based on the month and day of the given date
+        $pass = date('n', $date) + date('j', $date); // 'n' is month without leading zeros, 'j' is day without leading zeros
+    
+        if ($pass == 36) {
+            $pass = 37;
+        }
+    
+        // Encrypt each character in the plain text
+        for ($i = 0; $i < strlen($plainText); $i++) {
+            $currentCharPlain = $plainText[$i];
+            $indexCharPlain = strpos($stringArrangement, $currentCharPlain);
+            $indexCharCipher = -1;
+            $numberOfStep = $pass % strlen($stringArrangement);
+    
+            if ($indexCharPlain + $numberOfStep > strlen($stringArrangement) - 1) {
+                $indexCharCipher = $numberOfStep - (strlen($stringArrangement) - $indexCharPlain);
+            } else {
+                $indexCharCipher = $indexCharPlain + $numberOfStep;
+            }
+    
+            $currentCharCipher = $stringArrangement[$indexCharCipher];
+            $cipherText .= $currentCharCipher;
+        }
+    
+        return $cipherText;
+    }
 }

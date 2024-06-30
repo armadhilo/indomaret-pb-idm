@@ -120,10 +120,17 @@ $(document).ready(function(){
                                     messages,
                                     'success'
                                 )
-                                console.log(response.url,response)
-                                $('#pdfFrame').attr("src",response.url)
-                                $('.modal').loading('toggle');
-                                $('#pdfFrame').show();
+                                if (response.url) {
+                                    console.log(response.url,response)
+                                    $('#pdfFrame').attr("src",response.url)
+                                    $('.modal').loading('toggle');
+                                    $('#pdfFrame').show();
+                                    
+                                } else {
+                                    $('#pdfFrame').hide();
+                                    $('.modal').loading('toggle');
+                                    
+                                }
                             
                             },
                             error: function (xhr) {
@@ -167,7 +174,7 @@ $(document).ready(function(){
      $('.nopb').show();
 });
 
-modal_toko_pb=(jenis = null,text=null,url=null,toko2 = false,omi=false,dspb = false,no_pb = false)=>{
+modal_toko_pb=(jenis = null,text=null,url=null,toko2 = false,omi=false,dspb = false,no_pb = false,no_bpbr=false,tgl_ret =false,range_date=false,noba = false, tglba = false)=>{
     if(toko2){
         $('.toko_2').show();
     }else{
@@ -196,11 +203,51 @@ modal_toko_pb=(jenis = null,text=null,url=null,toko2 = false,omi=false,dspb = fa
     }else{
         $('.nopb').hide();
     }
+    if(tgl_ret){
+        $('.tgl_ret').show();
+    }else{
+        $('.tgl_ret').hide();
+    }
+    if(no_bpbr){
+        $('.no_bpbr').show();
+        $('.toko1').hide()
+    }else{
+        $('.no_bpbr').hide();
+        $('.toko1').show()
+    }
+    if(range_date){
+        $('.range_date').show();
+        $('.toko1').hide()
+    }else{
+        $('.range_date').hide();
+        $('.toko1').show()
+    }
+    if(noba){
+        $('.noba').show();
+        
+    }else{
+        $('.noba').hide();
+        
+    }
+    if(tglba){
+        $('.tglba').show();
+        $('.toko1').hide()
+
+    }else{
+        $('.tglba').hide();
+        $('.toko1').show()
+
+    }
    $('.modal-title').html('');
    $('#modal-pb-toko').modal();
    $('.modal-title').html(jenis);
    $('.text').val(text+' ?')
    $('.form_data').attr('action',link+url);
+   if ( (toko2 == false && omi == false && dspb == false && no_pb == false && no_bpbr == false && tgl_ret == false && range_date == false && noba == false && tglba == false)) {
+    $('.form_data').submit();
+
+    $('#modal-pb-toko').modal('hide');
+   }
 
 }
 
