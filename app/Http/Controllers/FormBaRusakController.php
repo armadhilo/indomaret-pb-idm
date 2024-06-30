@@ -108,6 +108,11 @@ class FormBaRusakController extends KlikIgrController
     }
 
     public function actionHitungUlang(Request $request){
+
+        if(!isset($request->datatable) OR !count($request->datatable)){
+            return ApiFormatter::error(400, 'Datatable kosong');
+        }
+
         DB::beginTransaction();
         try{
             $selectedRow = $request->selectedRow;

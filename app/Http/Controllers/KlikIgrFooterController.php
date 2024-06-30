@@ -141,11 +141,12 @@ class KlikIgrFooterController extends KlikIgrController
             $query .= "       COALESCE(p.prd_deskripsipanjang,'TIDAK ADA DI PRODMAST') AS Nama_Barang, ";
             $query .= "       d.obi_qtyorder AS QTY_Order, ";
             $query .= "       COALESCE(b.obi_qtyrealisasi,0) AS QTY_Realisasi ";
-            $query .= "FROM tbtr_obi_d d, tbmaster_prodmast p, tbhistory_obi_batal b ";
+            $query .= "FROM tbtr_obi_d d ";
+            $query .= "JOIN tbhistory_obi_batal b on d.obi_prdcd = b.obi_prdcd AND d.obi_notrans = b.obi_notrans ";
+            $query .= "JOIN tbmaster_prodmast p on b.obi_prdcd = p.prd_prdcd ";
             $query .= "WHERE d.obi_notrans = '" . $request->no_trans . "' ";
             $query .= "AND d.obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_nopb = '" . $request->nopb . "') ";
             $query .= "AND d.obi_recid = '1' ";
-            $query .= "AND d.obi_prdcd = b.obi_prdcd AND b.obi_prdcd = p.prd_prdcd AND d.obi_notrans = b.obi_notrans";
         } else {
             $query = '';
             $query .= "SELECT obi_prdcd AS PLU, ";
@@ -499,6 +500,10 @@ class KlikIgrFooterController extends KlikIgrController
         DB::beginTransaction();
         $selectedRow = $request->selectedRow;
 
+        if(!isset($request->datatables) || !count($request->datatables)){
+            return ApiFormatter::error(400, 'Data pada datatables kosong');
+        }
+
         try {
             foreach ($request->datatables as $item){
                 $prdcd = $item["plu"];
@@ -506,7 +511,7 @@ class KlikIgrFooterController extends KlikIgrController
                 
                 $result = $this->updateQtyHitungUlang($request->tanggal_trans, $selectedRow["no_trans"], $prdcd, $qtyBaru);
                 if(!$result){
-                    throw new \Exception("Gagal Update Qty PLU " . $prdcd);
+                    return ApiFormatter::error(400, 'Gagal Update Qty PLU ' . $prdcd);
                 }
             }
 
@@ -632,7 +637,7 @@ class KlikIgrFooterController extends KlikIgrController
         $nominal_voucher = $this->getNominalVoucher($selectedRow["no_trans"], $selectedRow["kode_member"]);
 
         if(count($count) == 0){
-            throw new \Exception("Error executing query Nilai PPN");
+            throw new HttpResponseException(ApiFormatter::error(400, 'Error executing query Nilai PPN'));
         }
 
         if($flagKredit == "Y"){
@@ -709,7 +714,7 @@ class KlikIgrFooterController extends KlikIgrController
         $dt = DB::select($sql);
 
         if(count($dt) <= 0){
-            throw new \Exception("Data Hitung Ulang Tidak Ditemukan");
+            throw new HttpResponseException(ApiFormatter::error(400, 'Data Hitung Ulang Tidak Ditemukan'));
         }
 
         if($type == "SPI"){
@@ -872,7 +877,7 @@ class KlikIgrFooterController extends KlikIgrController
             $resultCheckPPN = $this->checkPPN($row->plubkp);
             $dtPPN = $resultCheckPPN['dtPPN'];
             if ($resultCheckPPN['response'] !== "OK") {
-                throw new \Exception("Gagal Buat Struk");
+                throw new HttpResponseException(ApiFormatter::error(400, 'Gagal Buat Struk'));
             }
 
             if ($dtPPN[0]->status == "KENA PPN") {
@@ -1360,7 +1365,7 @@ class KlikIgrFooterController extends KlikIgrController
                         $tempHasil = $this->cancelPickup_KLIK($request->no_trans, $request->tanggal_trans, $request->nopb);
                     }
                     if ($tempHasil !== "SUCCESS") {
-                        throw new \Exception("PB " . $request->nopb . " Gagal Cancel Pickup IPP");
+                        return ApiFormatter::error(400, "PB " . $request->nopb . " Gagal Cancel Pickup IPP");
                     }
                 }
 
@@ -1475,7 +1480,7 @@ class KlikIgrFooterController extends KlikIgrController
             }
 
             if ($tempHasil !== "SUCCESS") {
-                throw new \Exception("PB " . $request->nopb . " Gagal Update Alasan Batal.");
+                return ApiFormatter::error(400, "PB " . $request->nopb . " Gagal Update Alasan Batal.");
             }
 
             $sql = "UPDATE TBTR_OBI_H SET obi_recid = CONCAT('B', COALESCE(obi_recid, '')), obi_alasanbtl = '" . $request->alasanValue . "' ";
@@ -1495,7 +1500,7 @@ class KlikIgrFooterController extends KlikIgrController
             $this->logUpdateStatus($request->no_trans, $request->tanggal_trans, $request->nopb, "B", "9");
 
             if (strpos($strHasil, "0") !== false) {
-                throw new \Exception("Ada PB Yang Gagal Dibatalkan. \n" . $noPb);
+                return ApiFormatter::error(400, "Ada PB Yang Gagal Dibatalkan. \n" . $noPb);
             }
 
             DB::commit();
