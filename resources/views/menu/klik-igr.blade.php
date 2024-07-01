@@ -1669,9 +1669,6 @@
 
     $(document).ready(function() {
         setDateNow("#tanggal_trans");
-        initializeDatatablesMain();
-        actionPbBatal();
-        TimerSendHHKlik_Tick();
 
         let check_error = @json($check_error ?? false);
         if(check_error){
@@ -1689,6 +1686,10 @@
                     return false; // Prevent SweetAlert from automatically closing
                 }
             });
+        } else {
+            TimerSendHHKlik_Tick();
+            initializeDatatablesMain();
+            actionPbBatal();
         }
 
         tb_edit_pb = $('#tb_edit_pb').DataTable({
