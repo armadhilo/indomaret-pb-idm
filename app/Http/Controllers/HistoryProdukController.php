@@ -230,20 +230,24 @@ class HistoryProdukController extends Controller
             File::makeDirectory($filePath, 0755, true);
         }
 
-        $rarPath = $filePath . "/" . $newName;
-        $file->move($filePath, $newName);
+        if($request->pilUpload !== "PINDAH SUPPLY"){
+            $rarPath = $filePath . "/" . $newName;
+            $file->move($filePath, $newName);
+    
+            $zip = new ZipArchive;
+            if ($zip->open($rarPath) === TRUE) {
+                $zip->extractTo($filePath);
+                $zip->close();
+            } else {
+                return response()->json(['error' => 'Failed to open ZIP file'], 400);
+            }
+    
+            File::delete($rarPath);
 
-        $zip = new ZipArchive;
-        if ($zip->open($rarPath) === TRUE) {
-            $zip->extractTo($filePath);
-            $zip->close();
         } else {
-            return response()->json(['error' => 'Failed to open ZIP file'], 400);
+            $file->move($filePath, $file->getClientOriginalName());
         }
-
-        File::delete($rarPath);
-
-        // Process the extracted CSV files
+        
         $filePaths = File::files($filePath);
 
         foreach ($filePaths as $file) {
@@ -372,6 +376,39 @@ class HistoryProdukController extends Controller
             }
 
             $this->insertData('TBTEMP_PRODUK_BARU1', $dataCSV, $this->getPeriodNewProduct($request->filename, 1), $this->getPeriodNewProduct($request->filename, 2));
+        } else {
+            //? PINDAH SUPPLY
+            $today = Carbon::today();
+
+            if (count($dataCSV) > 0) {
+                foreach ($dataCSV as $row) {
+                    $cekTgl = $row['TGLPINDAH'];
+                    $newTgl = null;
+
+                    try {
+                        $newTgl = Carbon::createFromFormat('d-m-Y', $cekTgl);
+                    } catch (\Exception $e) {
+                        return ApiFormatter::error(400, 'Format Tanggal Pindah Supply DD-MM-YYYY');
+                    }
+
+                    // Check date condition
+                    if ($newTgl->copy()->subDays(2)->isAfter($today)) {
+                        return ApiFormatter::error(400, 'Tanggal Pindah Supply tidak boleh lebih dari 2 hari dari Tanggal Upload');
+                    }
+                }
+
+                // Truncate the table
+                // DB::table('temp_pindahsupply')->truncate();
+
+                // Insert dataCSV
+                DB::table('temp_pindahsupply')->insert([
+                    "PRDCD" => "0215300",
+                    "TGLPINDAH" => "20-02-2024"
+                ]);
+            } else {
+                return ApiFormatter::error(400, 'Tidak ada Data!');
+            }
+        
         }
 
         return ApiFormatter::success(200, "UPLOAD CSV BERHASIL!");

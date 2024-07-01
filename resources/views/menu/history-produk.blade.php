@@ -20,6 +20,15 @@
         font-weight: 600;
         color: black;
     }
+
+    .btn-warning, .btn-warning:focus{
+        box-shadow: none!important;
+        background: #fd980b;
+    }
+
+    .btn-warning:hover{
+        background: #d17f0e!important;
+    }
 </style>
 @endsection
 
@@ -35,22 +44,24 @@
                         <div class="d-flex" style="gap: 15px;">
                             <div class="form-group d-flex" style="gap: 15px; flex: 5;">
                                 <label for="file_input" style="white-space: nowrap; width: 150px" class="detail-info">Pilih Path &nbsp;:&nbsp;</label>
-                                <input type="file" class="form-control" accept=".txt" id="file_input">
+                                <input type="file" class="form-control" id="file_input" webkitdirectory mozdirectory multiple>
                             </div>
                             <div class="form-group d-flex" style="gap: 15px; flex: 2;">
                                 <label for="periode" style="white-space: nowrap; width: 150px" class="detail-info">Periode &nbsp;:&nbsp;</label>
                                 <input type="month" class="form-control" id="periode" name="periode">
                             </div>
                             <div class="form-group d-flex" style="gap: 15px; flex: 3;">
-                                <label for="mode" style="white-space: nowrap; width: 150px" class="detail-info">Mode &nbsp;:&nbsp;</label>
+                                <label for="mode" style="white-space: nowrap; width: 150px; " class="detail-info">Mode &nbsp;:&nbsp;</label>
                                 <select name="mode" id="mode" class="form-control form-select">
                                     <option value="KPH MEAN">KPH MEAN</option>
                                     <option value="PRODUK BARU">PRODUK BARU</option>
+                                    <option value="PINDAH SUPPLY">PINDAH SUPPLY</option>
                                 </select>
                             </div>
                         </div>
                         <div class="d-flex flex-row child-flex-1 mt-2" style="gap: 15px">
-                            <button class="btn btn-lg btn-info" id="btn_proses" onclick="actionProses();">Proses</button>
+                            <button class="btn btn-lg btn-warning" id="btn_browse_main" onclick="actionBrowse();">Browse</button>
+                            <button class="btn btn-lg btn-info" id="btn_proses" onclick="actionProses();" disabled>Proses</button>
                             <button class="btn btn-lg btn-cust-success" id="btn_upload">Upload CSV</button>
                             <button class="btn btn-lg btn-royal" id="btn_hit" onclick="actionHitKPH();">Hit. KPH</button>
                             <button class="btn btn-lg btn-danger" id="btn_reprt" onclick="showModalReport()">Report KPH</button>
@@ -102,8 +113,7 @@
                 <div class="form-group m-0 d-flex justify-content-end" style="gap: 25px">
                     <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
                     {{-- <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" id="btn_ftp">FTP</button> --}}
-                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" id="btn_browse">BROWSE</button>
-                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-info" id="btn_history">HISTORY PINDAH SUPPLY</button>
+                    <button type="button" style="min-width: 150px; width: auto; white-space: nowarp; height: 44px" class="btn btn-lg btn-warning" id="btn_browse">BROWSE</button>
                 </div>
             </div>
         </div>
@@ -236,18 +246,24 @@
             $("#tipe_upload").empty();
             if(mode === "KPH MEAN"){
                 $("#btn_ftp").css("display", "block");
-                $("#btn_history").css("display", "none");
+                $("#btn_browse").addClass("btn-warning");
+                $("#btn_browse").removeClass("btn-info");
+                $("#btn_browse").text("BROWSE");
                 $("#tipe_upload").append(`<option value="MINOR">MINOR</option>`);
                 $("#tipe_upload").append(`<option value="PLUIDM">PLUIDM</option>`);
                 $("#modal_csv_title").text("Upload File CSV");
             } else if(mode === "PRODUK BARU"){
                 $("#btn_ftp").css("display", "none");
-                $("#btn_history").css("display", "none");
+                $("#btn_browse").addClass("btn-warning");
+                $("#btn_browse").removeClass("btn-info");
+                $("#btn_browse").text("BROWSE");
                 $("#tipe_upload").append(`<option value="PRODUK BARU">PRODUK BARU</option>`);
                 $("#modal_csv_title").text("Upload & Hitung KPH Produk Baru");
             } else {
                 $("#btn_ftp").css("display", "none");
-                $("#btn_history").css("display", "block");
+                $("#btn_browse").removeClass("btn-warning");
+                $("#btn_browse").addClass("btn-info");
+                $("#btn_browse").text("HISTORY PINDAH SUPPLY");
                 $("#tipe_upload").append(`<option value="PINDAH SUPPLY">PINDAH SUPPLY</option>`);
                 $("#modal_csv_title").text("Upload File CSV Pindah Supply");
             }
@@ -257,6 +273,24 @@
             $('.checkbox-group').not(this).prop('checked', false);
         });
     });
+
+    function actionBrowse(){
+        $("#file_input").click();
+    }
+
+    $('#file_input').on('change', function() {
+        if ($(this).val()) {
+            actionCheckPath();
+        } else {
+            $('#btn_proses').prop('disabled', true);
+            $('#btn_browse_main').text('Browse');
+        }
+    });
+    
+    function actionCheckPath(){
+        $('#btn_browse_main').text('Ubah Path');
+        $('#btn_proses').prop('disabled', false);
+    }
 
     function actionProses(){
         if ($("#file_input").val() === '') {
