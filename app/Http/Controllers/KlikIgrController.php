@@ -5911,7 +5911,6 @@ class KlikIgrController extends Controller
 
     protected function draftStruk($dgv_kodeweb, $dgv_memberigr, $dgv_notrans, $dgv_nopb, $dgv_tglpb, $dtTrans, $dgv_freeongkir, $dgv_kredit, $dgv_flagBayar, $dgv_tipebayar, $dgv_tipe_kredit, $selectedRow){
 
-        DB::beginTransaction();
         try{
 
             $kdWeb = $dgv_kodeweb;
@@ -6156,8 +6155,6 @@ class KlikIgrController extends Controller
                         $this->PrintNotaNewKlikSPI("N", "DRAFT STRUK", "KLIK", $dgv_tipe_kredit, $selectedRow);
                     }
 
-                    DB::commit();
-
                     return true;
                 } else {
                     throw new HttpResponseException(ApiFormatter::error(400, "Terjadi Kesalahan pada proses procedure"));
@@ -6169,8 +6166,6 @@ class KlikIgrController extends Controller
             throw new HttpResponseException($e->getResponse());
 
         }catch(\Exception $e){
-
-            DB::rollBack();
 
             $message = "Oops! Something wrong ( $e )";
             throw new HttpResponseException(ApiFormatter::error(400, $message));
