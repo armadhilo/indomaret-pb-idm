@@ -7251,6 +7251,7 @@ class KlikIgrController extends Controller
         $data['kodemember'] = $kodemember;
         $data['tanggaltrans'] = $tanggal_trans;
         $data['notrans'] = $no_trans;
+        $data['perusahaan'] = DB::table('tbmaster_perusahaan')->select("prs_namacabang")->first();
 
         $query = '';
         $query .= "SELECT row_number() OVER () as no, ";
