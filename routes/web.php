@@ -197,6 +197,7 @@ Route::middleware(['mylogin'])->group(function () {
         Route::prefix('/proseswt')->group(function () {
 
             Route::post('/send', [ProsesWTController::class, 'list_file']);
+            Route::post('/proseswt', [ProsesWTController::class, 'proses_wt']);
 
         });
         /*  Retur */
@@ -254,7 +255,8 @@ Route::middleware(['mylogin'])->group(function () {
             Route::get('/data', [VoucherController::class, 'voucher_load']);
             Route::get('/picking', [VoucherController::class, 'picking_load']);
             Route::get('/printqr', [VoucherController::class, 'print_qr']);
-            Route::get('/printreport', [VoucherController::class, 'print_report']);
+            Route::get('/report', [VoucherController::class, 'print_report']);
+            Route::get('/download/report/{data}', [VoucherController::class, 'download_report']);
         });
     });
 });

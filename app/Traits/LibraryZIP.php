@@ -10,56 +10,58 @@ use ZipStream\ZipStream;
 
 trait LibraryZIP
 {    
+    public function make_zip($filename = 'Archive.zip', $path = null, $path_file_zip = [],$pathSave = 'zip_saved/',$password = null){
 
-     /**
-      *  example header
-      *
-      * $header = [
-      *    "nama_column 1",
-      *    "nama_column 2",
-      *    "nama_column 3",
-      *  ];
-      */
-
-     /**
-      *  example datas
-      *
-      * $datas = [
-      *    "nama_column 1"=> "value1",
-      *    "nama_column 2"=> "value2",
-      *    "nama_column 3"=> "value3",
-      *  ];
-      */
-
-      /**
-       * Example
-       * 
-       * $filename = "testing.csv";
-       * 
-       * **/
-
-      /**
-       * Example
-       * storage_path variable is the location of the csv file that is stored in the storage folder
-       * $storage_path = "csv/";
-       * 
-       * **/
-    public function make_zip($filename = 'Archive.zip', $path = null, $path_file_zip = [],$download = false){
-        $zip = new ZipArchive;
-        $file_saved = storage_path($path.$filename);
-        if ($zip->open(storage_path($path.$filename), ZipArchive::CREATE) === TRUE) {
-            $filesToZip = $path_file_zip;
-
-            foreach ($filesToZip as $file) {
-                $zip->addFile($file, basename($file));
+        $zip = new ZipArchive();
+        $zipPath = $pathSave == 'zip_saved/'?storage_path($pathSave . $filename):$pathSave; //
+        if (!File::isDirectory(storage_path($zipPath))) {
+            
+            File::makeDirectory(storage_path($zipPath), 0755, true); 
+        } 
+        
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+            $files = glob(storage_path($request->storagePath) . '/' . session('userid') .  '/*');
+            //add password
+            if ($password) {
+                $zip->setPassword($passwordZip);
             }
-
-            if ($download) {
-                return response()->download($path)->deleteFileAfterSend(true);
+            if (count($path_file_zip)) {
+                //add file in array with path
+                foreach ($path_file_zip as $key => $data_path) {
+                    if (file_exists($data_path)) {
+                        $zip->addFile($data_path, basename($data_path)); // example app/data/file.csv
+                        $zip->setEncryptionName(basename($data_path), ZipArchive::EM_AES_256);
+                       
+                    }
+                    
+                }
+            } else {
+                //add file  with single path
+                if (file_exists($path)) {
+                    $zip->addFile($path, basename($path)); // example app/data/file.csv
+                    $zip->setEncryptionName(basename($path), ZipArchive::EM_AES_256);
+                   
+                }
             }
-            return $file_saved;
+            $zip->close();
+            
+
+            return  $zipPath;
+        } else{
+            return false;
         }
-        return false;
+
+    }
+
+    public function download_zip($filename = 'Archive.zip', $path = null, $path_file_zip = [],$download = false,$pathSave = 'zip_saved/',$password = null){
+        $zipPath = $this->make_zip($filename,$path,$pathSave,$password);
+
+        if ($zipPath) {
+            return response()->download($zipPath);
+        } else {
+            return false;
+        }
+        
     }
     public function read_zip($path_zip = null){
         $zip = new ZipArchive;
@@ -79,9 +81,29 @@ trait LibraryZIP
        }
        return false;
     }
-    // public function extract_zip(){
-        
-    // }
+    
+    public function extract_zip($pathFile=null,$pathExtract = "zip_file/"){
+
+        $zipFilePath = $pathFile;
+        $extractPath = $pathExtract == "zip_file/"?storage_path($pathExtract):$pathExtract;
+
+        // Create a new ZipArchive instance
+        $zip = new ZipArchive;
+
+        // Open the zip file
+        if ($zip->open($zipFilePath) === TRUE)
+        {
+            // Extract the contents to the specified path
+            $zip->extractTo($extractPath);
+
+            // Close the zip archive
+            $zip->close();
+
+            return "Files extracted successfully to " . $extractPath;
+        }else{
+            return "Failed to open the zip file.";
+        }
+    }
     public function encrypt_zip($path_zip = null){
         // $zip = new ZipArchive;
         // if($zip->open($path_zip)){

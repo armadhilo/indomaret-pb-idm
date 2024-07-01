@@ -1,4 +1,5 @@
 let selectedTable,
+    selectedTablePicking,
     selectedData  =  [],
     dataVoucher =[],
     dataNoseri =[],
@@ -33,8 +34,8 @@ $(document).ready(function(){
 
          $(this).addClass('selected-row');
          
-         $(".print").hide();
          $(".picking").hide();
+         $(".print").hide();
          $(".try").hide();
          selectedTable = $(this).find('td').map(function (data) {
                return $(this).text();
@@ -80,12 +81,12 @@ $(document).ready(function(){
 
          $(this).addClass('selected-row');
          
-         $(".print").hide();
-         $(".picking").hide();
-         $(".try").hide();
-         selectedTable = $(this).find('td').map(function (data) {
+         selectedTablePicking = $(this).find('td').map(function (data) {
                return $(this).text();
          }).get();
+         let val = selectedTablePicking[0].replace(new RegExp('\n', 'g'), '');
+             val = val.replace(new RegExp(' ', 'g'), '');
+         $("#nomor_seri").val(val)
          // if(selectedTable[1] == "Siap DSPB" ) 
          // {
          //    //   show button print
@@ -146,18 +147,18 @@ getVoucherData =(tanggal = null,report_qrcode = null)=>{
                      <tr>
 
                            <td>${value.no?value.no:'-'}
-                              <button class="btn btn-sm btn-primary print" id="print-button" onclick="print_laporan('${value.nopb}','${value.kodetoko}','${value.tglpb}')">
+                             <button class="btn btn-sm btn-primary print" id="print-button" onclick="print_laporan('${value.hmv_nopb}','${value.hmv_kodetoko}','${value.hmv_tglpb}')">
                                     <i class="fas fa-print"></i> Print
                               </button>
-                              <button class="btn btn-sm btn-primary try" id="print-button" onclick="print_laporan(${value.nopb})">
+                              <button class="btn btn-sm btn-primary try" id="print-button" onclick="print_laporan(${value.hmv_nopb})">
                                    Transfer Ulang
-                              </button>
-                              <button type="button" class="btn btn-sm btn-primary picking" data-toggle="modal" data-target="#modal_picking" onclick="picking_load('${value.kodetoko}' , '${value.nopb}' , '${value.tglpb}')">Picking</button>
+                              </button> 
+                              <button type="button" class="btn btn-sm btn-primary picking" data-toggle="modal" data-target="#modal_picking" onclick="picking_load('${value.hmv_kodetoko}' , '${value.hmv_nopb}' , '${value.hmv_tglpb}')">Picking</button>
                            </td>
                            <td>${value.stat?value.stat:'-'}</td>
-                           <td>${value.kodetoko?value.kodetoko:'-'}</td>
-                           <td>${value.nopb?value.nopb:'-'}</td>
-                           <td>${value.tglpb?value.tglpb:'-'}</td>
+                           <td>${value.hmv_kodetoko?value.hmv_kodetoko:'-'}</td>
+                           <td>${value.hmv_nopb?value.hmv_nopb:'-'}</td>
+                           <td>${value.hmv_tglpb?value.hmv_tglpb:'-'}</td>
                      </tr>
                   `;
                   dataVoucher[value.kodetoko] = value;
@@ -194,29 +195,39 @@ changeDate=(date)=>{
    getVoucherData(tanggal);
 }
 picking_load=(kodetoko =null , nopb =null , tglpb =null)=>{
-   let param = '';
-       param += kodetoko?"kodetoko"+kodetoko:"";
+   let html='',
+       param = '';
+       param += kodetoko?"kodetoko="+kodetoko:"";
        param += nopb?"&nopb="+nopb:"";
        param += tglpb?"&tglpb="+tglpb:"";
 
+       $("#table-content-picking").html(html)
    $('#picking_label').html(kodetoko+' / '+nopb+' / '+tglpb);
    $('#modal_picking').loading('toggle');
    $.getJSON(link + "/api/voucher/picking?"+param, function(data) {
+      if (data.data.plu_picking.includes("#")) {
+         $(".checked").show();
+         $(".text").val("Data PLU sudah ada di database, apakah ingin update?");
+      }else{
+         $(".checked").hide();
+         $(".text").val("Simpan data picking item?");
+      }
+      $("#plu_picking").html(`<option value="${data.data.plu_picking}" selected>${data.data.plu_picking}</option>`);
       $("#plu_picking").val(data.data.plu_picking);
-      $("#deskripsi_picking").val(data.data.deskripsi_picking);
+      $("#deskripsi_picking").html(data.data.deskripsi_picking);
       $("#qty_order_picking").val(data.data.qty_order_picking);
       $("#qty_realisasi_picking").val(data.data.qty_realisasi_picking);
       $("#no_picking1").val(data.data.no_picking1);
       $("#no_picking2").val(data.data.no_picking2);
+      $("#jmlh_seri").val(data.data.no_seri.length);
       $("#kodetoko").val(kodetoko);
       $("#nopb").val(nopb);
       $("#tglpb").val(tglpb);
+      console.log(data.data.no_seri,data.data);
       // list data no ref
-      
-     // if(data.data){
-        $.each(data.data.noseri,function(key,value) {
+        $.each(data.data.no_seri,function(key,value) {
           
-           field+=`
+           html+=`
                     <tr>
 
                           <td>${value.noseri?value.noseri:'-'}
@@ -225,35 +236,82 @@ picking_load=(kodetoko =null , nopb =null , tglpb =null)=>{
                  `;
                  dataNoseri[value.noseri] = value;
         });
+        $("#table-content-picking").append(html)
 
-     // }
 
   }).fail(function(data) {
      $('#modal_picking').loading('toggle');
-   //   if (data.responseJSON.errors) {
-   //       Swal.fire({
-   //          title: data.responseJSON.messages,
-   //          html: '',
-   //          icon: 'warning',
-   //          allowOutsideClick: false,
-   //          onOpen: () => {
-   //                   swal.hideLoading()
-   //          }
-   //       });
-   //       $('#modal_picking').modal('hide')
+     if (data.responseJSON.errors) {
+
+      $('#modal_picking').modal('hide')
+         Swal.fire({
+            title: data.responseJSON.messages,
+            html: '',
+            icon: 'warning',
+            allowOutsideClick: false,
+            onOpen: () => {
+                     swal.hideLoading()
+            }
+         });
          
-   //    }
+      }
    }).done(function() {
      $('#modal_picking').loading('toggle');
   }); 
 }
 
 print_laporan =(nopb = null, kodetoko = null, tglpb = null)=>{
-   console.log(nopb,kodetoko,tglpb)
-   if ($('#report_qr').prop('checked')) {
-      window.open(link+"/api/voucher/printqr?nopb="+nopb+"&kodetoko="+kodetoko+"&tglpb="+tglpb,'_blank');
-  } 
-   window.open(link+"/api/voucher/printreport?nopb="+nopb+"&kodetoko="+kodetoko+"&tglpb="+tglpb,'_blank');
+   let html='',
+       param = '';
+       param +=  $('#report_qr').is(':checked')?"qrcode="+true:"qrcode="+false;
+       param += kodetoko?"&kodetoko="+kodetoko:"";
+       param += nopb?"&nopb="+nopb:"";
+       param += tglpb?"&tglpb="+tglpb:"";
+       Swal.fire({
+         title: "Cetak Report Voucher Material?",
+         showDenyButton: true,
+         showCancelButton: true,
+         confirmButtonText: `Ya`,
+         denyButtonText: `Tidak`,
+     }).then((result) => {
+         if (result.value) {
+            $('#label-tag').loading('toggle');
+            $.getJSON(link + "/api/voucher/report?"+param, function(data) {
+               if (data.link_qr) {
+                  window.open(data.link_qr,'_blank');
+               }
+               if (data.link_ref) {
+                  window.open(data.link_ref,'_blank');
+               }
+               if (data.link_sj) {
+                  window.open(data.link_sj,'_blank');
+               }
+            }).fail(function(data) {
+               $('#label-tag').loading('toggle');
+               if (data.responseJSON.errors) {
+          
+                $('#label-tag').modal('hide')
+                   Swal.fire({
+                      title: data.responseJSON.messages,
+                      html: '',
+                      icon: 'warning',
+                      allowOutsideClick: false,
+                      onOpen: () => {
+                               swal.hideLoading()
+                      }
+                   });
+                   
+                }
+            }).done(function() {
+               $('#label-tag').loading('toggle');
+            }); 
+         }
+     });
+   //    console.log(nopb,kodetoko,tglpb)
+   //    if ($('#report_qr').prop('checked')) {
+   //       window.open(link+"/api/voucher/printqr?nopb="+nopb+"&kodetoko="+kodetoko+"&tglpb="+tglpb,'_blank');
+   //   } 
+   //    window.open(link+"/api/voucher/printreport?nopb="+nopb+"&kodetoko="+kodetoko+"&tglpb="+tglpb,'_blank');
 }
 
 save_picking =()=>{
@@ -304,5 +362,11 @@ save_picking =()=>{
 
       $('#modal_picking').loading('toggle');
    });  
+}
+
+loadPicking =()=>{
+
+   $('#modal_picking').modal('hide');
+   getVoucherData();
 }
 

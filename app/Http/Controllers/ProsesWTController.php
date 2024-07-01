@@ -53,8 +53,17 @@ class ProsesWTController extends Controller
         $UserMODUL = session('userid');
         $KodeIGR = session('KODECABANG');
         $StationMODUL = session("SPI_STATION");
+        $dtKey = [];
+        $dtRetur = [];
+        $response = (object)$this->processSalesData($dpp_igr,$ppn_igr, $dpp_idm,$ppn_idm, $retur_fisik,$retur_peforma,$dtKey,$dtRetur, $KodeIGR, $UserMODUL, $StationMODUL);
+        
+        if (isset($response->errors)) {
+            $code = 500;
+        }else{
+            $code = 200;
+        }
 
-        $this->processSalesData($dpp_igr,$ppn_igr, $dpp_idm,$ppn_idm, $retur_fisik,$retur_peforma, $KodeIGR, $UserMODUL, $StationMODUL);
+       return response()->json($response,$code);
 
     }
 
@@ -105,8 +114,7 @@ class ProsesWTController extends Controller
                                     unlink(storage_path($filenameFileStorage));
                                 }
 
-                                $detailMessage = $nTolakan > 0 ? ", Data Retur Double/PLu Tidak Dikenal, Proses Retur DITOLAK!" : "";
-                                return ["messages"=>"WT Sales Selesai Diproses ".$detailMessage,"data_struk"=>$dataStruk];
+                                return ["messages"=>"WT Sales Selesai Diproses ". $nTolakan > 0 ? ", Data Retur Double/PLu Tidak Dikenal, Proses Retur DITOLAK!" : "","data_struk"=>$dataStruk];
                             } else {
                                 return ["errors"=>true, "messages"=>"WT Gagal Diproses! INDOGROSIR"];
                             }
@@ -153,8 +161,8 @@ class ProsesWTController extends Controller
         $docnoIdm = null;
         $tglDocnoIdm = null;
         // $toko = null;
-        $KodeIGR = '28';//session('KODECABANG'); // Replace with actual value
-        // $KodeIGR = session('KODECABANG'); // Replace with actual value
+        // $KodeIGR = '28';//session('KODECABANG'); // Replace with actual value
+        $KodeIGR = session('KODECABANG'); // Replace with actual value
         $dtKey = [];
         // dd($array_csv);
     
@@ -382,6 +390,157 @@ class ProsesWTController extends Controller
         ]],200);
 
 
+    }
+
+
+    public function insertWt($dtSource, &$nTolakan)
+    {
+        $cterm = 0;
+        $qty = 0;
+        $price = 0;
+        $gross = 0;
+        $ppn = 0;
+        $ppnRate = 0;
+        $PRICE_IDM = 0;
+        $PPNBM_IDM = 0;
+        $PPNRP_IDM = 0;
+        $totRet = 0;
+        $trnsId = 0;
+        $tgl1 = null;
+        $tgl2 = null;
+        $noNrb = '';
+
+        $dt = $dtSource;
+        $dt->clear();
+
+        $rows = $dtSource->sortBy('DOCNO');
+
+       
+
+        $nTolakan = 0;
+        $totRet = 0;
+        $noNrb = '';
+
+        foreach ($dt as $i => $row) {
+            // echo "Proses Data Retur ke " . ($i + 1) . " Dari " . count($dt);
+
+            if (trim($row->DOCNO) != '') {
+                if (!empty($row->tgl1)) {
+                    $tgl1 = date("Y-m-d",strtotime($row->tgl1));
+                }
+
+                if (!empty($row->tgl2)) {
+                    $tgl2 = date("Y-m-d",strtotime($row->tgl2));
+                }
+
+                $sql = "SELECT COUNT(1) FROM tbtr_wt_interface WHERE TOKO = ? AND DOCNO = ? AND TGL1 = ? AND PRDCD = ? AND SHOP = ?";
+                $count = DB::selectOne($sql, [$row->toko, $row->docno, $tgl1, $row->prdcd, $row->shop])->count;
+
+                if ($count > 0) {
+                    $sql = "SELECT COALESCE(RECID, 'N') as RECID FROM tbtr_wt_interface WHERE TOKO = ? AND DOCNO = ? AND TGL1 = ? AND SHOP = ? GROUP BY RECID";
+                    $recid = DB::selectOne($sql, [$row->toko, $row->docno, $tgl1, $row->shop])->RECID;
+
+                    if ($recid == 'N') {
+                        if (confirm("Retur Nrb = {$row->docno} Sudah Ada Di Database ,Hapus Data Sebelumnya?") == true) {
+                            $sql = "DELETE FROM tbtr_wt_interface WHERE TOKO = ? AND DOCNO = ? AND TGL1 = ? AND SHOP = ?";
+                            DB::delete($sql, [$row->toko, $row->docno, $tgl1, $row->shop]);
+                        } else {
+                            $nTolakan++;
+                            return;
+                        }
+                    } else {
+                        $nTolakan++;
+                        $this->recordTolakan("Retur Nrb = {$row->docno} Sudah Diproses, Tidak Bisa Di REVISI!");
+                        return ['errors'=>true,'messages'=>"Retur Nrb = {$row->docno} Sudah Diproses, Tidak Bisa Di REVISI!"];
+                    }
+                } else {
+                    if ($this->cekPiutang($row->docno, $row->shop, $tgl1)) {
+                        $nTolakan++;
+                        $this->recordTolakan("Retur Nrb : {$row->docno} Sudah masuk piutang.");
+                        return ['errors'=>true,'messages'=>"Retur Nrb = {$row->docno} Sudah Selesai Diproses, Tidak Bisa Di Revisi!"];
+                    }
+
+                    if ($noNrb != $row->docno) {
+                        $trnsId = DB::table('sequence')->increment('SEQ_RETUR_IDM');
+                        $noNrb = $row->docno;
+                    }
+                }
+
+                $qty = $this->parseDouble($row->qty);
+                $price = $this->parseDouble($row->price);
+                $gross = $this->parseDouble($row->gross);
+                $cterm = $this->parseDouble($row->cterm);
+                $ppn = $this->parseDouble($row->ppn);
+                $PRICE_IDM = $this->parseDouble($row->price_idm);
+                $PPNBM_IDM = $this->parseDouble($row->ppnbm_idm);
+                $PPNRP_IDM = $this->parseDouble($row->ppnrp_idm);
+                $ppnRate = $this->getPpnRate($row->prdcd, $tgl1, $row->rate_ppn);
+
+                $insertData = [
+                    'p_id' => $trnsId,
+                    'recid' => 'N',
+                    'rtype' => $row->rtype,
+                    'docno' => $row->docno,
+                    'seqno' => $row->seqno,
+                    'div' => $row->div,
+                    'prdcd' => $row->prdcd,
+                    'qty' => $qty,
+                    'price' => $PRICE_IDM,
+                    'gross' => $qty * $PRICE_IDM,
+                    'cterm' => $cterm,
+                    'docno2' => $row->docno2,
+                    'istype' => $row->istype,
+                    'invno' => $row->invno,
+                    'toko' => $row->toko,
+                    'date1' => $row->date,
+                    'date2' => $row->date2,
+                    'keterangan' => $row->keterangan,
+                    'ptag' => $row->ptag,
+                    'cat_cod' => $row->cat_cod,
+                    'lokasi' => $row->lokasi,
+                    'tgl1' => $tgl1,
+                    'tgl2' => $tgl2,
+                    'ppn' => $PPNRP_IDM,
+                    'toko_1' => $row->toko_1,
+                    'date3' => $row->date3,
+                    'docno3' => $row->docno3,
+                    'shop' => $row->shop,
+                    'price_idm' => $PRICE_IDM,
+                    'ppnbm_idm' => $PPNBM_IDM,
+                    'ppnrp_idm' => $PPNRP_IDM,
+                    'lt' => $row->lt,
+                    'rak' => $row->rak,
+                    'bar' => $row->bar,
+                    'bkp' => $this->parseBoolean($row->bkp),
+                    'sub_bkp' => $row->sub_bkp,
+                    'plumd' => $row->plumd,
+                    'wt_create_dt' => date('Y-m-d'),
+                    'wt_create_by' => session()->get('userid'),
+                    'nm_wt' => $row->nm_wt,
+                    'ppn_rate' => $ppnRate,
+                    'jam' => $row->jam ?? '',
+                ];
+
+                DB::table('TBTR_WT_INTERFACE')->insert($insertData);
+
+                $totRet += ($qty * $PRICE_IDM) + $PPNRP_IDM;
+            } else {
+                alert("Retur Tidak Mempunyai NRB!");
+                $nTolakan++;
+                $this->recordTolakan("Retur Tidak Mempunyai NRB!");
+                return;
+            }
+        }
+
+        if (abs($totRet - ($this->returFisik + $this->returPerforma)) > 100) {
+            echo "Nilai Data yg akan masuk Database = $totRet , Nilai Data WT = " . ($this->returFisik + $this->returPerforma) . " , Retur Ditolak!";
+            $nTolakan++;
+            $this->recordTolakan("Nilai Data yg akan masuk Database = $totRet , Nilai Data WT = " . ($this->returFisik + $this->returPerforma));
+            return;
+        } else {
+            $this->insertProforma();
+            echo "Proses WT";
+        }
     }
 
     public function recordTolakan($msg=null, $namawt=null, $toko=null) {

@@ -11,46 +11,29 @@
 @section('subtitle')
 
 @endsection
-@section('header_left')
-    <table>
-        <tr style="text-align: left; font-size:14px;">
-            <td> {{ $perusahaan->prs_namaperusahaan }}</td>
-        </tr>
-        <tr style="text-align: left; font-size:14px;">
-            <td> </td>
-        </tr>
-        <tr style="text-align: left; font-size:14px;">
-            <td> {{ $perusahaan->prs_namacabang }}</td>
-        </tr>
-    </table>
-@endsection
-@section('header_right')
-    <table>
-        <tr style="text-align: left; font-size:14px;">
-            <td>{{ date("d/m/Y") }}</td>
-            <td>/</td>
-            <td> {{ date('H:i:s') }}</td>
-        </tr>
-    </table>
-@endsection
+
 
 @section('content')
+@php
+ //dd($data);
+@endphp
+
 <p class="center" style=" text-align: center; margin-bottom:50px; font-size:14px;">
-    <span style="margin-right: 20px;"> Kode Toko : -</span>
-    <span style="margin-right: 20px;"> No NPB : -</span>
-    <span style="margin-right: 20px;"> Tgl NPB  : -</span>
+    <span style="margin-right: 20px;"> Kode Toko : {{$data->kodetoko}}</span>
+    <span style="margin-right: 20px;"> No NPB : {{$data->nopb}}</span>
+    <span style="margin-right: 20px;"> Tgl NPB  : {{$data->tglpb}}</span>
 </p>
 
 <div class="center" style=" text-align: center; margin-top:100px; font-size:14px;">
-    <div style="display: inline-block; text-align:center; margin-right:20px;">
-        {!! DNS2D::getBarcodeHTML('GL13091280981290342423432423423423454354353453453453453458390812091309129038892031889012812939012389012890830919239081098920312839184238923840923809423890480923', 'QRCODE') !!}
+<div style="display: inline-block; text-align:center; margin-right:20px;">
+        {!! DNS2D::getBarcodeHTML($data->data[0]->QRbyte_L, 'QRCODE',2,2) !!}
 
-        <span> header</span>
+        <span> {{$data->data[0]->Keterangan_L}}</span>
     </div>
     <div style="display: inline-block; text-align:center; margin-left:20px;">
-        {!! DNS2D::getBarcodeHTML('GL13091280981290342423432423423423454354353453453453453458390812091309129038892031889012812939012389012890830919239081098920312839184238923840923809423890480923', 'QRCODE') !!}
-        
-        <span> 01/01</span>
+        {!! DNS2D::getBarcodeHTML($data->data[0]->QRbyte_R, 'QRCODE',2,2) !!}
+       
+        <span> {{$data->data[0]->Keterangan_R}}</span>
     </div>
 </div>
 @endsection¸

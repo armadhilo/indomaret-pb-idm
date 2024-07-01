@@ -46,10 +46,13 @@ class MonitoringController extends Controller
         $flag_detail = isset($request->flag_detail)?$request->flag_detail:false;
         $tanggal = isset($request->tanggal)?$request->tanggal:null;
         $zona = isset($request->zona)?$request->zona:null;
-        $mode_omi = isset($request->mode_omi)?$request->mode_omi:null;
+        $mode_omi = !(session()->get('flagIGR'))?true:false;
 
         $data_card = $this->initial($param,$report_zona,$flag_detail,$tanggal,$zona,$mode_omi);
         $data_zona = $this->load_zona();
+        if (isset($data_card->errors)) {
+            return response()->json(['errors'=>true,'messages'=>$data_card->messages],500);
+        }
 
         return response()->json(['errors'=>false,'messages'=>'berhasi','data_zona'=>$data_zona,'data_card'=>$data_card],200);
     }
@@ -65,9 +68,9 @@ class MonitoringController extends Controller
         return $data;
     }
 
-    public function initial($param = null,$report_zona = false, $flag_detail = false, $tanggal = null,$zona = null,$mode_omi = null){
-        $tanggal = isset($tanggal)?$tanggal:date('Y-m-d');
-        $dtTrans  = $tanggal;
+
+    public function initial($param,$report_zona = null, $flag_detail = false,$tanggal = '',$zona =null,$mode_omi = false)
+    {
         $sendJalur = 0;
         $picking = 0;
         $scanning = 0;
@@ -75,249 +78,231 @@ class MonitoringController extends Controller
         $selesaiDspb = 0;
         $jmlhPb = 0;
         $selesaiLoading = 0;
-        $lblSDspb = 0;
-        $lblMonitoring = [];
+        $dtTrans = $tanggal?date('Y-m-d',strtotime($tanggal)): date('Y-m-d');
+        $today = date('Y-m-d');
 
-        $jmlhPb_condition =  " TKO_KODESBU = 'I'";
-        $sendJalur_condition =  " TKO_KODESBU = 'I'";
-        $packing_condition ="";
-        $packing_condition.= " TKO_KODESBU = 'I'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND (FMRCID = '1' OR FMRCID = '2')) q  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB AND nopicking = hpbi_nopicking AND nosuratjalan = hpbi_nosj) ";
-        $scanning_condition ="";
-        $scanning_condition.= " TKO_KODESBU = 'O'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND FMRCID = '3') t  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB) ";
-        $selesaiLoading_condition =  " TKO_KODESBU = 'I'";
-        $selesaiDspb_condition =  " TKO_KODESBU = 'I'";
-        $whereOMI = "AND tko_kodesbu = 'I'";
-        $whereDate1 = $tanggal?"'$tanggal'":"";
-        $whereDate2 = $tanggal?"hpbi_tgltransaksi =".$tanggal."::date":"";
-        // if ($modeProgram == "OMI") {
-        //    $jmlhPb_condition =  " TKO_KODESBU = 'O'";
-        //    $sendJalur_condition =  " TKO_KODESBU = 'O'";
-        //    $packing_condition.= " TKO_KODESBU = 'O'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND (FMRCID = '1' OR FMRCID = '2')) q  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB) ";
-        //    $scanning_condition.= " TKO_KODESBU = 'O'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND FMRCID = '3') t  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB) ";
-        //    $selesaiLoading_condition =  " TKO_KODESBU = 'O'";
-        //    $selesaiDspb_condition =  " TKO_KODESBU = 'O'";
-        //    $whereOMI = "AND tko_kodesbu = 'O'";
-        // } else {
-        //    $jmlhPb_condition =  " TKO_KODESBU = 'I'";
-        //    $sendJalur_condition =  " TKO_KODESBU = 'I'";
-        //    $packing_condition.= " TKO_KODESBU = 'I'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND (FMRCID = '1' OR FMRCID = '2')) q  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB AND nopicking = hpbi_nopicking AND nosuratjalan = hpbi_nosj) ";
-        //    $scanning_condition.=  " TKO_KODESBU = 'I'  AND EXISTS (SELECT 1 FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan  FROM dpd_idm_ora  WHERE tglupd = '" .date("Y-m-d")."'  AND FMRCID = '3') t  WHERE fmkcab = HPBI_KODETOKO AND tglpb = HPBI_TGLPB AND fmndoc = HPBI_NOPB AND nopicking = hpbi_nopicking AND nosuratjalan = hpbi_nosj)";
-        //    $selesaiLoading_condition =  " TKO_KODESBU = 'I'";
-        //    $selesaiDspb_condition =  " TKO_KODESBU = 'I'";
-        //    $whereOMI = "AND tko_kodesbu = 'I'";
-        // }
-        //
+        try {
 
-        //jmlhPb
-        $jmlhPb = $this->DB_PGSQL
-                       ->table("tbtr_header_pbidm")
-                       ->join("tbmaster_tokoigr",function($join){
-                            $join->on("hpbi_kodetoko","=","tko_kodeomi");
-                        })
-                       ->selectRaw("
-                          COUNT(1) 
-                       ");
-        if($dtTrans){
-        $jmlhPb =      $jmlhPb                       
-                       ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d", strtotime($dtTrans))."'::date");
-                    }
-        $jmlhPb =      $jmlhPb
-                       ->whereRaw($jmlhPb_condition)
-                       ->get();
+            // Count total PB
+            $sql = "SELECT COUNT(1)
+                    FROM tbtr_header_pbidm
+                    JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
+                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date ";
+            if ($mode_omi) {
+                $sql .= "AND TKO_KODESBU = 'O' ";
+            } else {
+                $sql .= "AND TKO_KODESBU = 'I' ";
+            }
+            $jmlhPb = $this->DB_PGSQL->selectOne($sql)->count;
+            // Count PB SendJalur
+            $sql = "SELECT COUNT(1)
+                    FROM tbtr_header_pbidm
+                    JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
+                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
+                    AND HPBI_FLAG IS NOT NULL ";
+            if ($mode_omi) {
+                $sql .= "AND TKO_KODESBU = 'O' ";
+            } else {
+                $sql .= "AND TKO_KODESBU = 'I' ";
+            }
+            $sendJalur = $this->DB_PGSQL->selectOne($sql)->count;
 
+            // Count PB Picking
+            $sql = "SELECT COUNT(1)
+                    FROM tbtr_header_pbidm
+                    JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
+                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
+                    AND HPBI_FLAG <> '5' ";
+            if ($mode_omi) {
+                $sql .= "AND TKO_KODESBU = 'O'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab
+                                FROM dpd_idm_ora
+                                WHERE tglupd::date = '$today'::date
+                                AND (FMRCID = '1' OR FMRCID = '2')
+                            ) q
+                            WHERE fmkcab = HPBI_KODETOKO
+                            AND tglpb = HPBI_TGLPB
+                            AND fmndoc = HPBI_NOPB
+                        ) ";
+            } else {
+                $sql .= "AND TKO_KODESBU = 'I'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan
+                                FROM dpd_idm_ora
+                                WHERE tglupd::date = '$today'::date
+                                AND (FMRCID = '1' OR FMRCID = '2')
+                            ) q
+                            WHERE fmkcab = HPBI_KODETOKO
+                            AND tglpb = HPBI_TGLPB
+                            AND fmndoc = HPBI_NOPB
+                            AND nopicking = hpbi_nopicking
+                            AND nosuratjalan = hpbi_nosj
+                        ) ";
+            }
+            $picking = $this->DB_PGSQL->selectOne($sql)->count;
 
-        //sendJalur                       
-        $sendJalur =   $this->DB_PGSQL
-                            ->table("tbtr_header_pbidm")
-                            ->join("tbmaster_tokoigr",function($join){
-                                $join->on("hpbi_kodetoko","=","tko_kodeomi");
-                            })
-                            ->selectRaw("
-                                COUNT(1) 
-                            ") ;
-        if($dtTrans){
-        $sendJalur =      $sendJalur                            
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d", strtotime($dtTrans))."'::date");
-                        }
-        $sendJalur =      $sendJalur
-                            ->whereRaw("HPBI_FLAG IS NOT NULL")
-                            ->whereRaw($sendJalur_condition)
-                            ->get();
+            // Count PB Scanning
+            $sql = "SELECT COUNT(1)
+                    FROM tbtr_header_pbidm
+                    JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
+                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
+                    AND HPBI_FLAG <> '5' ";
+            if ($mode_omi) {
+                $sql .= "AND TKO_KODESBU = 'O'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab
+                                FROM dpd_idm_ora
+                                WHERE tglupd::date = '$today'::date
+                                AND FMRCID = '3'
+                            ) t
+                            WHERE fmkcab = HPBI_KODETOKO
+                            AND tglpb = HPBI_TGLPB
+                            AND fmndoc = HPBI_NOPB
+                        ) ";
+            } else {
+                $sql .= "AND TKO_KODESBU = 'I'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan
+                                FROM dpd_idm_ora
+                                WHERE tglupd::date = '$today'::date
+                                AND FMRCID = '3'
+                            ) t
+                            WHERE fmkcab = HPBI_KODETOKO
+                            AND tglpb = HPBI_TGLPB
+                            AND fmndoc = HPBI_NOPB
+                            AND nopicking = hpbi_nopicking
+                            AND nosuratjalan = hpbi_nosj
+                        ) ";
+            }
+            $scanning = $this->DB_PGSQL->selectOne($sql)->count;
+            
+            // Count PB Loading
+            $sql = "SELECT COUNT(1)
+                    FROM tbtr_header_pbidm
+                    JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
+                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
+                    AND HPBI_FLAG = '4' ";
+            if ($mode_omi) {
+                $sql .= "AND TKO_KODESBU = 'O' ";
+            } else {
+                $sql .= "AND TKO_KODESBU = 'I' ";
+            }
+            $selesaiLoading = $this->DB_PGSQL->selectOne($sql)->count;
+            // Count PB DSPB
+            $sql = "SELECT COUNT(1)
+                    FROM tbtr_header_pbidm
+                    JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
+                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
+                    AND HPBI_FLAG = '5' ";
+            if ($mode_omi) {
+                $sql .= "AND TKO_KODESBU = 'O' ";
+            } else {
+                $sql .= "AND TKO_KODESBU = 'I' ";
+            }
+            $selesaiDspb = $this->DB_PGSQL->selectOne($sql)->count;
 
+            // Set labels
+            $lblPB = $jmlhPb;
+            $lblSendJalur = $sendJalur;
+            $lblPicking = $picking;
+            $lblScanning = $scanning;
+            $lblloading = $selesaiLoading;
+            $lblDspb = $selesaiDspb;
 
-
-        //picking                            
-        $picking =   $this->DB_PGSQL
-                            ->table("tbtr_header_pbidm")
-                            ->join("tbmaster_tokoigr",function($join){
-                                $join->on("hpbi_kodetoko","=","tko_kodeomi");
-                            })
-                            ->selectRaw("
-                                COUNT(1) 
-                            ") ;
-        if($dtTrans){
-        $picking =      $picking                            
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d", strtotime($dtTrans))."'::date");
-                        }
-        $picking =      $picking
-                            ->whereRaw("HPBI_FLAG <> '5'")
-                            ->whereRaw($packing_condition)
-                            ->get();
-
-
-
-        //scanning                            
-        $scanning =   $this->DB_PGSQL
-                            ->table("tbtr_header_pbidm")
-                            ->join("tbmaster_tokoigr",function($join){
-                                $join->on("hpbi_kodetoko","=","tko_kodeomi");
-                            })
-                            ->selectRaw("
-                                COUNT(1) 
-                            ") ;
-        if($dtTrans){
-        $scanning =      $scanning                            
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d", strtotime($dtTrans))."'::date");
-                        }
-        $scanning =      $scanning
-                            ->whereRaw("hpbi_flag <> '5'")
-                            ->whereRaw($scanning_condition)
-                            ->get();
-                            
-
-
-        //selesaiLoading                            
-        $selesaiLoading =   $this->DB_PGSQL
-                            ->table("tbtr_header_pbidm")
-                            ->join("tbmaster_tokoigr",function($join){
-                                $join->on("hpbi_kodetoko","=","tko_kodeomi");
-                            })
-                            ->selectRaw("
-                                COUNT(1) 
-                            ") ;
-        if($dtTrans){
-        $selesaiLoading =      $selesaiLoading                            
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d", strtotime($dtTrans))."'::date");
-                        }
-        $selesaiLoading =      $selesaiLoading
-                            ->whereRaw("hpbi_flag = '4'")
-                            ->whereRaw($selesaiLoading_condition)
-                            ->get();
-                            
-
-
-        //selesaiDspb                            
-        $selesaiDspb =   $this->DB_PGSQL
-                            ->table("tbtr_header_pbidm")
-                            ->join("tbmaster_tokoigr",function($join){
-                                $join->on("hpbi_kodetoko","=","tko_kodeomi");
-                            })
-                            ->selectRaw("
-                                COUNT(1) 
-                            ") ;
-        if($dtTrans){
-        $selesaiDspb =      $selesaiDspb                             
-                            ->whereRaw("hpbi_tgltransaksi = '".date("Y-m-d", strtotime($dtTrans))."'::date");
-                        }
-        $selesaiDspb =      $selesaiDspb
-                            ->whereRaw("hpbi_flag = '5'")
-                            ->whereRaw($selesaiDspb_condition)
-                            ->get();
-                            
-
-
-
-                                     
-        $jmlhPb = $jmlhPb[0]->count;
-        $sendJalur = $sendJalur[0]->count;
-        $picking = $picking[0]->count;
-        $scanning = $scanning[0]->count;
-        $selesaiLoading = $selesaiLoading[0]->count;
-        $selesaiDspb = $selesaiDspb[0]->count;
-        $query_dt =  "  SELECT ROW_NUMBER() OVER() no, dtl.* 
-                        FROM ( 
-                            SELECT 
-                                toko, 
-                                nopb, 
-                                tglpb, 
-                                nopick, 
-                                nosj, 
-                                total, 
-                                selesai 
-                            FROM ( 
-                            SELECT 
-                            fmkcab toko, 
-                            fmndoc nopb, 
-                            tglpb, 
-                            nopick, 
-                            nosj, 
-                            COUNT(1) total, 
-                            SUM(tutupkoli) selesai 
-                            FROM ( 
-                            SELECT 
-                                kodezona, 
-                                dcp, 
-                                fmkcab, 
-                                fmndoc, 
-                                tglpb, 
-                                nopick, 
-                                nosj, 
-                                CASE WHEN dca_flag = '3' 
-                                THEN 1 
-                                ELSE 0 
-                                END tutupkoli 
-                            FROM ( 
-                                SELECT 
-                                kodezona, 
-                                MAX(grak) dcp, 
-                                fmkcab, 
-                                fmndoc, 
-                                tglpb, 
-                                nopicking nopick, 
-                                nosuratjalan nosj 
-                                FROM ( 
-                                SELECT DISTINCT  
-                                    fmkcab, 
-                                    fmndoc, 
-                                    tglpb, 
-                                    grak, 
-                                    kodezona, 
-                                    nopicking, 
-                                    nosuratjalan 
-                                FROM dpd_idm_ora 
-                            ".$whereDate1."
-                                ) p, tbtr_header_pbidm, tbmaster_tokoigr  
-                            WHERE hpbi_kodetoko = tko_kodeomi 
-                                AND hpbi_kodetoko = fmkcab 
-                                AND hpbi_nopb = fmndoc 
-                                AND hpbi_tglpb = tglpb 
-                                AND hpbi_nopicking = nopicking 
-                                AND hpbi_nosj = nosuratjalan 
-                            ".$whereOMI."
-                            ".$whereDate2."
-                                AND hpbi_flag <> '5' 
-                                GROUP BY kodezona, fmkcab, fmndoc, tglpb, nopicking, nosuratjalan 
-                            ) hdr 
-                            LEFT JOIN dcp_antrian
-                            ON fmkcab = dca_toko 
-                            AND fmndoc = dca_nopb  
-                            AND tglpb = dca_tglpb  
-                            AND dcp = dca_grouprak  
-                            AND nopick = dca_nopicking 
-                            AND nosj = dca_nosj 
-                            ) q 
-                            GROUP BY fmkcab, fmndoc, tglpb, nopick, nosj 
-                        ) t 
-                        WHERE total > 0 
-                        ORDER BY nopick
-                        ) dtl
-                        ";
+            // Additional query
+            $sql = "  SELECT ROW_NUMBER() OVER() no, dtl.* 
+            FROM ( 
+              SELECT 
+                toko, 
+                nopb, 
+                tglpb, 
+                nopick, 
+                nosj, 
+                total, 
+                selesai 
+              FROM ( 
+                SELECT 
+                  fmkcab toko, 
+                  fmndoc nopb, 
+                  tglpb, 
+                  nopick, 
+                  nosj, 
+                  COUNT(1) total, 
+                  SUM(tutupkoli) selesai 
+                FROM ( 
+                  SELECT 
+                    kodezona, 
+                    dcp, 
+                    fmkcab, 
+                    fmndoc, 
+                    tglpb, 
+                    nopick, 
+                    nosj, 
+                    CASE WHEN dca_flag = '3' 
+                      THEN 1 
+                      ELSE 0 
+                    END tutupkoli 
+                  FROM ( 
+                    SELECT 
+                      kodezona, 
+                      MAX(grak) dcp, 
+                      fmkcab, 
+                      fmndoc, 
+                      tglpb, 
+                      nopicking nopick, 
+                      nosuratjalan nosj 
+                    FROM ( 
+                      SELECT DISTINCT  
+                        fmkcab, 
+                        fmndoc, 
+                        tglpb, 
+                        grak, 
+                        kodezona, 
+                        nopicking, 
+                        nosuratjalan 
+                      FROM dpd_idm_ora 
+                      WHERE tglupd = '$today' 
+                    ) p, tbtr_header_pbidm, tbmaster_tokoigr  
+                   WHERE hpbi_kodetoko = tko_kodeomi 
+                    AND hpbi_kodetoko = fmkcab 
+                    AND hpbi_nopb = fmndoc 
+                    AND hpbi_tglpb = tglpb 
+                    AND hpbi_nopicking = nopicking 
+                    AND hpbi_nosj = nosuratjalan ";
+            if ($mode_omi) {
+                $sql .= "AND tko_kodesbu = 'O' ";
+            } else {
+                $sql .= "AND tko_kodesbu = 'I' ";
+            }
+            $sql .= "AND hpbi_tgltransaksi = '$dtTrans'
+                     AND hpbi_flag <> '5' 
+                     GROUP BY kodezona, fmkcab, fmndoc, tglpb, nopicking, nosuratjalan 
+                ) hdr 
+                LEFT JOIN dcp_antrian
+                ON fmkcab = dca_toko 
+                AND fmndoc = dca_nopb  
+                AND tglpb = dca_tglpb  
+                AND dcp = dca_grouprak  
+                AND nopick = dca_nopicking 
+                AND nosj = dca_nosj 
+                ) q 
+                GROUP BY fmkcab, fmndoc, tglpb, nopick, nosj 
+            ) t 
+            WHERE total > 0 
+            ORDER BY nopick 
+            ) dtl ";
+            $data = $this->DB_PGSQL->select($sql);
 
 
          if ($param == "4" && !$report_zona) {
             //  $dgv->dataSource = $dt2;
             if ($report_zona) {
-                $dt =  $this->DB_PGSQL->select($query_dt);
+                $dt =  $data;
             } else {
                 $dt = $this->initial_detail($dtTrans,$zona,$report_zona, $flag_detail,$param ,$mode_omi );
             }
@@ -368,23 +353,35 @@ class MonitoringController extends Controller
                 break;
         }
         
-        $data = [
-            "siapDspb" => $siapDspb,
-            "jmlhPb" => $jmlhPb,
-            "sendJalur" => $sendJalur,
-            "picking" => $picking,
-            "scanning" => $scanning,
-            "selesaiLoading" => $selesaiLoading,
-            "selesaiDspb" => $selesaiDspb,
-            "lblMonitoring"=> $lblMonitoring,
-            "list_data" => $dt
-        ];
-        return $data;
+
+            // Return or process the data as needed
+            return [
+                'lblPB' => $lblPB,
+                'lblSendJalur' => $lblSendJalur,
+                'lblPicking' => $lblPicking,
+                'lblScanning' => $lblScanning,
+                'lblloading' => $lblloading,
+                'lblDspb' => $lblDspb,
+                'data' => $data,
 
 
-
+                "siapDspb" => $siapDspb,
+                "jmlhPb" => $jmlhPb,
+                "sendJalur" => $sendJalur,
+                "picking" => $picking,
+                "scanning" => $scanning,
+                "selesaiLoading" => $selesaiLoading,
+                "selesaiDspb" => $selesaiDspb,
+                "lblMonitoring"=> $lblMonitoring,
+                "list_data" => $dt 
+            ];  
+        } catch (\Exception $e) {
+            // Handle the exception
+            return (object)['errors' =>true,'messages'=> $e->getMessage()];
+        }
     }
 
+    
     public function initial_detail($tanggal = null,$zona = null,$report_zona = null, $flag_detail = null,$param = null,$mode_omi = null){
         $tanggal = isset($tanggal)?$tanggal:date('Y-m-d');
         $tmpDt =  $this->DB_PGSQL

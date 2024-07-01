@@ -9,7 +9,38 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 
 trait mdPublic
-{    
+{   
+    public function simpanDSPB($namafile = null, $kodetoko = null, $nopb = null, $nopick = null, $nosj = null, $nodspb = null, $jenispb= null)
+    {
+        $ret = false;
+        $jenispb = strtoupper($jenispb);
+        $KodeIGR =  session()->get('KODECABANG'); 
+        $UserMODUL = session()->get('userid'); 
+
+        $sql = "KODEIGR = '$KodeIGR' AND NAMAFILE = '$namafile' AND KODETOKO = '$kodetoko' AND NOPB = '$nopb' AND NOPICK = '$nopick' AND NOSJ = '$nosj' AND NODSPB = '$nodspb' AND JENISPB = '$jenispb'";
+        $bindings = [$KodeIGR, $namafile, $kodetoko, $nopb, $nopick, $nosj, $nodspb, $jenispb];
+
+        DB::beginTransaction();
+        try {
+            $recordExists = DB::table('TBHISTORY_DSPB')->whereRaw($sql)->exists();
+
+            if (!$recordExists) {
+                $query = "INSERT INTO TBHISTORY_DSPB (KODEIGR, NAMAFILE, KODETOKO, NOPB, NOPICK, NOSJ, NODSPB, JENISPB, CREATEBY, CREATEDT)
+                        VALUES ('$KodeIGR', '$namafile', '$kodetoko', '$nopb', '$nopick', '$nosj', '$nodspb', '$jenispb', '$UserMODUL', current_date)";
+
+                DB::insert($query);
+            }
+
+            $ret = true;
+            DB::commit();
+        } catch (\Exception $ex) {
+            DB::rollBack();
+            $ret = false;
+        }
+
+        return $ret;
+    }
+
     public function checkPPN($flagbkp)
     {
         $query = "

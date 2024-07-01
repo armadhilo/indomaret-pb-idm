@@ -256,10 +256,10 @@ download_txt=()=>{
       textData += "=====================================================================================================\n";
       textData += strCenter("LISTING ITEM SO", 101) + "\n";
       textData += "=====================================================================================================\n";
-      textData += strPad(`ID         : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`CAB        : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`STT        : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`NO.TR      : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
+      textData += strPad(`ID               : ${id?id:'-'}`, 101) + "\n";
+      textData += strPad(`CAB              : ${cab?cab:'-'}`, 101) + "\n";
+      textData += strPad(`STT              : ${stt?stt:'-'}`, 101) + "\n";
+      textData += strPad(`NO.TR            : ${no_tr?no_tr:'-'}`, 101) + "\n";
       textData += "=====================================================================================================\n";
       textData += ' NO. NAMA BARANG                            PLU       QTY    H.SATUAN    DISC.            TOTAL ' + "\n";
       textData += "=====================================================================================================\n";
@@ -306,3 +306,4 @@ format_currency=(data)=>{
    return n.toLocaleString();
 
 }
+

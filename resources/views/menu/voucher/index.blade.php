@@ -94,12 +94,9 @@
                                                     <input type="date" class="form-control form-control-sm" placeholder="Masukan Tanggal Aktif" onchange="changeDate(this)">
                                                 </div>
 
-                                                <!-- <div class="form-group form-check">
-                                                    <input type="checkbox" class="form-check-input" id="report_zona">
-                                                    <label class="form-check-label" for="report_zona">Report Zona</label>
-                                                </div> -->
                                                 <div class="form-group form-check">
-                                                    <input type="checkbox" class="form-check-input" id="report_qr" onchange="print_laporan(this)">
+                                                    <input type="checkbox" class="form-check-input" id="report_qr" >
+                                                    <!-- <input type="checkbox" class="form-check-input" id="report_qr" onchange="print_laporan(this)"> -->
                                                     <label class="form-check-label" for="report_qr">Report QR Code</label>
                                                 </div>
                                                 
@@ -152,7 +149,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" style="font-size:20px;" id="picking_label"></h5>
-                    <i class="fa fa-check-circle checked" style="font-size:48px;color:green text-align:center;"></i>
+                    <i class="fa fa-check-circle checked close" style="font-size:48px;color:#90EE90 text-align:right;"></i>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">×</span>
                     </button>
@@ -164,16 +161,24 @@
                                 <!-- ============================ -->
                                 <!--             FORM             -->
                                 <!-- ============================ -->
-                                <form action="{{url('/api/insert/bytanggal')}}" method="post" class="form_data">
+                                <form action="{{url('/api/voucher/picking/save')}}" method="post" class="form_data">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label for="plu">Kode PLU</label>
-                                                <input type="text" class="form-control form-control-sm" placeholder=""id="plu_picking" name="plu_picking"">
+                                                <select class="form-control form-control-sm toko" name="plu_picking" id="plu_picking">
+                                                    <option value="" disabled selected>PLU</option>
+                                                    <!-- <option value="all">All</option> -->
+                                                    <!-- <div id="plu_picking_select">
+
+                                                    </div> -->
+                                                
+                                                </select>
+                                                <!-- <input type="text" class="form-control form-control-sm" placeholder=""id="plu_picking" name="plu_picking""> -->
                                             </div>
                                             <div class="form-group">
                                                 <label for="deskripsi_picking">Deskripsi</label>
-                                                <p id="deskripsi_picking"><u>This line of text will render as underlined</u></p>
+                                                <p><u id="deskripsi_picking"> - </u></p>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -198,13 +203,14 @@
                                             <div class="form-group">
                                                 <label for="datepicker">Jumlah No Seri</label>
                                                 <input type="text" class="form-control form-control-sm"  value="0" name="jmlh_seri" id="jmlh_seri" readonly>
+                                                <input type="hidden" name="noseri" id="nomor_seri">
+                                                <input type="hidden" name="text" class="text" value="">
+                                                   <!-- <input type="hidden" class="form-control multipleForm" name="multipleForm" value="1"> -->
+                                                <input type="hidden" name="runNext" id="runNext" value="" onchange="loadPicking()">
                                             </div>
                                         </div>
                                     </div>
-                                </form>
-                                <!-- ============================ -->
-                                <!--            END FORM            -->
-                                <!-- ============================ -->
+                                
                                 <!-- ============================ -->
                                 <!--             Table            -->
                                 <!-- ============================ -->
@@ -229,16 +235,20 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary">Save changes</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
+                </form>
+                <!-- ============================ -->
+                <!--            END FORM            -->
+                <!-- ============================ -->
 
             </div>
         </div>
     </div>
     <script src="{{asset('js/voucher/app-voucher.js')}}"></script>
     <script src="{{asset('js/app-submitForm.js')}}"></script>
-    <script src="{{asset('js/app-submitForm2.js')}}"></script>
+    <script src="{{asset('js/form/app-submitForm2.js')}}"></script>
     <script src="{{asset('js/app-hapus.js')}}"></script>
 @endsection
 

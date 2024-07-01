@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use DB;
 use ZipArchive;
+use Milon\Barcode\DNS2D;
 
 class QRController extends Controller
 { 
@@ -29,210 +30,243 @@ class QRController extends Controller
         // }
     }
 
-    public function create_qr_code($filename=null, $kodetoko=null, $nodspb=null, $tgldspb=null, $jmlrecord=null, $sourceDetail=[], $reprint = false, $rpt = null) {
-        $pathSave = 'QRCODE_CSV/'; // csv file in storage folder
+    public function load_qr($kodetoko,$nopb,$tglpb){
+        $filename = date('Ymd');
+        $nodspb = $this->DB_PGSQL->select("SELECT NEXTVAL('SEQ_NPB')");
+        $nodspb = $nodspb[0]->nextval;
+        $query = "
+            SELECT 
+                '*' AS recid, 
+                NULL AS rtype, 
+                '$nodspb' AS docno, 
+                ROW_NUMBER() OVER() AS seqno, 
+                pbo_nopb AS picno, 
+                NULL AS picnot, 
+                TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') AS pictgl, 
+                pbo_pluomi AS prdcd, 
+                (SELECT prd_deskripsipendek 
+                FROM tbmaster_prodmast 
+                WHERE prd_prdcd = pbo_pluigr 
+                LIMIT 1) AS nama, 
+                pbo_kodedivisi AS div, 
+                pbo_qtyorder AS qty, 
+                pbo_qtyrealisasi AS sj_qty, 
+                pbo_hrgsatuan AS price, 
+                pbo_ttlnilai AS gross, 
+                pbo_ttlppn AS ppnrp, 
+                pbo_hrgsatuan AS hpp, 
+                pbo_kodeomi AS toko, 
+                'V-' AS keter, 
+                TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') AS tanggal1, 
+                TO_CHAR(pbo_tglpb, 'dd-MM-YYYY') AS tanggal2, 
+                pbo_nopb AS docno2, 
+                NULL AS lt, 
+                NULL AS rak, 
+                NULL AS bar, 
+                (SELECT 'GI' || prs_kodeigr 
+                FROM tbmaster_perusahaan 
+                LIMIT 1) AS kirim, 
+                LPAD(pbo_NOKOLI, 12, '0') AS dus_no, 
+                NULL AS TGLEXP, 
+                COALESCE(prd_ppn, 0) AS ppn_rate, 
+                COALESCE(prd_flagbkp1, 'N') AS BKP, 
+                COALESCE(prd_flagbkp2, 'N') AS SUB_BKP 
+            FROM 
+                tbmaster_pbomi 
+            JOIN 
+                TBMASTER_PRODMAST 
+            ON 
+                pbo_pluigr = prd_prdcd 
+            -- WHERE -- command for debug
+                -- PBO_TGLPB::date = '$tglpb'::date -- command for debug
+                -- AND pbo_nopb = '$nopb' -- command for debug
+                -- AND pbo_kodeomi = '$kodetoko' -- command for debug
+                -- AND pbo_qtyrealisasi > 0 -- command for debug
+                -- AND pbo_recordid = '4' 
+                -- AND pbo_nokoli LIKE '04%'
+                limit 10 -- debug
+        ";
+
+    $sourceDetail = $this->DB_PGSQL->select($query);
+    $LASTCHAR_HEADER = "-";
+    $LASTCHAR_DETAIL = "*";
+    $fileHeader = "HEADER_" . $filename . ".CSV";
+    $fileDetail = "DETAIL_" . $filename . ".CSV";
+    $encryptedHeader = '';
+    $encryptedDetail = '';
+    $partDetail = null; 
+    $dtQr = [];
+    $pathqrcsv = 'QRCODE_CSV/';
+    $columnDetail = [
+        'DOCNO', 'PICNO', 'PICTGL', 'PRDCD', 'SJ_QTY', 'PRICE', 'PPNRP', 
+        'HPP', 'KETER', 'TANGGAL1', 'TANGGAL2', 'DOCNO2', 'DUS_NO', 'PPN_RATE'
+    ];
+
+    //DETAIL
+    $dataDetail = $this->create_dataDetail($sourceDetail);
+    $csvDetail = $this->make_csv($dataDetail,$fileDetail,$pathqrcsv,$columnDetail);
+    $encryptedDetail = $this->create_zipbyte($csvDetail, 'Detail');
+    $partDetail = $this->divideText($encryptedDetail);
+    //HEADER
+    $dataHeader = $this->createDtHeader($dataDetail,$kodetoko,$nodspb,count($dataDetail),$this->get_lower_bound($encryptedDetail));
+    $csvHeader = $this->make_csv($dataHeader['data'],$fileHeader,$pathqrcsv,$dataHeader['columns']) ;
+    $encryptedHeader = $this->create_zipbyte($csvHeader, 'Header');
+    
+    
+    if ($encryptedHeader === 'ERR') {
+        return (object)['errors'=>true,'messages' => 'Failed to encrypt header'];
+    }
+    
+    if (file_exists($csvHeader)) {
+        unlink($csvHeader); 
+    }
+
+    //HEADER
+    $qrRow = [
+        // 'QRbyte_L' => $this->convertQRCode($encryptedHeader . $LASTCHAR_HEADER),
+        'QRbyte_L' => $encryptedHeader . $LASTCHAR_HEADER,
+        'Keterangan_L' => 'HEADER',
+    ];
+    
+    //DETAIL
+    for ($i = 0; $i < count($partDetail); $i++) {
+        $urutan = $i + 1;
+        $strUrutan = sprintf('%02d', $urutan);
+        $tmpQRDetail = sprintf('%s%s%s%s', $strUrutan, $nodspb, $partDetail[$i], $LASTCHAR_DETAIL);
+        if ($i % 2 == 0) {
+            // $qrRow['QRbyte_R'] = $this->convertQRCode($tmpQRDetail);
+            $qrRow['QRbyte_R'] = $tmpQRDetail;
+            $qrRow['Keterangan_R'] = $strUrutan . ' / ' . sprintf('%02d', $this->get_lower_bound($encryptedDetail));
+            $dtQr[] =(object)$qrRow;
+        } else {
+            $qrRow = [
+                // 'QRbyte_L' => $this->convertQRCode($tmpQRDetail),
+                'QRbyte_L' => $tmpQRDetail,
+                'Keterangan_L' => $strUrutan . ' / ' . sprintf('%02d', $this->get_lower_bound($encryptedDetail)),
+            ];
+
+            if ($i == count($partDetail) - 1) {
+                $qrRow['QRbyte_R'] = $this->convertQRCode('');
+                $dtQr[] =(object)$qrRow;
+            }
+        }
+    }
+    return $dtQr;
+
+    }
+    public function createDtHeader($dt,$toko, $nosj, $jmlrecord, $jmlpart)
+    {
+        $dtHeader = [];
+
+        // Define the columns
+        $columns = ["TOKO", "KIRIM", "GEMBOK", "NOSJ", "NORANG", "JMLPART", "JMLRECORD"];
         
-        if (!File::isDirectory(storage_path($pathSave))) {
-            File::makeDirectory(storage_path($pathSave), 0755, true); 
-        }
+        // Create a new row
+        $row = [
+            "TOKO" => (string)$toko,
+            "KIRIM" => "GI" .session()->get('KODECABANG'),
+            "GEMBOK" => "",
+            "NOSJ" => $nosj,
+            "NORANG" => "",
+            "JMLPART" => $jmlpart,
+            "JMLRECORD" => $jmlrecord
+        ];
 
-        $dtHeader = collect();
-        $dtDetail = collect();
+        // Add the row to the data array
+        $dtHeader[] = $row;
 
-        $fileHeader = "HEADER_" . $filename . ".CSV";
-        $fileDetail = "DETAIL_" . $filename . ".CSV";
-        $encryptedHeader = '';
-        $encryptedDetail = '';
-        $partDetail = [];
-        
+        return ['columns' => $columns, 'data' => $dtHeader];
+    }
 
-        // DETAIL
-        // $path_detail_csv = $this->make_csv($sourceDetail,$fileDetail,$pathSave,["DOCNO", "PICNO", "PICTGL", "PRDCD", "SJ_QTY", "PRICE", "PPNRP", "HPP", "KETER", "TANGGAL1", "TANGGAL2", "DOCNO2", "DUS_NO", "PPN_RATE"]);
-        $zip = new ZipArchive;
-        $filename_zip_detail='Testing zip';
-        // if ($zip->open(storage_path($pathSave.$filename_zip_detail), ZipArchive::CREATE) === TRUE) {
-        //     $filesToZip = [
-        //         storage_path($pathSave.$fileDetail),
-        //     ];
-
-        //     foreach ($filesToZip as $file) {
-        //         $zip->addFile($file, basename($file));
-        //     }
-
-        // }
-        // for ($i = 0; $i < $zip->numFiles; $i++) {
-        //     // Get the name of the file in the zip archive
-        //     $filename = $zip->getNameIndex($i);
-    
-        //     // Read the contents of the file
-        //     $fileContents[$filename] = $zip->getFromIndex($i);
-        // }
-    
-        // // Close the zip file
-        // $zip->close();
-    
-        $fileContents = $this->encrypt_zip(storage_path($pathSave.'2009021701_GSM.CSV'));
-        dd($fileContents);
-        $encryptedDetail = $this->createZipByte(Storage::path($pathSave . "/" . $fileDetail), "Detail");
-        if ($encryptedDetail == "ERR") {
-            return;
-        }
-        $partDetail = $this->devideText($encryptedDetail);
-        if (!File::isDirectory(storage_path($pathSave.$fileDetail))) {   
-            unlink(storage_path($pathSave.$fileDetail));
-        }
-
-        // HEADER
-
-        $path_header_csv = $this->make_csv([['TOKO' => $kodetoko,'KIRIM' => 'GI' . session('KODECABANG'),'GEMBOK' => '','NOSJ' => $nodspb,'NORANG' => '','JMLPART' => $this->getLowerBound($encryptedDetail),'JMLRECORD' => $jmlrecord ]],$fileHeader,$pathSave,['KODETOKO','KIRIM','GEMBOK','NOSJ','NORANG','JMLPART','JMLRECORD']);
-        $encryptedHeader = $this->createZipByte(Storage::path($pathSave . "/" . $fileHeader), "Header");
-        if ($encryptedHeader == "ERR") {
-            return;
-        }
-        if (!File::isDirectory(storage_path($pathSave.$fileHeader))) {   
-            unlink(storage_path($pathSave.$fileHeader));
-        }
-
-        // -- QR_CODE
-        $dtQr = new DataSetNPB\QRCodesDataTable();
-        $qrRow = $dtQr->newQRCodesRow();
-
-        // HEADER
-        $qrRow["QRbyte_L"] = $this->convertQRCode($encryptedHeader . LASTCHAR_HEADER);
-        $qrRow["Keterangan_L"] = "HEADER";
-
-        // DETAIL
-        foreach ($partDetail as $i => $part) {
-            $urutan = $i + 1;
-            $strUrutan = str_pad($urutan, 2, "0", STR_PAD_LEFT);
-            $tmpQRDetail = $strUrutan . $nodspb . $part . LASTCHAR_DETAIL;
-
-            if ($i % 2 == 0) {
-                $qrRow["QRbyte_R"] = $this->convertQRCode($tmpQRDetail);
-                $qrRow["Keterangan_R"] = $strUrutan . " / " . str_pad(count($partDetail), 2, "0", STR_PAD_LEFT);
-                $dtQr->addQRCodesRow($qrRow);
-            } else {
-                $qrRow = $dtQr->newQRCodesRow();
-                $qrRow["QRbyte_L"] = $this->convertQRCode($tmpQRDetail);
-                $qrRow["Keterangan_L"] = $strUrutan . " / " . str_pad(count($partDetail), 2, "0", STR_PAD_LEFT);
-
-                if ($i == count($partDetail) - 1) {
-                    $qrRow["QRbyte_R"] = $this->convertQRCode("");
-                    $dtQr->addQRCodesRow($qrRow);
+    public function create_dataDetail($sourceDetail){
+        $columnDetail = [
+            'DOCNO', 'PICNO', 'PICTGL', 'PRDCD', 'SJ_QTY', 'PRICE', 'PPNRP', 
+            'HPP', 'KETER', 'TANGGAL1', 'TANGGAL2', 'DOCNO2', 'DUS_NO', 'PPN_RATE'
+        ];
+        $dt = array_map(function($row) use ($columnDetail) {
+            $newRow = [];
+            foreach ($row as $key => $value) {
+                $upperKey = strtoupper($key);
+                if (in_array($upperKey, $columnDetail)) {
+                    $newRow[$upperKey] = $value;
                 }
             }
-        }
-
-        // $ds->QRCodes->clear();
-        // $ds->QRCodes->rows->clear();
-        // $ds->QRCodes->merge($dtQr);
-
-        $rptQR->setDataSource($ds);
-        $rptQR->refresh();
-        $rptQR->setParameterValue("nama_perusahaan", NamaIGR);
-        $rptQR->setParameterValue("kode_kodetoko", $kodetoko);
-        $rptQR->setParameterValue("no_npb", $nodspb);
-        $rptQR->setParameterValue("tgl_npb", $tgldspb);
-        $rptQR->setParameterValue("reprint", $reprint ? "REPRINT" : "");
-
-        if ($reprint) {
-            $rpt = $rptQR;
-            return;
-        }
-
-        $r = new Report();
-        $r->crv->reportSource = $rptQR;
-        $r->show();
-    } 
-
-    public static function convertQRCode($sTx) {
-        $cTex = $sTx;
-        $qrCode = new QrCode($cTex);
-        $qrCode->setErrorCorrectionLevel(new ErrorCorrectionLevel(ErrorCorrectionLevel::L));
-
-        // Set writer options
-        $writer = new PngWriter();
-        $result = $writer->write($qrCode);
-
-        // Save QR code to storage
-        $path = 'your_path_here'; // Set your save path here
-        $filename = 'qr_code_' . time() . '.png'; // You can define your filename logic
-        Storage::put($path . '/' . $filename, $result->getString());
-
-        // If you want to return the QR code as byte array, you can use the following
-        // return $result->getString();
-
-        // If you want to return the path of the saved QR code file
-        return $path . '/' . $filename;
+            return $newRow;
+        }, $sourceDetail);
+        return $dt;
     }
 
+    public function create_zipbyte($pathCSV, $jenis)
+    {
+        $passwordZip = $jenis; // Set your password
+        $encrypt = '';
 
-    public static function createDtHeader($dt, $kodetoko, $nosj, $jmlrecord, $jmlpart) {
-        $dt = collect();
+        try {
+            if (file_exists($pathCSV)) {
+                $zip = new ZipArchive();
+                $zipPath = sys_get_temp_dir() . '/temp.zip';
+                if ($zip->open($zipPath, ZipArchive::CREATE) === TRUE) {
+                    $zip->setPassword($passwordZip);
+                    $zip->addFile($pathCSV, basename($pathCSV));
+                    $zip->setEncryptionName(basename($pathCSV), ZipArchive::EM_AES_256);
+                    $zip->close();
     
-        $dt->push([
-            'kodetoko',
-            'KIRIM',
-            'GEMBOK',
-            'NOSJ',
-            'NORANG',
-            'JMLPART',
-            'JMLRECORD',
-        ]);
+                    $bytes = file_get_contents($zipPath);
+                    $encrypt = base64_encode($bytes);
+    
+                    unlink($zipPath); // Clean up the temporary file
+                } else {
+                    return 'ERR';
+                }
+                return $encrypt;
+            } else {
+                echo "File {$jenis} NPB QR Code Tidak Ditemukan";
+                return 'ERR';
+            }
+        } catch (\Exception $ex) {
+            echo "File {$jenis} NPB QR Gagal Encrypt Zip ".$ex->getMessage();
+            return 'ERR';
+        }
+
+        return $encrypt;
     }
 
-    public function createDtDetail($dt, $sourceDetail) {
-        // Clone the structure of sourceDetail DataTable
-        $dt = $sourceDetail->clone();
+    public function divideText($text) {
+        $MAX_CHARACTER = 3000; 
+        $newText = [];
+        $lowerBound = $this->get_lower_bound(strlen($text));
     
-        // List of columns to keep
-        $columnDetail = ['COLUMN1', 'COLUMN2']; // Replace 'COLUMN1', 'COLUMN2' with actual column names
-    
-        // Remove columns not in columnDetail
-        foreach ($dt->columns() as $column) {
-            $columnName = strtoupper($column);
-            if (!in_array($columnName, $columnDetail)) {
-                $dt->removeColumn($column);
+        for ($i = 0; $i < $lowerBound; $i++) {
+            $startingIndex = $i * $MAX_CHARACTER;
+            
+            if ($i == $lowerBound - 1) {
+                $newText[] = substr($text, $startingIndex);
+            } else {
+                $newText[] = substr($text, $startingIndex, $MAX_CHARACTER);
             }
         }
     
-        // Merge sourceDetail into dt, ignoring any missing schema actions
-        $dt->merge($sourceDetail, false, 'ignore');
-    }
-    
-
-    public static function createZipAndGetContentsAsString($files, $zipFileName) {
-        $zip = new ZipArchive();
-
-        // Path where the zip file will be temporarily stored
-        $zipPath = storage_path('app/temp/' . $zipFileName);
-
-        // Create a new zip file
-        if ($zip->open($zipPath, ZipArchive::CREATE) === true) {
-            foreach ($files as $file) {
-                // Add each file to the zip archive
-                $zip->addFile($file->getPathname(), $file->getBasename());
-            }
-            $zip->close();
-        } else {
-            return 'Unable to create zip file';
-        }
-
-        // Get the contents of the zip file as a string
-        $zipContents = file_get_contents($zipPath);
-
-        // Remove the temporary zip file
-        unlink($zipPath);
-
-        return $zipContents;
+        return $newText;
     }
 
-    public function getLowerBound($text) {
+    public function get_lower_bound($text)
+    {
+        $MAX_CHARACTER = 3000; 
         $dataTextLength = strlen($text);
-        $lowerBound = intval(ceil($dataTextLength * 1.0 / $MAX_CHARACTER));
+        $lowerBound = (int) ceil($dataTextLength * 1.0 / $MAX_CHARACTER);
         return $lowerBound;
+    }    
+    public static function convertQRCode($sTx) {
+        $d = new DNS2D();
+        $d->setStorPath(storage_path('framework/barcode/'));
+
+        // Generate QR code and get the base64-encoded PNG image
+        $base64QR = $d->getBarcodePNG($sTx, 'QRCODE', 4, 4);
+
+        // Convert the base64-encoded PNG image to a binary byte array
+        $qrCodeByteArray = base64_decode($base64QR);
+
+        return $qrCodeByteArray;
     }
-
-
    
 }

@@ -15,22 +15,25 @@
 @endsection
 
 @section('header_left')
+@php
+//dd($data);
+@endphp
 <style></style>
     <table>
         <tr style="text-align: left;">
             <td>TOKO IDM</td>
             <td>:</td>
-            <td> {{isset($data['kodetoko'])?$data['kodetoko']:'-'}}</td>
+            <td>{{$data->data->toko[0]->tko_kodeomi.'-'.$data->data->toko[0]->tko_namaomi}}</td>
         </tr>
         <tr style="text-align: left;">
             <td>NO PB / TGL PB</td>
             <td>:</td>
-            <td> {{isset($data['nopb'])?$data['nopb']:'-'}} / {{isset($data['tglpb'])?date('d-m-Y',strtotime($data['tglpb'])):'-'}}</td>
+            <td>{{$data->data->header[0]->nopb.' / '.date('d/m/Y',strtotime($data->data->header[0]->tglpb))}}</td>
         </tr>
         <tr style="text-align: left;">
             <td>NO CONTAINER</td>
             <td>:</td>
-            <td> {{isset($data['header']->nokoli)?$data['header']->nokoli:'-'}}</td>
+            <td>{{$data->data->header[0]->nodspb}}</td>
         </tr>
     </table>
 @endsection
@@ -39,7 +42,7 @@
         <tr style="text-align: left;">
             <td>NO REF</td>
             <td>:</td>
-            <td> {{isset($data['header']->nodspb)?$data['header']->nodspb:'-'}}</td>
+            <td> {{$data->data->header[0]->nokoli}}</td>
         </tr>
     </table>
 @endsection
@@ -59,7 +62,7 @@
                     </tr>
                 </thead>
                 <tbody style="border-bottom: 1px solid black;">
-                @foreach($data['noseri'] as $key =>$value)
+                @foreach($data->data->rinci_noseri as $key =>$value)
 
                     @php
                         $no++;
@@ -74,8 +77,10 @@
                             {{$value->desc2}}
                         </td>
                         <td>{{$value->qty}}</td>
-                        <td style="text-align: left;">
-                            @for($i=1; $i<=$value->qty; $i++)
+                        <td style="text-align: left; white-space:wrap;">
+                        
+                            {{$value->nopb}}
+                            <!-- @for($i=1; $i<=$value->qty; $i++)
                                 
                                 @if($i < 10)
                                     {{$seri1.$i}} 
@@ -92,7 +97,7 @@
                                 @if(!($i % 6))
                                     <br>
                                 @endif
-                            @endfor
+                            @endfor -->
                         </td>
                     </tr>
                 @endforeach

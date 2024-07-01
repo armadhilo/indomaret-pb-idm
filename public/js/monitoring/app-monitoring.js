@@ -167,9 +167,9 @@ download_txt=()=>{
       textData += "NO PB : 901064 / 23-03-2024\n\n";
       textData += "No PICK : 63437\n";
       textData += "No KOLI : 020063437001\n";
-      textData += "========================================\n";
-      textData += " NO. NAMA BARANG            PLU      QTY\n";
-      textData += "========================================\n";
+      textData += "=================================================================================================\n";
+      textData += "  NO. NAMA BARANG                            PLU       QTY    H.SATUAN    DISC.            TOTAL \n";
+      textData += "=================================================================================================`\n";
       textData += "   1 POP MIE AYAM 75G      0037141    24\n";
       textData += "   2 SOSRO TEH BTL TPK 1L  1141511    12\n";
       textData += "   3 SARIMI GOR.AYM KK125  1179331    24\n";

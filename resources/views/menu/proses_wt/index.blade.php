@@ -116,9 +116,9 @@
                                             @csrf
                                             <input type="file" name="file" id="file" onchange="submit_wt()">
                                         </form>
-                                        <button type="button" class="btn btn-md btn-primary"> Proses WT</button>
+                                        <button type="button" class="btn btn-md btn-primary" onclick="proses_wt()"> Proses WT</button>
                                         @else
-                                        <button type="button" class="btn btn-md btn-primary"> Proses SPH</button>
+                                        <button type="button" class="btn btn-md btn-primary"  onclick="proses_sph()"> Proses SPH</button>
                                         @endif
 
                                     </div>

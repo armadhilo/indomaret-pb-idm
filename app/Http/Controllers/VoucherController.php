@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\LibraryCSV;
+use App\Traits\LibraryZIP;
+use App\Traits\mdPublic;
 use Illuminate\Http\Request;
 use PDF;
 use DB;
@@ -9,6 +12,7 @@ use DB;
 class VoucherController extends Controller
 {
     public $DB_PGSQL;
+    use mdPublic,LibraryCSV,LibraryZIP;
     public function __construct()
     { 
         $this->DB_PGSQL = DB::connection('pgsql');
@@ -35,175 +39,221 @@ class VoucherController extends Controller
         ];
         return view("menu.voucher.index",compact('flag'));
     }
+    
+    public function create_table_log_npb(){
+
+        $tableName = 'log_npb';
+
+        $tableExists = DB::select("SELECT * FROM information_schema.tables WHERE UPPER(table_name) = UPPER('$tableName')");
+
+        if (empty($tableExists)) {
+            $createTableQuery = "
+                CREATE TABLE log_npb (
+                    npb_tgl_proses  DATE,
+                    npb_kodetoko    VARCHAR(5),
+                    npb_nopb        VARCHAR(20),
+                    npb_tglpb       DATE,
+                    npb_nodspb      VARCHAR(20),
+                    npb_file        VARCHAR(100),
+                    npb_jenis       VARCHAR(10),
+                    npb_url         VARCHAR(100),
+                    npb_response    TEXT,
+                    npb_jml_item    NUMERIC,
+                    npb_create_web  VARCHAR(12),
+                    npb_create_csv  VARCHAR(12),
+                    npb_kirim       VARCHAR(12),
+                    npb_confirm     VARCHAR(30),
+                    npb_tgl_retry   DATE,
+                    npb_jml_retry   NUMERIC,
+                    npb_create_by   VARCHAR(20),
+                    npb_create_dt   DATE,
+                    npb_modify_by   VARCHAR(20),
+                    npb_modify_dt   DATE
+                )
+            ";
+
+            DB::statement($createTableQuery);
+
+            return response()->json(['message' => 'Table created successfully!']);
+        } else {
+            // Uncomment and modify if you need to delete old records
+            // $deleteOldRecordsQuery = "DELETE FROM log_npb WHERE DATE_TRUNC('day', npb_create_dt) < DATE_TRUNC('day', NOW() - 40)";
+            // DB::statement($deleteOldRecordsQuery);
+
+            return response()->json(['message' => 'Table already exists!']);
+        }
+    }
 
     public function voucher_load(Request $request){
-        // $this->create_table_log_npb();
+        $this->create_table_log_npb();
 
         $tanggal = isset($request->tanggal)?$request->tanggal:null;
         $data = $this->initial($tanggal);
-
+        if (isset($data->errors)) {
+            return response()->json(['errors'=>true,'messages' => $data->messages],500);
+        }
 
         return response()->json(['errors'=>false,'messages'=>'berhasi','data'=>$data],200);
     }
     
-    public function initial($tanggal = null, $flag_detail = null, $mode_program = false){
-        $picking = $siapDspb = $selesaiDspb = $jmlhPb = 0;
-        
+     public function initial($tanggal = null, $flag_detail = null, $mode_program = false){
+     
+        $picking = 0;
+        $siapDspb = 0;
+        $selesaiDspb = 0;
+        $jmlhPb = 0;
 
-        if ($mode_program) {
-           $selesaiDspb_condition =  " TKO_KODESBU = 'O'";
-           $jmlhPb_condition =  " TKO_KODESBU = 'O'";
+        if ($tanggal) {
+            $dtTransValue = date('Y-m-d',strtotime($tanggal));
         } else {
-           $selesaiDspb_condition =  " TKO_KODESBU = 'I'";
-           $jmlhPb_condition =  " TKO_KODESBU = 'I'";
-           
+            $dtTransValue = date('Y-m-d');
         }
         
-        // ===========================
-        // Query to get total jumlah PB
-        // ===========================
-        $jmlhPb =  $this->DB_PGSQL
-                        ->table("tbtr_header_materai_voucher")
-                        ->join("tbmaster_tokoigr",function($join){
-                            $join->on("hmv_kodetoko","=","tko_kodeomi");
-                        })
-                        ->selectRaw(" COUNT(*) as count ");
-        if (($tanggal)) {
-            $jmlhPb = $jmlhPb
-                       ->whereRaw("hmv_tgltransaksi::date = '$tanggal'::date");     
+        $ModeProgram = session()->get('flagIGR')?'INDOMARET':'OMI';  // Replace with the actual mode program value
+
+        try {
+            // Query 1: Get total count
+            $sql = "
+            SELECT COUNT(*)
+            FROM (
+                SELECT 1
+                FROM TBTR_HEADER_MATERAI_VOUCHER 
+                JOIN tbmaster_tokoigr ON hmv_kodetoko = tko_kodeomi
+                 -- WHERE hmv_tgltransaksi::date = ' $dtTransValue'::date  -- command for debug 
+               
+            ";
+            if ($ModeProgram == 'OMI') {
+                $sql .= " 
+                         where TKO_KODESBU = 'O' limit 100 --debug
+                        ";
+                $sql .= " 
+                         -- AND TKO_KODESBU = 'O')  -- command for debug
+                        ) as query";
+            } else {
+                $sql .= " 
+                         where TKO_KODESBU = 'I' limit 100 --debug
+                        ";
+                $sql .= " 
+                         -- AND TKO_KODESBU = 'I'  -- command for debug
+                        ) as query";
+            }
+
+            $jmlhPb = $this->DB_PGSQL->select($sql)[0]->count;
+            
+
+            // Query 2: Get picking count
+            $sql = "
+                SELECT COUNT(1)
+                FROM (
+                    SELECT DISTINCT HMV_KODETOKO, HMV_NOPB, HMV_TGLPB, HMV_ITEMPB
+                    FROM TBTR_HEADER_MATERAI_VOUCHER 
+                    JOIN TBMASTER_PBOMI ON HMV_KODETOKO = PBO_KODEOMI 
+                    AND HMV_NOPB = PBO_NOPB 
+                    AND HMV_TGLPB = PBO_TGLPB 
+                    JOIN PLU_MATERAI_VOUCHER ON PMV_PLUIDM = PBO_PLUOMI
+                    WHERE PMV_PLUIGR IS NOT NULL 
+                    AND HMV_FLAG = '1' 
+                     -- AND hmv_tgltransaksi::date = ' $dtTransValue'::date -- command for debug
+                     limit 100 -- debug
+                ) a
+            ";
+
+            $picking = $this->DB_PGSQL->select($sql)[0]->count;
+
+            // Query 3: Get siapDspb count
+            $sql = "
+                SELECT COUNT(1)
+                FROM (
+                    SELECT DISTINCT HMV_KODETOKO, HMV_NOPB, HMV_TGLPB, HMV_ITEMPB
+                    FROM TBTR_HEADER_MATERAI_VOUCHER 
+                    JOIN TBMASTER_PBOMI ON HMV_KODETOKO = PBO_KODEOMI 
+                    AND HMV_NOPB = PBO_NOPB 
+                    AND HMV_TGLPB = PBO_TGLPB 
+                    JOIN PLU_MATERAI_VOUCHER ON PMV_PLUIDM = PBO_PLUOMI
+                    WHERE PMV_PLUIGR IS NOT NULL 
+                    AND HMV_FLAG = '4' 
+                    -- AND hmv_tgltransaksi::date = ' $dtTransValue'::date -- command for debug
+                     limit 100 -- debug
+                ) a
+            ";
+
+            $siapDspb = $this->DB_PGSQL->select($sql)[0]->count;
+
+            // Query 4: Get selesaiDspb count
+            $sql = "
+                -- select COUNT(1) from (
+                SELECT COUNT(1)
+                FROM TBTR_HEADER_MATERAI_VOUCHER 
+                JOIN tbmaster_tokoigr ON hmv_kodetoko = tko_kodeomi 
+                 -- WHERE hmv_tgltransaksi::date = ' $dtTransValue'::date -- command for debug
+                 -- AND HMV_FLAG = '5' -- command for debug
+                 where HMV_FLAG = '5' -- debug
+                
+            ";
+            if ($ModeProgram == 'OMI') {
+                $sql .= " AND TKO_KODESBU = 'O'";
+            } else {
+                $sql .= " AND TKO_KODESBU = 'I'";
+            }
+
+            $sql .=  "-- limit 100 -- debug";
+            $sql .=  "-- ) as query";
+
+            $selesaiDspb = $this->DB_PGSQL->select($sql)[0]->count;
+
+            // Update labels
+            $lblPB = $jmlhPb;
+            $lblPicking = $picking;
+            $lblDspb = $selesaiDspb;
+            $lblSDspb = $siapDspb;
+
+            // Query 5: Get detailed data
+            $sql = "
+                SELECT ROW_NUMBER() OVER() AS NO, a.*
+                FROM (
+                    SELECT DISTINCT 
+                        CASE 
+                            WHEN COALESCE(HMV_FLAG, '0') = '1' THEN 'Siap Picking' 
+                            WHEN COALESCE(HMV_FLAG, '0') = '4' THEN 'Siap DSPB' 
+                            ELSE 'Selesai DSPB' 
+                        END AS STAT, 
+                        HMV_KODETOKO, HMV_NOPB, HMV_TGLPB::date, HMV_ITEMPB
+                    FROM TBTR_HEADER_MATERAI_VOUCHER 
+                    JOIN TBMASTER_PBOMI ON HMV_KODETOKO = PBO_KODEOMI 
+                    AND HMV_NOPB = PBO_NOPB 
+                    AND HMV_TGLPB = PBO_TGLPB 
+                    JOIN PLU_MATERAI_VOUCHER ON PMV_PLUIDM = PBO_PLUOMI
+                    WHERE PMV_PLUIGR IS NOT NULL 
+                     -- AND hmv_tgltransaksi::date = ' $dtTransValue'::date -- command for debug
+                     limit 100 -- debug
+                ) a
+            ";
+
+            $dt = $this->DB_PGSQL->select($sql);
+
+
+          
+            $lblMonitoring = count($dt) . " PB Terupload";
+
+            $data = [
+                        "pb_total" => $jmlhPb,
+                        "siap_picking" => $picking,
+                        "siap_dspb" => $siapDspb,
+                        "selesai_dspb" => $selesaiDspb,
+                        "list_data"=> $dt,
+                        "label" =>$lblMonitoring,
+                        "count" =>count($dt)
+                        ];
+
+            return $data;
+
+        } catch (\Exception $e) {
+            dd($e);
+            return ['errors'=>true,'messages' => 'Gagal!'.$e->getMessage()];
         }
-        $jmlhPb = $jmlhPb
-                  ->whereRaw($jmlhPb_condition)
-                  ->get();
-        $jmlhPb = $jmlhPb[0]->count;
-                   
-        // ===========================
-        // Query to get total jumlah picking
-        // ===========================
-        $query_picking =  $this->DB_PGSQL
-                        ->table("tbtr_header_materai_voucher")
-                        ->join("tbmaster_pbomi",function($join){
-                            $join->on("hmv_kodetoko" ,"=" ,"pbo_kodeomi") 
-                                ->on("hmv_nopb" ,"=" ,"pbo_nopb") 
-                                ->on("hmv_tglpb" ,"=" ,"pbo_tglpb");
-                        })
-                        ->join("plu_materai_voucher",function($join){
-                            $join->on("pmv_pluidm", "=" ,"pbo_pluomi");
-                        })
-                        ->selectRaw(" HMV_KODETOKO KODETOKO, HMV_NOPB NOPB, HMV_TGLPB TGLPB, HMV_ITEMPB ITEMPB ")
-                        ->distinct()
-                        ->whereRaw("PMV_PLUIGR IS NOT NULL ")
-                        ->whereRaw("HMV_FLAG = '1' ");
-        if (($tanggal)) {
-            $query_picking = $query_picking
-                        ->whereRaw("hmv_tgltransaksi::date = '$tanggal'::date");     
-        }
-        $query_picking = $query_picking->toSql();
-        $picking =  $this->DB_PGSQL
-                        ->table($this->DB_PGSQL->raw("($query_picking) as query"))
-                        ->selectRaw(" COUNT(*) as count ")
-                        ->get();
-      
-        $picking = $picking[0]->count;
 
-
-        // ===========================
-        // Query to get total jumlah siapDspb
-        // ===========================
-        $query_siapDspb =  $this->DB_PGSQL
-                        ->table("tbtr_header_materai_voucher")
-                        ->join("tbmaster_pbomi",function($join){
-                            $join->on("hmv_kodetoko" ,"=" ,"pbo_kodeomi") 
-                                ->on("hmv_nopb" ,"=" ,"pbo_nopb") 
-                                ->on("hmv_tglpb" ,"=" ,"pbo_tglpb");
-                        })
-                        ->join("plu_materai_voucher",function($join){
-                            $join->on("pmv_pluidm", "=" ,"pbo_pluomi");
-                        })
-                        ->selectRaw(" HMV_KODETOKO KODETOKO, HMV_NOPB NOPB, HMV_TGLPB TGLPB, HMV_ITEMPB ITEMPB ")
-                        ->distinct()
-                        ->whereRaw("PMV_PLUIGR IS NOT NULL ")
-                        ->whereRaw("HMV_FLAG = '4' ");
-        if (($tanggal)) {
-            $query_siapDspb = $query_siapDspb
-                        ->whereRaw("hmv_tgltransaksi::date = '$tanggal'::date");     
-        }
-        $query_siapDspb = $query_siapDspb->toSql();
-        $siapDspb =  $this->DB_PGSQL
-                        ->table($this->DB_PGSQL->raw("($query_siapDspb) as query"))
-                        ->selectRaw(" COUNT(*) as count ")
-                        ->get();
-      
-        $siapDspb = $siapDspb[0]->count;
-
-         // ===========================
-        // Query to get total selesaiDspb
-        // ===========================
-        $selesaiDspb =  $this->DB_PGSQL
-                        ->table("tbtr_header_materai_voucher")
-                        ->join("tbmaster_tokoigr",function($join){
-                            $join->on("hmv_kodetoko","=","tko_kodeomi");
-                        })
-                        ->selectRaw(" COUNT(*) as count ")
-                        ->whereRaw("HMV_FLAG = '5'");
-        if ($tanggal) {
-            $selesaiDspb = $selesaiDspb
-                       ->whereRaw("hmv_tgltransaksi::date = '$tanggal'::date");     
-        }
-        $selesaiDspb = $selesaiDspb
-                  ->whereRaw($selesaiDspb_condition)
-                  ->get();
-        $selesaiDspb = $selesaiDspb[0]->count;
-
-                           
-        // Set labels
-        $lblPB = $jmlhPb;
-        $lblPicking = $picking;
-        $lblDspb = $selesaiDspb;
-        $lblSDspb = $siapDspb;
-
-       
-        $query_dt = $this->DB_PGSQL
-                         ->table("tbtr_header_materai_voucher")
-                         ->join("tbmaster_pbomi",function($join){
-                             $join->on("hmv_kodetoko" ,"=" ,"pbo_kodeomi") 
-                                 ->on("hmv_nopb" ,"=" ,"pbo_nopb") 
-                                 ->on("hmv_tglpb" ,"=" ,"pbo_tglpb");
-                         })
-                         ->join("plu_materai_voucher",function($join){
-                             $join->on("pmv_pluidm", "=" ,"pbo_pluomi");
-                         })
-                         ->selectRaw("
-                         CASE WHEN coalesce(HMV_FLAG,'0') = '1' THEN 'Siap Picking' ELSE CASE WHEN coalesce(HMV_FLAG,'0') = '4' THEN 'Siap DSPB' ELSE 'Selesai DSPB' END END STAT,
-                         HMV_KODETOKO KODETOKO, HMV_NOPB NOPB, HMV_TGLPB::date TGLPB, HMV_ITEMPB ITEMPB  
-                         ")
-                         ->distinct()
-                         ->whereRaw("PMV_PLUIGR IS NOT NULL ");
-        if ($tanggal) {
-            $query_dt = $query_dt
-                        ->whereRaw("hmv_tgltransaksi::date = '$tanggal'::date");     
-        }
-        $query_dt = $query_dt->toSql();
-
-        $dt = $this->DB_PGSQL
-                   ->table($this->DB_PGSQL->raw("($query_dt) a"))
-                   ->selectRaw("ROW_NUMBER() OVER() NO, a.*")
-                   ->get();
-        
-        $lblMonitoring =" PB Terupload";
-        $data = [
-                   "pb_total" => $jmlhPb,
-                   "siap_picking" => $picking,
-                   "siap_dspb" => $siapDspb,
-                   "selesai_dspb" => $selesaiDspb,
-                   "list_data"=> $dt,
-                   "label" =>$lblMonitoring,
-                   "count" =>count($dt)
-                   ];
-
-        return $data;
-
-    }
+          
+     }
 
     public function dspb_vm($kodetoko = null, $tglpb = null, $nopb= null){
         
@@ -215,6 +265,9 @@ class VoucherController extends Controller
             $tglServer = date('Y-m-d');
             $noDspb = $thnPb . str_pad($noDspb, 5, "0", STR_PAD_LEFT);
             $kodeDCIDM = "";
+            $listPath = [];
+            $pathSaveZip ="zip_voucher/";
+            $storage_path = "csv_voucher/";
             
             $dt =  $this->DB_PGSQL
                         ->table("master_supply_idm")
@@ -266,41 +319,24 @@ class VoucherController extends Controller
                             COALESCE(prd_flagbkp2, 'N') SUB_BKP
                         
                         ")
-                        ->whereRaw(" PBO_TGLPB::timestamp = '$tglpb'::timestamp ")
-                        ->whereRaw(" pbo_nopb = '$nopb'")
-                        ->whereRaw(" pbo_kodeomi = '$kodetoko'")
-                        ->whereRaw(" pbo_qtyrealisasi > 0")
-                        ->whereRaw(" pbo_recordid = '4'")
-                        ->whereRaw(" pbo_nokoli like '04%'")
+                        // ->whereRaw(" PBO_TGLPB::date = '$tglpb'::date ")
+                        // ->whereRaw(" pbo_nopb = '$nopb'")
+                        // ->whereRaw(" pbo_kodeomi = '$kodetoko'")
+                        // ->whereRaw(" pbo_qtyrealisasi > 0")
+                        // ->whereRaw(" pbo_recordid = '4'")
+                        // ->whereRaw(" pbo_nokoli like '04%'")
+                        ->limit(1) // debug
                         ->get();
                        
             if (count($dtD)) {
-                $update_db= $this->update_db($noDspb, $kodetoko,$nopb,$tglpb);
-                $nmNpb = "NPV" . $dtD[0]->kirim . $dtD[0]->toko . $tglServer;
+                // $update_db= $this->update_db($noDspb, $kodetoko,$nopb,$tglpb); // command for debug
+                $nmNpb = "NPV" . $dtD[0]->kirim . $dtD[0]->toko . $tglServer.".csv";
+                $header =["recid","rtype","docno","seqno","picno","picnot","pictgl","prdcd","nama","div","qty","sj_qty","price","gross","ppnrp","hpp","toko","keter","tanggal1","tanggal2","docno2","lt","rak","bar","kirim","dus_no","ppn_rate","bkp","sub_bkp"];
+                $listPath[] = $this->make_csv(json_decode(json_encode($dtD),true),$nmNpb,$storage_path,$header);
 
-                // make csv
-
-                // if (file_exists($_txtPath . DIRECTORY_SEPARATOR . $nmNpb . ".ZIP")) {
-                //     MessageDialog::show(EnumMessageType::Information, EnumCommonButtonMessage::Ok, "Tunggu 1 Menit agar NPV tidak mempunyai Nama yang sama!", "INDOGROSIR");
-                //     $lblMonitoring->setText("Waiting 50 s!");
-                //     Application::doEvents();
-                //     sleep(50);
-
-                //     if ($cn->state == ConnectionState::Closed) {
-                //         $cn->open();
-                //     }
-                //     $tglServer = date('Y-m-d');
-                // }
                 $lblMonitoring ="Write NPV!";
                 $jamCreateWeb = date("H:i:s");
                 $jamCreateCSV = date("H:i:s");
-
-                 // buat csv
-
-                 $nmNpb = "NPV" . $dtD[0]->kirim . $dtD[0]->toko . $tglServer;
-                //  DSPB::writeCSV("NPV" . $dtD[0]->kirim . $dtD[0]->toko . $_tglServer->format('YmdHis'), $dtD, $_txtPath, false);
-                 
-                 // end buat csv
 
                  $dtH = $this->DB_PGSQL
                                 ->table("tbmaster_pbomi as a")
@@ -309,23 +345,29 @@ class VoucherController extends Controller
                                     TO_CHAR(CURRENT_DATE, 'dd-MM-YYYY') doc_date,
                                     pbo_kodeomi toko,
                                     (SELECT 'GI' || prs_kodeigr FROM tbmaster_perusahaan LIMIT 1) gudang, 
-                                    COUNT(DISTINCT pbo_pluomi) item, SUM(pbo_qtyorder) qty, 
-                                    SUM(pbo_ttlnilai) gross, NULL koli, NULL kubikasi 
+                                    COUNT(DISTINCT pbo_pluomi) item, 
+                                    SUM(pbo_qtyorder) qty, 
+                                    SUM(pbo_ttlnilai) gross, 
+                                    NULL koli, 
+                                    NULL kubikasi 
                                 ")
-                                ->whereRaw("A.PBO_TGLPB = TO_DATE(?, 'dd/MM/YYYY')  ")
-                                ->whereRaw("pbo_nopb = '$nopb'")
-                                ->whereRaw("pbo_kodeomi = '$kodetoko'")
-                                ->whereRaw("pbo_nokoli like '04%' ")
-                                ->whereRaw("PBO_QTYREALISASI > 0 ")
+                                // ->whereRaw("A.PBO_TGLPB::date = '$tglpb'::date  ")
+                                // ->whereRaw("pbo_nopb = '$nopb'")
+                                // ->whereRaw("pbo_kodeomi = '$kodetoko'")
+                                // ->whereRaw("pbo_nokoli like '04%' ")
+                                // ->whereRaw("PBO_QTYREALISASI > 0 ")
+                                ->limit(1) // debug
                                 ->groupBy("pbo_tglpb","pbo_kodeomi")
                                 ->get();
                 if (count($dtH) > 0) {
                     // buat csv
-                    $nmRpb = "XPV" . $dtH[0]->gudang . $dtH[0]->toko . $_tglServer->format('YmdHis');
-                    // DSPB::writeCSV("XPV" . $dtH[0]->gudang . $dtH[0]->toko . $_tglServer->format('YmdHis'), $dtH, $_txtPath, false);
-                    // end buat csv
+                    $nmRpb = "XPV" . $dtH[0]->gudang . $dtH[0]->toko . date('Ymdhis').".csv";
+                    $header =["docno","doc_date","toko","gudang", "item", "qty", "gross", "koli", "kubikasi" ];
+                    $listPath[] = $this->make_csv(json_decode(json_encode($dtH),true),$nmRpb,$storage_path,$header);
                 }
-                // buat zip ??
+                // buat zip 
+                $pathZip = $this->make_zip($nmNpb.'.zip', null, $listPath, $pathSaveZip);
+                dd($pathZip);
                 // Ionic.Zip
                 //   $listFile = [];
                 //   $listFile[] = $_txtPath . DIRECTORY_SEPARATOR . $nmNpb . ".CSV";
@@ -335,7 +377,7 @@ class VoucherController extends Controller
 
 
                 // SIMPAN NAMA NPB
-                $this->simpanDSPB($nmNpb . ".ZIP", $kodetoko, $nopb, 0, 0, $noDspb, "V- PBVOUCHER");
+                // $this->simpanDSPB($nmNpb . ".ZIP", $kodetoko, $nopb, 0, 0, $noDspb, "V- PBVOUCHER"); // command for debug
 
                 // Caesar_Encrypt_AllNumeric(noDspb & "9999", _tglServer)
                 $npbAspera = $this->DB_PGSQL
@@ -362,80 +404,51 @@ class VoucherController extends Controller
                   if (!is_null($npbIP)) {
 
                     $okNPB = true;
-                    $okNPB = $this->insert_to_npb($_tglServer.$npbGudang, $nmNpb, $dtH, $dtD);
+                    // $okNPB = $this->insert_to_npb($_tglServer.$npbGudang, $nmNpb, $dtH, $dtD); // command for debug
 
-                      // Insert into log_npb
-                      $this->DB_PGSQL
-                            ->table("log_npb")
-                            ->insert([
-                                    "npb_tgl_proses" =>  $this->DB_PGSQL->raw("current_date"),
-                                    "npb_kodetoko" =>  $kodetoko,
-                                    "npb_nopb" =>  $nopb,
-                                    "npb_tglpb" =>  $this->DB_PGSQL->raw("'$tglpb'::date"),
-                                    "npb_nodspb" =>  $noDspb,
-                                    "npb_file" =>  $nmNpb,
-                                    "npb_jml_item" =>  $jmlItem,
-                                    "npb_jenis" =>  $this->DB_PGSQL->raw("'VOUCHER'"),
-                                    "npb_url" =>  $npbIP,
-                                    "npb_response" =>  $this->DB_PGSQL->raw(($okNPB ? "SUKSES! " : "GAGAL! ") . $npbRes),
-                                    "npb_create_web" =>  $jamCreateWeb,
-                                    "npb_create_csv" =>  $jamCreateCSV,
-                                    "npb_kirim" =>  $jamKirim,
-                                    "npb_confirm" =>  $tglConfirm,
-                                    "npb_jml_retry" =>  0,
-                                    "npb_create_by" =>  session('userid'),
-                                    "npb_create_dt" => $this->DB_PGSQL->raw("current_date")
-                                ]);
+                      // Insert into log_npb // command for debug
+                    //   $this->DB_PGSQL
+                    //         ->table("log_npb")
+                    //         ->insert([
+                    //                 "npb_tgl_proses" =>  $this->DB_PGSQL->raw("current_date"),
+                    //                 "npb_kodetoko" =>  $kodetoko,
+                    //                 "npb_nopb" =>  $nopb,
+                    //                 "npb_tglpb" =>  $this->DB_PGSQL->raw("'$tglpb'::date"),
+                    //                 "npb_nodspb" =>  $noDspb,
+                    //                 "npb_file" =>  $nmNpb,
+                    //                 "npb_jml_item" =>  $jmlItem,
+                    //                 "npb_jenis" =>  $this->DB_PGSQL->raw("'VOUCHER'"),
+                    //                 "npb_url" =>  $npbIP,
+                    //                 "npb_response" =>  $this->DB_PGSQL->raw(($okNPB ? "SUKSES! " : "GAGAL! ") . $npbRes),
+                    //                 "npb_create_web" =>  $jamCreateWeb,
+                    //                 "npb_create_csv" =>  $jamCreateCSV,
+                    //                 "npb_kirim" =>  $jamKirim,
+                    //                 "npb_confirm" =>  $tglConfirm,
+                    //                 "npb_jml_retry" =>  0,
+                    //                 "npb_create_by" =>  session('userid'),
+                    //                 "npb_create_dt" => $this->DB_PGSQL->raw("current_date")
+                    //             ]);
                     //send mail
                     // $lblMonitoring->setText("Send MAIL!");
                     // Application::doEvents();
                     // DSPB::sendMail($_txtPath . DIRECTORY_SEPARATOR . $nmNpb . ".ZIP", $nmNpb, Caesar_Encrypt("P" . $noDspb . "9999", $_tglServer));
-
-                    //create report 
-                    $this->create_report($kodetoko, $tglpb, $nopb);
-
-                    // create report qr code
-                    // if ($checkQR) {
-                    //     // create_qr_code($nmNpb,
-                    //     //             $kodetoko,
-                    //     //             $noDspb,
-                    //     //             str_replace("-", "/", $dtD[0]->TANGGAL1),
-                    //     //             count($dtD),
-                    //     //             $dtD);
-                    // }
                   }
 
                  
 
                 
+                $response = ["errors"=>false, "messages"=>"Successfully"];
             } else {
                 $response = ["errors"=>true, "messages"=>"Tidak ada data!"];
             }
             
-         
-            
-                
-                
-                
-                
-                
-
-            // $dtD->clear();
-
-            // $labelStatus = "Load Data Pb to Memory";
-            // event(new UpdateStatusEvent($labelStatus));
-
-            // $dtD = DB::select($sb->toString(), [$_tglpb, $nopb, $kodetoko], 20);
-
-
-
-            
             $this->DB_PGSQL->commit();
+            return $response;
         } catch (\Throwable $th) {
             
             $this->DB_PGSQL->rollBack();
             // dd($th);5
-            return response()->json(['errors'=>true,'messages'=>$th->getMessage()],500);
+            return ['errors'=>true,'messages'=>$th->getMessage()];
         }
     }
     public function update_db($nodspb = null, $kodetoko=null,$nopb=null,$tglpb = null){
@@ -527,7 +540,7 @@ class VoucherController extends Controller
             
             $this->DB_PGSQL->rollBack();
             // dd($th);
-            return response()->json(['errors'=>true,'messages'=>$th->getMessage()],500);
+            return ['errors'=>true,'messages'=>$th->getMessage(),'point'=>$point];
         }
     }
 
@@ -825,251 +838,241 @@ class VoucherController extends Controller
 
     }
 
-    public function create_report($kodetoko = null, $tglpb = null, $nopb = null){
-       
-        try {
-            $this->DB_PGSQL->beginTransaction();
-            
-            $flagFTZ = false;
-            $flagFTZ_condition = null; 
-            if ($flagFTZ ) {
-                $flagFTZ_condition = "SUM(COALESCE(pbo_ttlnilai, 0) + COALESCE(pbo_ttlppn, 0)) AS bkp,0 AS btkp,0 AS ppn"; 
-               
-            } else {
-                $flagFTZ_condition = "SUM(CASE WHEN COALESCE(pbo_ttlppn, 0) > 0 THEN COALESCE(pbo_ttlnilai, 0) END) AS bkp, SUM(CASE WHEN COALESCE(pbo_ttlppn, 0) = 0 THEN COALESCE(pbo_ttlnilai, 0) END) AS btkp, SUM(pbo_ttlppn) AS ppn "; 
-               
-            }
-            
-            $print_SJ = $this->DB_PGSQL
-                             ->table("tbmaster_pbomi")
-                             ->join("tbtr_idmkoli",function($join) use($kodetoko,$tglpb,$nopb){
-                                $join->on($this->DB_PGSQL->raw("pbo_tglpb::timestamp"),"=",$this->DB_PGSQL->raw("ikl_tglpb::timestamp"))
-                                    ->on("pbo_nopb","=","ikl_nopb")  
-                                    ->on("pbo_kodeomi","=","ikl_kodeidm")  
-                                    ->on("pbo_nokoli","=","ikl_nokoli")  
-                                    ->on($this->DB_PGSQL->raw("ikl_tglpb::date"),"=",$this->DB_PGSQL->raw(" '" . $tglpb. "'::date "))
-                                    ->on($this->DB_PGSQL->raw("ikl_kodeidm"),"=",$this->DB_PGSQL->raw("'" . $kodetoko . "' "))  
-                                    ->on($this->DB_PGSQL->raw("ikl_nopb"),"=",$this->DB_PGSQL->raw("'" . $nopb . "' "));
-                             })
-                             ->join("tbmaster_prodmast",function($join){
-                                 $join->on("pbo_pluigr", "=", "prd_prdcd" );
-                             })
-                             ->leftJoin("tbmaster_kodefp",function($join){
-                                 $join->on( $this->DB_PGSQL->raw("COALESCE(prd_flagbkp1, 'N')"), "=", "kfp_flagbkp1")
-                                      ->on( $this->DB_PGSQL->raw(" COALESCE(prd_flagbkp2, 'N')"), "=", "kfp_flagbkp2");
-                             })
-                             ->selectRaw("
-                                ikl_kodeigr AS kode_igr, ikl_nokoli AS koli, ikl_nocontainer AS CONTAINER, COUNT(pbo_qtyrealisasi) AS item, 
-                                ".$flagFTZ_condition."
-                             ")
-                             ->whereRaw("PBO_QTYREALISASI > 0 ")
-                             ->whereRaw("PBO_RECORDID = '4' ") // command for testing
-                             ->whereRaw("PBO_NOKOLI LIKE '04%' ") // command for testing
-                             ->groupBy("ikl_kodeigr", "ikl_nokoli", "ikl_nocontainer" )
-                             ->orderBy("ikl_nokoli","asc")
-                             ->get();
+    public function data_qrcode($kodetoko,$nopb,$tglpb){
 
-            $headerData_select_condition = "";
-            if (count($print_SJ)) {
-                $headerData_select_condition = "null AS encrypt, IKL_KODEIGR AS KODE_IGR, ikl_nopb, ikl_nobpd, 'REPRINT' AS reprint,";
-                
-            } else {
-                $headerData_select_condition = "null AS encrypt, IKL_KODEIGR AS KODE_IGR, ikl_nopb, ikl_nobpd, NULL AS reprint,";
-                
-            }
-            $headerData =  $this->DB_PGSQL
-                                ->table("tbtr_idmkoli")
-                                ->selectRaw("
-                                    ".$headerData_select_condition."
-                                    ikl_registerrealisasi AS dspb, ikl_tglbpd AS tgl_dspb 
-                                ")
-                                ->whereRaw("ikl_tglpb::date = '" . $tglpb. "'::date ")
-                                ->whereRaw("ikl_kodeidm = '" . $kodetoko . "' ")
-                                ->whereRaw("ikl_nopb = '" . $nopb . "' ")
-                                ->whereRaw("IKL_NOKOLI IS NOT NULL ")
-                                ->whereRaw("IKL_NOKOLI LIKE '04%' ")
-                                ->limit(1)
-                                ->get();
-            
-            $perusahaanData =  $this->DB_PGSQL
-                                ->table("tbmaster_perusahaan")
-                                ->selectRaw("prs_kodeigr kode_igr, prs_namacabang ")
-                                ->get();
-            $tokoData =  $this->DB_PGSQL
-                                ->table("tbmaster_tokoigr")
-                                ->selectRaw("tko_kodeigr kode_igr ,tko_namaomi , tko_kodeomi ")
-                                ->whereRaw("TKO_KODEOMI = '" .$kodetoko."'")
-                                ->whereRaw("TKO_NAMASBU = 'INDOMARET'")
-                                ->get();
-            $cluster_data =  $this->DB_PGSQL
-                                ->table("cluster_idm")
-                                ->selectRaw("cls_kode,cls_group")
-                                ->whereRaw("cls_toko = '" .$kodetoko."'")
-                                ->get();
-            
-            $cluster = count($cluster_data)? $cluster_data[0]->cls_kode:null;
-            $group = count($cluster_data)? $cluster_data[0]->cls_group:null;
+        $data_qr = (new QRController)->load_qr($kodetoko,$nopb,$tglpb);
+        return $data_qr;
+    }
+    public function data_sj($kodetoko,$nopb,$tglpb){
 
-            // Check if the 'SJ' table in the dataset has rows
-            // if (count($ds['SJ']) > 0) {
+        $flagFTZ = session()->get('flagFTZ'); // Set the actual flag value
 
-            //     if (!empty($headerData)) {
-            //         $headerData[0]->ENCRYPT = Caesar_Encrypt("P" . $headerData[0]->DSPB . "9999", $headerData[0]->TGL_DSPB);
-            //     }
+        $sql = "SELECT ikl_kodeigr AS kode_igr, ikl_nokoli AS koli, ikl_nocontainer AS CONTAINER, COUNT(pbo_qtyrealisasi) AS item, ";
 
-            //     // Set up the report
-            //     $oRpt->SetDataSource([
-            //         'HEADER' => $headerData,
-            //         'PERUSAHAAN' => $perusahaanData,
-            //         'TOKO' => $tokoData
-            //     ]);
-            //     $oRpt->SetParameterValue("cluster", "Cluster: " . $cluster . " Group: " . $group);
-
-            //     // Write the dataset to XML file
-            //     $ds->writeXml(public_path('reporting.xml'), LIBXML_NOEMPTYTAG);
-
-            //     // Load the report view
-            //     return view('report', ['report' => $oRpt]);
-            // }
-
-            //  datanoseri
-            $noseriData = $this->DB_PGSQL
-                               ->table("tbtr_header_materai_voucher")
-                               ->join("tbmaster_pbomi",function($join){
-                                  $join->on("hmv_kodetoko", "=", "pbo_kodeomi")
-                                        ->on("hmv_nopb", "=", "pbo_nopb")
-                                        ->on("hmv_tglpb", "=", "pbo_tglpb");
-                               })
-                               ->join("tbtr_picking_h",function($join){
-                                  $join->on("hmv_kodetoko", "=", "pch_kodetoko")
-                                        ->on("hmv_nopb", "=", "pch_nopb")
-                                        ->on("hmv_tglpb", "=", "pch_tglpb")
-                                        ->on("pch_pluigr", "=",  $this->DB_PGSQL->raw("CONCAT(SUBSTR(pbo_pluigr, 1, 6), '0')"));
-                               })
-                               ->join("tbtr_picking_d",function($join){
-                                  $join->on("pch_id", "=", "pcd_id");
-                               })
-                               ->join("plu_materai_voucher",function($join){
-                                  $join->on("pbo_pluomi", "=", "pmv_pluidm");
-                               })
-                               ->join("tbmaster_prodmast",function($join){
-                                  $join->on("pch_pluigr", "=", "prd_prdcd");
-                               })
-                               ->selectRaw("
-                                    hmv_kodetoko AS kodetoko, hmv_tglpb AS tglpb, hmv_nopb AS nopb,
-                                    pmv_pluidm AS pluidm, pmv_pluigr AS pluigr, pch_qtyrealisasi AS qty, prd_deskripsipanjang AS desc2
-                               ")
-                               ->distinct()
-                               ->whereRaw("hmv_kodetoko = '" . $kodetoko . "' ")
-                               ->whereRaw("hmv_nopb = '" . $nopb . "' ")
-                               ->whereRaw("hmv_tglpb = '" . $tglpb . "'")
-                               ->get();
-
-            if (count($noseriData)) {
-                $headerResultQuery = $this->DB_PGSQL
-                                     ->table("tbtr_header_materai_voucher")
-                                     ->join("tbtr_idmkoli",function($join){
-                                        $join->on("hmv_kodetoko", "=" ,"ikl_kodeidm")
-                                            ->on("hmv_nopb", "=" ,"ikl_nopb")
-                                            ->on($this->DB_PGSQL->raw("TO_CHAR(hmv_tglpb,'YYYYMMDD')"), "=" ,"ikl_tglpb");
-                                     })
-                                     ->join("tbmaster_pbomi",function($join){
-                                        $join->on("hmv_kodetoko", "=" ,"pbo_kodeomi")
-                                            ->on("hmv_nopb", "=" ,"pbo_nopb")
-                                            ->on("hmv_tglpb", "=" ,"pbo_tglpb");
-                                     })
-                                     ->selectRaw("
-                                        hmv_kodetoko AS kodetoko, hmv_tglpb AS tglpb, hmv_nopb AS nopb, 
-                                        ikl_registerrealisasi AS nodspb, ikl_nokoli AS nokoli 
-                                     ")
-                                     ->distinct()
-                                     ->whereRaw("hmv_kodetoko = '" . $kodetoko . "' ")
-                                     ->whereRaw("hmv_nopb = '" . $nopb . "' ")
-                                     ->whereRaw("hmv_tglpb::date = '" . $tglpb . "'::date ")
-                                     ->whereRaw("ikl_nokoli LIKE '04%' ")
-                                     ->orderBy("ikl_nokoli","desc")
-                                     ->toSql();
-                $headerResult = $this->DB_PGSQL
-                                     ->table( $this->DB_PGSQL->raw("($headerResultQuery) as t"))
-                                     ->selectRaw("*")
-                                     ->limit(1)
-                                     ->get();
-            }
-
-            $data = [
-                'noseri'=> $noseriData?$noseriData:null,
-                'header' => $headerResult?$headerResult[0]:null,
-                'perusahaan'=> $perusahaanData?$perusahaanData:null,
-                'toko' => $tokoData?$tokoData:null,
-                'cluster' => $cluster?$cluster:null,
-                'group' => $group?$group:null,
-                'container' => $print_SJ[0]?$print_SJ[0]:null
-
-            ];
-
-            
-            
-            $this->DB_PGSQL->commit();
-            return $data;
-        } catch (\Throwable $th) {
-            
-            $this->DB_PGSQL->rollBack();
-            // dd($th);
-            return response()->json(['errors'=>true,'messages'=>$th->getMessage()],500);
+        if ($flagFTZ) {
+            $sql .= "SUM(COALESCE(pbo_ttlnilai,0) + COALESCE(pbo_ttlppn,0)) AS bkp, 
+                    0 AS btkp, 
+                    0 AS ppn ";
+        } else {
+            $sql .= "SUM(CASE WHEN COALESCE(pbo_ttlppn,0) > 0 THEN COALESCE(pbo_ttlnilai,0) END) AS bkp, 
+                    SUM(CASE WHEN COALESCE(pbo_ttlppn,0) = 0 THEN COALESCE(pbo_ttlnilai,0) END) AS btkp, 
+                    SUM(pbo_ttlppn) AS ppn ";
         }
+
+        $sql .= "FROM tbmaster_pbomi 
+                JOIN tbtr_idmkoli ON pbo_tglpb::date = ikl_tglpb::date
+                AND pbo_nopb = ikl_nopb 
+                AND pbo_kodeomi = ikl_kodeidm 
+                AND pbo_nokoli = ikl_nokoli 
+                 AND ikl_tglpb::date = '$tglpb'::date  -- command for debug 
+                 AND ikl_kodeidm = '$kodetoko'  -- command for debug 
+                 AND IKL_NOPB = '$nopb'  -- command for debug 
+                JOIN tbmaster_prodmast ON pbo_pluigr = prd_prdcd 
+                LEFT JOIN tbmaster_kodefp ON COALESCE(prd_flagbkp1, 'N') = kfp_flagbkp1 
+                AND COALESCE(prd_flagbkp2, 'N') = kfp_flagbkp2 
+                 WHERE PBO_QTYREALISASI > 0 -- command for debug 
+                 AND PBO_RECORDID = '4' -- command for debug 
+                 AND PBO_NOKOLI LIKE '04%' -- command for debug 
+                GROUP BY ikl_kodeigr, IKL_NOKOLI, ikl_nocontainer 
+                ORDER BY IKL_NOKOLI
+                -- limit 10 -- debug
+                ";
+
+        // Execute the raw query with bindings
+        $data = $this->DB_PGSQL->select($sql);
+
+        //debug 
+        // $data = [];
+
+        // $data[] = (object)[
+        //     "kode_igr"=> "Test kode_igr",
+        //     "koli"=> "Test koli",
+        //     "container"=> "Test container",
+        //     "item"=> "Test item",
+        //     "bkp"=> "Test bkp",
+        //     "btkp"=> "Test btkp",
+        //     "ppn"=> "Test ppn",
+        // ];
+
+        $sql = "
+            select * from (select distinct hmv_kodetoko as kodetoko, hmv_tglpb as tglpb, hmv_nopb as nopb,
+            ikl_registerrealisasi as nodspb, ikl_nokoli as nokoli
+            from tbtr_header_materai_voucher
+            join tbtr_idmkoli on hmv_kodetoko = ikl_kodeidm and hmv_nopb = ikl_nopb and hmv_tglpb::date = ikl_tglpb::date
+            join tbmaster_pbomi on hmv_kodetoko = pbo_kodeomi and hmv_nopb = pbo_nopb and hmv_tglpb = pbo_tglpb
+            where hmv_kodetoko = '$kodetoko'
+            and hmv_nopb = '$nopb'
+            and hmv_tglpb::date = '$tglpb'::date
+            and ikl_nokoli like '04%' order by ikl_nokoli desc) as t LIMIT 1";
+
+        $header =  $this->DB_PGSQL->select($sql);
+        $sql = "
+            select tko_kodeigr as kode_igr, TKO_NAMAOMI, TKO_KODEOMI
+            from tbmaster_tokoigr
+            where TKO_KODEOMI = '$kodetoko'
+            and TKO_NAMASBU = 'INDOMARET'";
+        
+        $toko = $this->DB_PGSQL->select($sql);
+        // Fetch additional data for cluster and group
+        $cluster = $this->DB_PGSQL->table('cluster_idm')->where('cls_toko', $kodetoko)->value('cls_kode');
+        $group = $this->DB_PGSQL->table('cluster_idm')->where('cls_toko', $kodetoko)->value('cls_group');
+        if (count($data) ) {
+            return (object)['data'=>$data,'label'=>"Cluster : $cluster  Group : $group",'header'=>$header,'toko'=>$toko,'cluster'=>$cluster,'group'=>$group];
+        }else{
+            return (object)['errors'=>true,'messages'=>'Data Tidak Ada'];
+        }
+
+    }
+    public function data_nomor_referensi($kodetoko,$nopb,$tglpb){
+        $sql = "
+        select distinct hmv_kodetoko as kodetoko, hmv_tglpb as tglpb, hmv_nopb as nopb,
+        pmv_pluidm as pluidm, pmv_pluigr as pluigr, pch_qtyrealisasi as qty, prd_deskripsipanjang as desc2
+        from tbtr_header_materai_voucher
+        join tbmaster_pbomi on hmv_kodetoko = pbo_kodeomi and hmv_nopb = pbo_nopb and hmv_tglpb = pbo_tglpb
+        join tbtr_picking_h on hmv_kodetoko = pch_kodetoko and hmv_nopb = pch_nopb and hmv_tglpb = pch_tglpb AND pch_pluigr = substr(pbo_pluigr,1,6) || '0'
+        join tbtr_picking_d on pch_id = pcd_id
+        join PLU_MATERAI_VOUCHER on pbo_pluomi = pmv_pluidm
+        join tbmaster_prodmast on pch_pluigr = prd_prdcd
+        where hmv_kodetoko = '$kodetoko'
+        and hmv_nopb = '$nopb'
+        and hmv_tglpb::date = '$tglpb'::date";
+    
+        $rinci_noseri =  $this->DB_PGSQL->select($sql);
+        if (count($rinci_noseri)) {
+            $sql = "
+                select * from (select distinct hmv_kodetoko as kodetoko, hmv_tglpb as tglpb, hmv_nopb as nopb,
+                ikl_registerrealisasi as nodspb, ikl_nokoli as nokoli
+                from tbtr_header_materai_voucher
+                join tbtr_idmkoli on hmv_kodetoko = ikl_kodeidm and hmv_nopb = ikl_nopb and hmv_tglpb::date = ikl_tglpb::date
+                join tbmaster_pbomi on hmv_kodetoko = pbo_kodeomi and hmv_nopb = pbo_nopb and hmv_tglpb = pbo_tglpb
+                where hmv_kodetoko = '$kodetoko'
+                and hmv_nopb = '$nopb'
+                and hmv_tglpb::date = '$tglpb'::date
+                and ikl_nokoli like '04%' order by ikl_nokoli desc) as t LIMIT 1";
+
+            $header =  $this->DB_PGSQL->select($sql);
+            $sql = "
+                select tko_kodeigr as kode_igr, TKO_NAMAOMI, TKO_KODEOMI
+                from tbmaster_tokoigr
+                where TKO_KODEOMI = '$kodetoko'
+                and TKO_NAMASBU = 'INDOMARET'";
+            
+            $toko = $this->DB_PGSQL->select($sql);
+     
+            return (object) ['rinci_noseri'=>$rinci_noseri,'header'=>$header,'toko'=>$toko];
+        } else {
+           return (object)['errors'=>true,'messages'=>'Data Tidak Ada'];
+        }
+        
+
+
     }
 
-    public function print_qr(Request $request){
-        $header_cetak_custom = 'upper';
-        $date = date('Y-m');
-        $perusahaan = '[{"prs_namaperusahaan":"PT.INTI CAKRAWALA CITRA","prs_namacabang":"INDOGROSIR SEMARANG POST","customer":"105005 - PUJI RAHAYU","nomor_faktur":"010.007-23.30540947","tgl_faktur":"2023-05-31 00:00:00","dpp":"6432836.0000","ppn":"707624.0000","ppn_bkp":"707624.0000","ppn_bebas":"0","ppn_dtp":"0"}]';
-        $data = '[{"prs_kodeigr":"22","prs_kodeperusahaan":"PT","prs_namaperusahaan":"PT.INTI CAKRAWALA CITRA","prs_kodewilayah":"SM2","prs_namawilayah":"SEMARANG","prs_singkatanwilayah":"SMG","prs_koderegional":"01","prs_namaregional":"SEMARANG","prs_singkatanregional":"SMG","prs_kodecabang":"22","prs_namacabang":"INDOGROSIR SEMARANG POST","prs_singkatancabang":"IGR SMG","prs_kodesbu":"4","prs_namasbu":"INDOGROSIR","prs_singkatansbu":"IGR","prs_lokasisbu":"SEMARANG","prs_alamat1":"JL.RAYA KALIGAWE 38 KM 5,1","prs_alamat2":"TERBOYO WETAN","prs_alamat3":"GENUK","prs_telepon":"02476928282","prs_npwp":"01.781.214.0-046.000","prs_nosk":"01.781.214.0-046.000","prs_tglsk":"2007-04-09 00:00:00","prs_alamatfakturpajak1":"JL.ANCOL BARAT I NO.9-10 ANCOL","prs_alamatfakturpajak2":"PADEMANGAN JAKARTA UTARA","prs_alamatfakturpajak3":"DKI JAKARTA 14430","prs_modalawal":"40000000","prs_fmmupb":"100000","prs_flagppn":"Y","prs_flagpkp":null,"prs_jenistimbangan":"3","prs_fmfsgd":null,"prs_jenisprinter":"2","prs_classcabang":"M","prs_tipehrg":"A","prs_nokpp":null,"prs_creditlimit":"0","prs_flagdpd":"Y","prs_limitprofitlabelbiru":"1","prs_noserifakturpajak":null,"prs_nopo":"00000","prs_nobpb":"000000","prs_nonpb":"00000","prs_nonkb":"00000","prs_nobapb":"00000","prs_nompp":"00000","prs_noklm":"00000","prs_notkl":"00000","prs_nofaktur":"00000","prs_nofakturpajak1":"0000000","prs_nofakturpajak2":"0000000","prs_nonrb":"0000000","prs_nobrb":"00000","prs_nonk":"00000","prs_nond":"00000","prs_periodebaru":null,"prs_periodeterakhir":"2023-10-13 22:17:07","prs_bulanberjalan":"10","prs_tahunberjalan":"2023","prs_toleransihrg":"0","prs_fmflcs":null,"prs_nilaippn":"11","prs_nilaippnbm":"0","prs_kodemto":"016","prs_reportpath":null,"prs_ipserver":"\\\\192.168.237.194\\d\\grosir","prs_userserver":"igrsmg","prs_pwdserver":"igrsmg","prs_directorypb":"G:\\Grosir\\Lhost\\MM","prs_rptname":"rep_ias-igrsmg","prs_mdftpurl":null,"prs_mdftpuser":null,"prs_mdftppassword":null,"prs_mdftpport":null,"prs_directorykirim":null,"prs_create_by":"sys","prs_create_dt":"2011-07-25 13:01:21","prs_modify_by":"DV3","prs_modify_dt":"2023-10-13 22:17:07","prs_kphconst":"6","prs_flagcmo":"Y","prs_tglcmo":"2017-10-02 00:00:00","prs_flag_ftz":null,"prs_potong_plano_scan":null}]';
-        // $data = json_decode($data);
-        $data = [];
-        $perusahaan = json_decode($perusahaan);
+    public function download_report(Request $request, $data){
+        $data = json_decode(base64_decode($data));
+        $jenis_page = 'default-page';
+        $folder_page = $data->folder_page;
+        $title_report = $data->title_report;
+        $filename = $data->filename;
+        $header_cetak_custom = false;
+        $postiion_page_number_x = 63;
+        $postiion_page_number_y = 615;
+        $tanggal = date('Y-m-d');
+                
+        $perusahaan = $this->DB_PGSQL
+                           ->table("tbmaster_perusahaan")
+                           ->whereRaw("prs_kodeigr = '".session('KODECABANG')."'")
+                           ->get();
         $perusahaan = $perusahaan[0];
-        $pdf = PDF::loadview('menu.voucher.report.reportqr', compact('data','date','perusahaan','header_cetak_custom'));
+
+
+        switch ($data->filename) {
+            case 'reportqr':
+                $data->data = $this->data_qrcode($data->kodetoko,$data->nopb,$data->tglpb);
+                $header_cetak_custom = 'upper';
+                if (isset($data->data->errors)) {
+                    $data = null;
+                }
+                
+                break;
+            case 'report_rincian_nomor_referensi_materai':
+                $data->data = $this->data_nomor_referensi($data->kodetoko,$data->nopb,$data->tglpb);
+                // $header_cetak_custom = 'upper';
+                // dd($data);
+                if (isset($data->data->errors)) {
+                    $data = null;
+                }
+                
+                break;
+            case 'SJ':
+                $data->data = $this->data_sj($data->kodetoko,$data->nopb,$data->tglpb);
+                // $header_cetak_custom = 'upper';
+                // dd($data);
+                if (!isset($data->data->errors)) {
+                    $encryptedValue = $this->caesarEncrypt("P" .  $data->data->header[0]->nodspb . "9999", date('Y-m-d'));
+                    $data->data->header[0]->encrypt = $encryptedValue;
+                }
+                if (isset($data->data->errors)) {
+                    $data = null;
+                }
+                
+                break;
+            default:
+                break;
+        }
+
+            
+        $pdf = PDF::loadview('menu.voucher.'.$folder_page.'.'.$filename, compact('data','tanggal','perusahaan','header_cetak_custom'));
         $pdf->output();
         $dompdf = $pdf->getDomPDF()->set_option("enable_php", true);
         $canvas = $dompdf->get_canvas();
-        //make page text in footer and right side
-        $canvas->page_text(615, 40, "Page {PAGE_NUM} of {PAGE_COUNT}", null, 10, array(0, 0, 0));
-    
-    
-        return $pdf->stream('report_qr_voucher '.date('Y-m-d'));
+
+        // //make page text in header and right side
+
+        $canvas->page_text($postiion_page_number_y,$postiion_page_number_x , "Page {PAGE_NUM} of {PAGE_COUNT}", null, 7, array(0, 0, 0));
+
+        return $pdf->stream($title_report );
+
     }
+
     public function print_report(Request $request){
+        $qrcode = $request->qrcode == "true"?true:false;
+        $kodetoko = $request->kodetoko;
+        $nopb = $request->nopb;
+        $tglpb = $request->tglpb;
+        $link_qr = null;
 
-        // $kodetoko = $request->kodetoko;
-        // $tglpb = $request->tglpb;
-        // $nopb = $request->nopb;
-        $kodetoko = "FHHK";
-        $nopb = "900319";
-        $tglpb = "2023-02-02";
-        $header_cetak_custom = 'bellow';
-        //Testing
-        // $data = $this->dspb_vm($kodetoko,$tglpb,$nopb);
-        $data_qr = (new QRController)->create_qr_code('2009021701_GSM',$kodetoko,'G1111',);
         
-        dd('keluar');
-       
-        //end testing
-        // $data = $this->create_report($kodetoko,$tglpb,$nopb);
-        // $data['kodetoko'] = $kodetoko;
-        // $data['tglpb'] = $tglpb;
-        // $data['nopb'] = $nopb;
-        // $date = date('Y-m');
-        // $perusahaan = $data['perusahaan'];
-        // $pdf = PDF::loadview('menu.voucher.report.report_ rincian_nomor_referensi_materai', compact('data','date','perusahaan','header_cetak_custom'));
-        // $pdf->output();
-        // $dompdf = $pdf->getDomPDF()->set_option("enable_php", true);
-        // $canvas = $dompdf->get_canvas();
+        $data_report =[];
+        $data_report['qrcode'] = $qrcode;
+        $data_report['kodetoko'] = $kodetoko;
+        $data_report['nopb'] = $nopb;
+        $data_report['tglpb'] = $tglpb;
+        $data_report['filename'] = 'reportqr';
+        $data_report['folder_page'] = 'report'; 
 
-        // // //make page text in header and left side
-        // $canvas->page_text(595, 810, "Page {PAGE_NUM} of {PAGE_COUNT}", null, 10, array(0, 0, 0));
-    
-    
-        // return $pdf->stream('report_rincian_nomor_referensi_materai '.date('Y-m-d'));
+        $data_report['jenis_page'] = 'default-page';
+        $data_report['title_report'] = 'REPORT';
+        $encrypt_data = base64_encode(json_encode($data_report));
+        if($qrcode){
+            $link_qr = url('/api/voucher/download/report/'.$encrypt_data);
+        }  
+        $data_report['filename'] = 'report_rincian_nomor_referensi_materai';
+        $encrypt_data = base64_encode(json_encode($data_report));   
+        $link_ref = url('/api/voucher/download/report/'.$encrypt_data);
+        $data_report['filename'] = 'SJ';
+        $encrypt_data = base64_encode(json_encode($data_report));   
+        $link_sj = url('/api/voucher/download/report/'.$encrypt_data);
+
+        $dspb_vm = $this->dspb_vm($kodetoko, $tglpb, $nopb);
+        dd($dspb_vm);
+        if(!$dspb_vm){
+            if((object)$dspb_vm->errors){
+                return response()->json($dspb_vm,500);
+            }
+        }
+        return response()->json(['errors'=>false,'messages'=>'berhasi','link_qr'=>$link_qr,'link_ref'=>$link_ref,'link_sj'=>$link_sj],200);
+        
     }
 
     public function picking_load(Request $request){
@@ -1081,7 +1084,10 @@ class VoucherController extends Controller
         $deskripsi = null;
         $qtyRealisasi = null;
         $plu = null;
+        $Searchplu = null;
         $noSeri = null;
+        $headerText = $kodetoko . " / " . $nopb . " / " .date('d-m-Y',strtotime($tglpb));
+
         $picking = $this->DB_PGSQL
                         ->table("tbtr_header_materai_voucher")
                         ->join("tbmaster_pbomi",function($join){
@@ -1107,10 +1113,27 @@ class VoucherController extends Controller
                         ->distinct()
                         ->whereRaw("PMV_PLUIGR IS NOT NULL")
                         ->whereRaw("HMV_TGLPB::date = '$tglpb'::date")
-                        ->whereRaw("HMV_NOPB = '$nopb")
-                        ->whereRaw("HMV_KODETOKO = '$kodetoko")
+                        ->whereRaw("HMV_NOPB = '$nopb'")
+                        ->whereRaw("HMV_KODETOKO = '$kodetoko'")
                         ->orderBy("pmv_pluigr","asc")
+                        // ->limit(1)
                         ->get();
+        foreach ($picking as $row) {
+            $exists =  $this->DB_PGSQL->table('tbtr_picking_h')
+                ->where('pch_pluigr', $row->plu)
+                ->where('pch_nopb', $nopb)
+                ->whereRaw("pch_tglpb::date = '$tglpb'::date")
+                ->where('pch_kodetoko', $kodetoko)
+                ->exists();
+
+            if ($exists) {
+                $plu = $row->plu . " #";
+                $Searchplu = $row->plu;
+            } else {
+                $plu = $row->plu;
+                $Searchplu = $row->plu;
+            }
+        }
         
         if (count($picking)) {
             // Retrieve the data and perform necessary actions
@@ -1118,9 +1141,11 @@ class VoucherController extends Controller
             $qtyOrder = $picking[0]->qty_order;
             $deskripsi = $picking[0]->deskripsi;
             $qtyRealisasi = $picking[0]->qty_realisasi;
-            $plu = $picking[0]->plu;
-            $noSeri = $this->load_no_seri($tglpb,$nopb,$kodetoko,$plu);
+            // $plu = $picking[0]->plu;
+            $noSeri = $this->load_no_seri($tglpb,$nopb,$kodetoko,$Searchplu);
             $data = [
+                "picking_data" =>$picking,
+                "header" =>$headerText,
                 "no_seri" => $noSeri,
                 "plu_picking" => $plu,
                 "deskripsi_picking" => $deskripsi,
@@ -1144,6 +1169,7 @@ class VoucherController extends Controller
         $tglpb = $request->tglpb;
         $kodetoko = $request->kodetoko;
         $nopb = $request->nopb;
+        $headerText = $kodetoko . " / " . $nopb . " / " . date('d-m-Y',strtotime($tglpb));
         $picking = $this->DB_PGSQL
                         ->table("tbtr_header_materai_voucher")
                         ->join("tbmaster_pbomi",function($join){
@@ -1172,6 +1198,7 @@ class VoucherController extends Controller
                         ->whereRaw("HMV_NOPB = '$nopb")
                         ->whereRaw("HMV_KODETOKO = '$kodetoko")
                         ->orderBy("pmv_pluigr","asc")
+                        ->limit(1)
                         ->get();
         if (!empty($picking)) {
             // Retrieve the data and perform necessary actions
@@ -1182,6 +1209,8 @@ class VoucherController extends Controller
             $plu = $picking[0]->plu;
             $noSeri = $this->load_no_seri($tglpb,$nopb,$kodetoko,$plu);
             $data = [
+                "picking_data" =>$picking,
+                "header" =>$headerText,
                 "no_seri" => $noSeri,
                 "plu_picking" => $plu,
                 "deskripsi_picking" => $deskripsi,
@@ -1219,7 +1248,6 @@ class VoucherController extends Controller
 
     public function save_data_picker(Request $request){
         $noid = date('YmdHis');
-
         // Start a database transaction
     
         try {
@@ -1227,36 +1255,93 @@ class VoucherController extends Controller
             $kodetoko = $request->kodetoko;
             $tglpb = $request->tglpb;
             $nopb = $request->nopb;
-            $nopb = $request->nopb;
-            $no_seri = $request->no_seri;
-            $plu_picking = $request->plu_picking;
-            $deskripsi_picking = $request->deskripsi_picking;
-            $qty_order_picking = $request->qty_order_picking;
-            $qty_realisasi_picking = $request->qty_realisasi_picking;
-            $no_picking1 = $request->no_picking1;
-            $no_picking2 = $request->no_picking2;
+            $no_seri = $request->noseri;
+            $jmlh_seri = (int)$request->jmlh_seri;
+            $plu_picking = strpos($request->plu_picking, ' #')?str_replace(' #', '', $request->plu_picking):$request->nopb;
+            $qty_order_picking = (int)$request->qty_order_picking;
+            $qty_realisasi_picking = (int)$request->qty_realisasi_picking;
+            $no_picking1 = (int)$request->no_picking1;
+            $no_picking2 = (int)$request->no_picking2;
+            // $deskripsi_picking = $request->deskripsi_picking;
 
-            $this->DB_PGSQL->beginTransaction();
-            foreach ($no_seri as $row) {
+
+
+
+
+        if (!$qty_realisasi_picking) {
+            return response()->json(['errors'=>true,'messages' => 'Qty Realisasi belum diisi'], 422);
+        }
+        
+        if (!$jmlh_seri) {
+            return response()->json(['errors'=>true,'messages' => 'Tidak ada data nomor referensi'], 422);
+        }
+        
+        if ($qty_realisasi_picking != $jmlh_seri) {
+            return response()->json(['errors'=>true,'messages' => 'Jumlah nomor referensi tidak sama qty realisasi'], 422);
+        }
+
+        $exists =  $this->DB_PGSQL->table('tbtr_picking_h')
+            ->where('pch_nopb', $nopb)
+            ->whereRaw("PCH_TGLPB::date = '$tglpb'::date")
+            ->where('pch_kodetoko', $kodetoko)
+            ->where('pch_pluigr', $plu_picking)
+            ->exists();
+
+        $this->DB_PGSQL->beginTransaction();
+        if ($exists) {
+
+            $pid = $this->DB_PGSQL->table('tbtr_picking_h')
+                ->select('pch_id')
+                ->whereRaw("PCH_TGLPB::date = '$tglpb'::date")
+                ->where('pch_nopb', $nopb)
+                ->where('pch_kodetoko', $kodetoko)
+                ->where('pch_pluigr', $plu_picking)
+                ->value('pch_id');
+
+            if ($pid) {
+
+                $this->DB_PGSQL->table('tbtr_picking_d')->where('pcd_id', $pid)->delete();
+
                 $this->DB_PGSQL->table('tbtr_picking_d')->insert([
-                    'pcd_id' => $noid,
-                    'pcd_referensi' => $row->noseri,
+                    'pcd_id' => $pid,
+                    'pcd_referensi' => $no_seri,
                     'pcd_create_by' => session()->get('userid'),
                     'pcd_create_dt' => date('Y-m-d'),
                 ]);
+
+                $this->DB_PGSQL->table('tbtr_picking_h')
+                    ->where('pch_id', $pid)
+                    ->update([
+                        'pch_qtyrealisasi' => $qty_realisasi_picking,
+                        'pch_modify_by' => session()->get('userid'),
+                        'pch_modify_dt' => date('Y-m-d'),
+                    ]);
+
+            } else {
+                return response()->json(['errors'=>true,'messages' => 'Data tidak ditemukan!'], 404);
             }
+        } else {
+            $this->DB_PGSQL->table('tbtr_picking_d')->insert([
+                'pcd_id' => $noid,
+                'pcd_referensi' => $no_seri,
+                'pcd_create_by' => session()->get('userid'),
+                'pcd_create_dt' => date('Y-m-d'),
+            ]);
     
-            $this->DB_PGSQL->table('TBTR_PICKING_H')->insert([
+            $this->DB_PGSQL->table('tbtr_picking_h')->insert([
                 'pch_id' => $noid,
                 'pch_nopb' => $nopb,
                 'pch_tglpb' => date('Y-m-d',strtotime($tglpb)),
                 'pch_kodetoko' => $kodetoko,
-                'pch_pluigr' => $plu,
+                'pch_pluigr' => $plu_picking,
                 'pch_qtyorder' => $qty_order_picking,
                 'pch_qtyrealisasi' => $qty_realisasi_picking,
                 'pch_create_by' => session()->get('userid'),
                 'pch_create_dt' => date('Y-m-d'),
             ]);
+        }
+        
+
     
             // Commit the transaction if all queries succeeded
             $this->DB_PGSQL->commit();
