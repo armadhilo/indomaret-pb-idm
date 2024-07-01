@@ -154,7 +154,7 @@ class KlikIgrFooterController extends KlikIgrController
             $query .= "       obi_qtyorder AS QTY_Order, ";
             $query .= "       COALESCE(obi_qtyrealisasi,0) AS QTY_Realisasi ";
             $query .= "FROM tbtr_obi_d ";
-            $query .= "LEFT JOIN tbmaster_prodmast p ON p.prd_prdcd = obi_prdcd ";
+            $query .= "LEFT JOIN tbmaster_prodmast p ON p.prd_prdcd = obi_prdcd LIMIT 15";
             $query .= "WHERE obi_notrans = '" . $request->no_trans . "' ";
             $query .= "AND obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_nopb = '" . $request->nopb . "') ";
             $query .= "AND obi_recid IS NULL ";
@@ -448,13 +448,6 @@ class KlikIgrFooterController extends KlikIgrController
     }
 
     public function actionF10(Request $request){
-        $nama_member = DB::table('tbmaster_customer')
-            ->where('cus_kodemember', $request->kode_member)
-            ->value(DB::raw('UPPER(cus_namamember)'));
-        $request->merge(['nama_member' => $nama_member]);
-                        $data['data'] = $this->actionF10Datatables(session('flagSPI'), $request->nopb, $request->no_trans, $request->kode_member, $request->tanggal_trans);
-                $data['request'] = $request->all();
-                return ApiFormatter::success(200, "Success", $data);
         if(session('flagSPI') == true){
             if(($request->status == 'Siap Struk' AND $request->tipe_bayar == 'COD') OR ($request->status == 'Selesai Struk' AND $request->tipe_bayar != 'COD')){
                 //* open FORM -> frmHitungUlangSPI

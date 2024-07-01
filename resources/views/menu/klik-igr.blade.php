@@ -163,6 +163,12 @@
         width: 230px!important;
     }
 
+    #select2-no_koli_detail_transaksi_tab5-container{
+        height: 38px;
+        border-radius: 0px;
+        padding-top: 4px;
+    }
+
     /* Modal Specific CSS */
     *,
     *:after,
@@ -272,7 +278,7 @@
                                     Auto Send HH
                                 </label>
                             </div>
-                            <label for="pick_rak_toko" class="checkbox-label checkbox-label-sm @if(!$cbPickRakTokoVisible) d-none @endif" style="height: 31px"  >
+                            <label for="pick_rak_toko" class="checkbox-label checkbox-label-sm @if(!($cbPickRakTokoVisible ?? false)) d-none @endif" style="height: 31px"  >
                                 <input type="checkbox" id="pick_rak_toko" onclick="$(this).val(this.checked ? 1 : 0)" value="0">
                                 Pick Rak Toko
                             </label>
@@ -282,17 +288,19 @@
                 </div>
                 <div class="card shadow" id="container_btn_action">
                     <div class="card-body d-flex flex-column card-button" style="height: calc(100vh - 340px);">
-                        <button class="btn btn-action btn-blue" actionName="SendHandheld">{{ $btnSendJalur }}</button>
+                        <button class="btn btn-action btn-blue @if(!($btnSendJalur ?? false)) d-none @endif" actionName="SendHandheld">
+                            {{ $btnSendJalur ?? '' }}
+                        </button>
                         <button class="btn btn-action btn-green" actionName="OngkosKirim">Ongkos Kirim</button>
                         <button class="btn btn-action btn-blue" actionName="DraftStruk">Draft STRUK</button>
                         <button class="btn btn-action btn-green" actionName="PembayaranVA">Pembayaran Virtual Account</button>
-                        <button class="btn btn-action btn-green" actionName="KonfirmasiPembayaran" @if($btnKonfirmasiBayar) disabled @endif>Konfirmasi Pembayaran</button>
+                        <button class="btn btn-action btn-green" actionName="KonfirmasiPembayaran" @if(!($btnKonfirmasiBayar ?? false)) disabled @endif>Konfirmasi Pembayaran</button>
                         <button class="btn btn-action btn-blue" actionName="Sales">SALES</button>
                         <div class="d-flex flex-row" style="gap: 10px"> 
                             <button class="btn btn-action btn-royal w-100" actionName="CetakSuratJalan" style="height: 50px">Cetak Surat Jalan</button>
                             <button class="btn btn-action btn-royal w-100" actionName="CetakIIK" style="height: 50px">Cetak IIK</button>
                         </div>
-                        <button class="btn btn-action btn-light-red" actionName="PbBatal">{{ $btnPBBatal }}</button>
+                        <button class="btn btn-action btn-light-red" actionName="PbBatal">{{ $btnPBBatal ?? '' }}</button>
                         <button class="btn btn-action btn-light-red" actionName="ItemPickingBelumTransit">List Item Picking Belum Transit</button>
                         <button class="btn btn-action btn-light-red" actionName="LoppCod">LOPP - COD</button>
                         <button class="btn btn-action btn-light-red" actionName="ListPBLebihDariMaxSerahTerima">List PB Lebih dari Max Serah Terima</button>
@@ -848,10 +856,11 @@
                                 <input type="text" class="form-control input-detail-transaksi" disabled id="no_trans_detail_transaksi_tab5" style="width: 290px">
                             </div>
                             <div class="form-group d-flex align-items-center child-no-radius">
-                                <label for="no_urut_detail_transaksi_tab5" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Nomor Urut : </label>
-                                <input type="text" class="form-control input-detail-transaksi" id="no_urut_detail_transaksi_tab5" style="width: 290px">
+                                <label for="no_urut_detail_transaksi_tab5" class="detail-info text-nowrap bg-teal h-38px w-130px flex-shrink-0">Nomor Koli : </label>
+                                <select class="form-control input-detail-transaksi select2" id="no_koli_detail_transaksi_tab5" style="width: 290px">
+                                </select>
                             </div>
-                            <button class="btn btn-primary btn-lg mt-2" style="width: 246px; height: 45px; margin-bottom: 16px">Reprint</button>
+                            <button class="btn btn-primary btn-lg mt-2" style="width: 246px; height: 45px; margin-bottom: 16px" id="btn_reprint" onclick="actionReprintKoli()">Reprint</button>
                         </div>
                     </div>
                 </div>
@@ -1655,13 +1664,32 @@
     var isFunctionRunning = false;
     var flagSendHH_Tick = false;
     let listPLUMasalah = [];
-    let statusSiapPicking = "{{ $statusSiapPicking }}";
-    let statusSiapPacking = "{{ $statusSiapPacking }}";
+    let statusSiapPicking = @json($statusSiapPicking ?? false);
+    let statusSiapPacking = @json($statusSiapPacking ?? false);
 
     $(document).ready(function() {
         setDateNow("#tanggal_trans");
         initializeDatatablesMain();
         actionPbBatal();
+        TimerSendHHKlik_Tick();
+
+        let check_error = @json($check_error ?? false);
+        if(check_error){
+            $("#modal_loading").addClass("d-none");
+            Swal.fire({
+                title: 'Peringatan...!',
+                text: `${check_error}`,
+                icon: 'warning',
+                showConfirmButton: true,
+                allowOutsideClick: false,
+                confirmButtonText: 'Kembali Ke Home',
+                preConfirm: () => {
+                    // Perform the redirection without closing the SweetAlert dialog
+                    window.location.href = '/home';
+                    return false; // Prevent SweetAlert from automatically closing
+                }
+            });
+        }
 
         tb_edit_pb = $('#tb_edit_pb').DataTable({
             data: [],
@@ -2027,6 +2055,7 @@ $("#button_proses").click(function(){
 
 function TimerSendHHKlik_Tick(){
     flagSendHH_Tick = true;
+    listPLUBermasalah = [];
     $('#modal_loading_send_hh').modal('show');
     $.ajax({
         url: currentURL + `/action/SendHH-Tick`,
@@ -2064,6 +2093,63 @@ function TimerSendHHKlik_Tick(){
         }
     });
 }
+
+function actionReprintKoli(){
+    var koliValue = $("#no_koli_detail_transaksi_tab5").val();
+    if(koliValue == ''){
+        Swal.fire("Peringatan!", "Harap Pilih No. Koli Terlebih Dahulu", "warning");
+        return;
+    }
+    Swal.fire({
+        title: 'Yakin?',
+        html: `Reprint Koli ${koliValue}?`,
+        icon: 'info',
+        showCancelButton: true,
+    })
+    .then((result) => {
+        if (result.value) {
+            var checker_value = $("#no_koli_detail_transaksi_tab5").find(`option[value="${koliValue}"]`).data('checker');
+            $('#modal_loading').modal('show');
+            $.ajax({
+                url: currentURL + `/action/actionReprintKoli`,
+                type: "POST",
+                data: {no_trans: $("#no_trans_detail_transaksi_tab5").val(), tgl_trans: $("#tgl_trans_detail_transaksi_tab5").val(), no_koli: koliValue, checker_id: checker_value},
+                success: function(response) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire("Success!", response.message, 'success');
+                }, error: function(jqXHR, textStatus, errorThrown) {
+                    setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                            ? jqXHR.responseJSON.message
+                            : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+    })
+}
+
+var originalDataPLU = [];
+
+$(document).on('change', '#cek_item_bermasalah', function() {
+    var isChecked = $(this).is(':checked');
+
+    if (originalDataPLU.length === 0) {
+        originalDataPLU = tb_edit_pb.rows().data().toArray();
+    }
+
+    if (isChecked) {
+        var filteredRows = originalDataPLU.filter(function(data) {
+            return listPLUMasalah.includes(data.plu);
+        });
+
+        tb_edit_pb.clear().rows.add(filteredRows).draw();
+    } else {
+        tb_edit_pb.clear().rows.add(originalDataPLU).draw();
+    }
+});
 </script>
 @endpush
 

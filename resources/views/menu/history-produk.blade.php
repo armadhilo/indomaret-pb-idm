@@ -101,7 +101,7 @@
                 </div>
                 <div class="form-group m-0 d-flex justify-content-end" style="gap: 25px">
                     <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" id="btn_ftp">FTP</button>
+                    {{-- <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" id="btn_ftp">FTP</button> --}}
                     <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-warning" id="btn_browse">BROWSE</button>
                     <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-info" id="btn_history">HISTORY PINDAH SUPPLY</button>
                 </div>
@@ -137,7 +137,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal" onclick="$('#file_input_modal').val('')">Close</button>
                 <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-primary" onclick="actionReportKPH();">OK</button>
             </div>
         </div>
@@ -149,8 +149,9 @@
 <script>
     let tb;
     let tb_report;
+    let kodeIGR = "{{ session('KODECABANG') }}";
     $(document).ready(function(){
-        $("#periode").val(moment().format('YYYY-MM'))
+        $("#periode").val(moment().format('YYYY-MM'))   
         tb = $('#tb').DataTable({
             ajax: {
                 url: currentURL + "/datatables",
@@ -167,7 +168,7 @@
 
             ],
             columnDefs: [
-                { className: 'text-center-vh', targets: '_all' },
+                { className: 'text-center-vh', targets: '_all' },   
             ],
             ordering: false,
         });
@@ -387,6 +388,137 @@
                             icon: "error"
                         });
                     }
+                });
+            }
+        });
+    }
+
+    function cekNamaFile(fileName) {
+        var fname = fileName.replace("REPORT PRODUK BARU IDM ", ""); 
+        var datePart = fname.substring(0, 6);
+        
+        var dateRegex = /^([0-2][0-9]|(3)[0-1])((0)[0-9]|(1)[0-2])([0-9]{2})$/;
+        if(dateRegex.test(datePart)) {
+            try {
+                var dateConvert = moment(datePart, "DDMMYY");
+                return dateConvert.isValid();
+            } catch (e) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    function getPeriodNewProduct(fileName, kode) {
+        var fname = fileName.replace("REPORT PRODUK BARU IDM ", ""); // 150915
+        var dateConvert;
+        var strPeriod = "";
+        
+        try {
+            var datePart = fname.substring(0, 6);
+            dateConvert = moment(datePart, "DDMMYY");
+            
+            if (!dateConvert.isValid()) {
+                throw new Error("Invalid date");
+            }
+            
+            if (kode === 1) { // PID
+                strPeriod = dateConvert.format("MMyyyy");
+                if (strPeriod.charAt(0) === '0') {
+                    strPeriod = strPeriod.substring(1);
+                }
+            } else { // FILE PERIOD
+                strPeriod = dateConvert.format("DDMMYYYY");
+            }
+
+            return strPeriod;
+        } catch (e) {
+            return "NOTHING";
+        }
+    }
+
+    $("#btn_browse").click(function(){
+        if($("#file_input_modal")[0].files.length == 0){
+            Swal.fire("Peringatan!", "Harap Upload File CSV Terlebih Dahlulu!", "warning");
+            return;
+        }
+
+        let tipeUpload = $("#tipe_upload").val();
+        let fileInput = $("#file_input_modal")[0];
+        
+        var swalText = "";
+        var fileName = fileInput.files[0].name;
+        if(tipeUpload == "MINOR"){
+            swalText = "Proses Upload Miror Toko ?";
+        } else if (tipeUpload == "PLUIDM"){
+            swalText = "Proses Upload Miror Toko ?";
+            var fileExtension = fileName.split('.').pop();
+            if(fileExtension !== KodeIGR || fileName.substring(0, 3) !== "IDM"){
+                Swal.fire("Peringatan!", "File tidak sesuai dengan kode cabang !", "warning");
+                return;
+            }
+        } else if(tipeUpload == "PRODUK BARU"){
+            var result = cekNamaFile(fileName);
+            if (!result) {
+                Swal.fire("Peringatan!", "Nama File Tidak Sesuai. Tidak bisa ambil periode!", "warning");
+                return;
+            }
+
+            result = getPeriodNewProduct(fileName, 2);
+            if(result == "NOTHING"){
+                Swal.fire("Peringatan!", "Tidak bisa ambil periode!", "warning");
+                return;
+            }   
+            swalText = "Proses upload produk baru periode " + result + " ?";
+        } else {
+            // PINDAH SUPPLY
+            var extension = fileName.split('.').pop().toUpperCase();
+            if (extension !== "CSV") {
+                Swal.fire("Peringatan!", "File harus .CSV!", "warning");
+                return;
+            }
+            swalText = "Proses Upload File Pindah Supply ?";
+        }
+        Swal.fire({
+            title: 'Yakin?',
+            html: swalText,
+            icon: 'info',
+            showCancelButton: true,
+        })
+        .then((result) => {
+            if (result.value) {
+                prosesData(tipeUpload, fileName);
+            }
+        });
+    });
+
+    function prosesData(tipeUpload, fileName){
+        $('#modal_loading').modal('show');
+        var formData = new FormData();
+        formData.append('pilUpload', tipeUpload);
+        formData.append('filename', fileName);
+        formData.append('excel_file', $("#file_input_modal")[0].files[0]);
+        $.ajax({
+            url: currentURL + "/action/uploadCsvBrowse",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                setTimeout(() => {$("#modal_loading").modal("hide");}, 500);
+                Swal.fire("Success!", response.message, "success").then(function(){
+                    $("#file_input_modal").val("");
+                    $("#modal_csv").modal("hide");
+                    tb.ajax.reload();
+                });
+            }, error: function(jqXHR, textStatus, errorThrown) {
+                setTimeout(() => { $('#modal_loading').modal('hide') }, 500);
+                Swal.fire({
+                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                        ? jqXHR.responseJSON.message
+                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                    icon: "error"
                 });
             }
         });

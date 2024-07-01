@@ -73,6 +73,7 @@ Route::middleware(['mylogin'])->group(function () {
             Route::post("/proses-main", [ActionProsesController::class, 'listPB']);
             Route::post('/action-approve', [KlikIgrController::class, 'action_approve']);
             Route::post('/SendHH-Tick', [KlikIgrController::class, 'SendHH_Tick']);
+            Route::post('/actionReprintKoli', [KlikIgrController::class, 'actionReprintKoli']);
 
             //* KeysFunction Additional
             Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);
@@ -167,6 +168,8 @@ Route::middleware(['mylogin'])->group(function () {
             Route::post('/proses', [HistoryProdukController::class, 'actionProses']);
             Route::post('/hit-kph', [HistoryProdukController::class, 'actionHitKPH']);
             Route::post('/report-kph', [HistoryProdukController::class, 'actionReportKPH']);
+
+            Route::post('/uploadCsvBrowse', [HistoryProdukController::class, 'actionUploadCsvBrowse']);
         });
     });
 

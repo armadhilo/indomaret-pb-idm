@@ -1066,6 +1066,7 @@ function actionAdditionalBuktiSerahTerimaKardusCetak(isHistory = 0, params = [])
 
 function detailTransaksi(element){
     var selectedRow = tb.row($(element).closest('tr')).data();
+    $("#no_koli_detail_transaksi_tab5").empty();
     $('#modal_loading').modal('show');
     $.ajax({
         url: currentURL + `/detail-transaksi`,
@@ -1073,6 +1074,14 @@ function detailTransaksi(element){
         data: {selectedRow: selectedRow, tanggal_trans: $("#tanggal_trans").val()},
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+            if(response.data.dtKoli.length > 0){
+                $("#no_koli_detail_transaksi_tab5").append(`<option value="">-- PILIH KOLI --</option>`);
+                response.data.dtKoli.forEach(item => {
+                    $("#no_koli_detail_transaksi_tab5").append(`<option value="${item.no_koli}" data-checker="${item.checker_id}">${item.no_koli}</option>`);
+                });
+            } else {
+                $("#no_koli_detail_transaksi_tab5").append(`<option value="">-- KOLI TIDAK DITEMUKAN --</option>`);
+            }
             $("input.input-detail-transaksi").each(function() {
                 var elem_id = $(this).attr("id");
                 $(this).val(response.data[elem_id]);
@@ -1560,7 +1569,7 @@ function actionPbBatal(){
         type: "POST",
         success: function(response) {
             setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-            var data = response.data;
+            var data = response;
             $("#modal_list_pb_batal .modal-dialog").addClass("modal-lg")
             $("#modal_list_pb_batal .modal-dialog").removeClass("modal-xl")
             $("#label_item_batal").toggleClass("d-none", !data.labelItemBatal);
@@ -2062,7 +2071,7 @@ function actionListPBLebihDariMaxSerahTerima(){
 }
 
 function actionMasterAlasanbatalKirim(){
-    actionAdditionalShowModalMasterData("Master Alasan Batal Kirim", "No. Polisi", "AlasanBatalKirim");
+    actionAdditionalShowModalMasterData("Listing Delivery", "No. Polisi", "AlasanBatalKirim");
 }
 
 function actionMasterPickingHH(){

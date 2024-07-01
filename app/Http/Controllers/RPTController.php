@@ -2175,7 +2175,7 @@ class RPTController extends Controller
         // dd('out');
     }
 
-    public function get_toko_omi(Request $request,){
+    public function get_toko_omi(Request $request){
         /**
          * Perlu di cek kembali
          * file Lov_OMI 

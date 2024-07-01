@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+ini_set('max_execution_time', '0');
+ini_set('memory_limit', '-1');
 
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
@@ -11,6 +13,11 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\GeneralExcelImport;
+use Illuminate\Support\Facades\File;
+use ZipArchive;
+
 
 class HistoryProdukController extends Controller
 {
@@ -180,6 +187,9 @@ class HistoryProdukController extends Controller
     }
 
     public function actionUploadCsvBrowse(Request $request){
+        $request->validate([
+            'excel_file' => 'required|file',
+        ]);
 
         //? function ini hanya untuk checking
 
@@ -203,13 +213,93 @@ class HistoryProdukController extends Controller
             }
         }
 
+        $file = $request->file('excel_file');
+
+        $originalName = $file->getClientOriginalName();
+        $newName = pathinfo($originalName, PATHINFO_FILENAME) . '.zip';
+
+        $filePath = storage_path('temp_extract_zip');
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        }
+        $filePath = storage_path('temp_extract_zip') . "/" . session("userid");
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        } else {
+            File::deleteDirectory($filePath, false);
+            File::makeDirectory($filePath, 0755, true);
+        }
+
+        $rarPath = $filePath . "/" . $newName;
+        $file->move($filePath, $newName);
+
+        $zip = new ZipArchive;
+        if ($zip->open($rarPath) === TRUE) {
+            $zip->extractTo($filePath);
+            $zip->close();
+        } else {
+            return response()->json(['error' => 'Failed to open ZIP file'], 400);
+        }
+
+        File::delete($rarPath);
+
+        // Process the extracted CSV files
+        $filePaths = File::files($filePath);
+
+        foreach ($filePaths as $file) {
+            $filePath = $file->getPathname();
+            
+            $data = Excel::toArray([], $filePath);
+
+            // Process your data as needed
+            $headerRow = $data[0][0];
+            $dataRows = array_slice($data[0], 1);
+            $dataCSV = [];
+
+            foreach ($dataRows as $rowData) {
+                $rowDataAssoc = [];
+                foreach ($headerRow as $index => $header) {
+                    $rowDataAssoc[$header] = $rowData[$index] ?? null;
+                }
+
+                $dataCSV[] = $rowDataAssoc;
+            }
+        }
+        
         //! START FUNCTION prosesData
 
         if($request->pilUpload == 'MINOR'){
+            $columns = ['PRDCD', 'DESC', 'FRAC', 'MINOR'];
 
-            DB::select("DELETE FROM TBTEMP_MINORTK");
+            $processedData = [];
 
-            foreach($request->filename as $item){
+            foreach ($dataCSV as $row) {
+                $processedRow = [];
+                foreach ($columns as $index => $column) {
+                    switch ($column) {
+                        case 'PRDCD':
+                            $processedRow[$column] = str_replace([",", "'"], [".", ""], $row['PLUIDM']);
+                            break;
+                        case 'DESC':
+                            $processedRow[$column] = str_replace([",", "'"], [".", ""], $row['PLUIGR']);
+                            break;
+                        case 'FRAC':
+                            $value = str_replace([",", "'"], [".", ""], $row['TAG']);
+                            $processedRow[$column] = $value === "" ? 0 : (double)$value;
+                            break;
+                        case 'MINOR':
+                            $value = str_replace([",", "'"], [".", ""], $row['MINOR']);
+                            $processedRow[$column] = $value === "" ? 0 : (double)$value;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                $processedData[] = $processedRow;
+            }
+
+            DB::delete("DELETE FROM TBTEMP_MINORTK");
+            foreach($processedData as $item){   
                 //! INSERT TBTEMP_MINORTK - PENGGANTI BULKCOPY
                 DB::table('tbtemp_minortk') 
                     ->insert([
@@ -219,6 +309,8 @@ class HistoryProdukController extends Controller
                         'minor' => $item['MINOR'],
                     ]);
             }
+
+
         }elseif($request->pilUpload == 'PLUIDM'){
             //! FILE DALAM BENTUK ZIP MULTIPLE CSV
 
@@ -226,17 +318,20 @@ class HistoryProdukController extends Controller
             DB::select("DELETE FROM TBTEMP_PLUIDM2 WHERE ip = '" . $this->getIP() . "' ");
 
 
-            //! INSERT TBTEMP_PLUIDM2 - PENGGANTI BULKCOPY
-            DB::table('TBTEMP_PLUIDM2')
-                ->insert([
-                    'idm_pluidm' => $item['IDM_PLUIDM'],
-                    'idm_pluigr' => $item['IDM_PLUIGR'],
-                    'idm_tag' => $item['IDM_TAG'],
-                    'idm_renceng' => $item['IDM_RENCENG'],
-                    'idm_minor' => $item['IDM_MINOR'],
-                    'idm_kdidm' => $item['IDM_KDIDM'],
-                    'ip' => $item['IP'],
-                ]);
+            $ip = $this->getIP();
+            foreach($dataCSV as $item){   
+                //! INSERT TBTEMP_PLUIDM2 - PENGGANTI BULKCOPY
+                DB::table('TBTEMP_PLUIDM2')
+                    ->insert([
+                        'idm_pluidm' => $item['PLUIDM'],
+                        'idm_pluigr' => $item['PLUIGR'],
+                        'idm_tag' => $item['TAG'],
+                        'idm_renceng' => $item['RENCENG'],
+                        'idm_minor' => $item['MINOR'],
+                        'idm_kdidm' => $item['KDIDM'],
+                        'ip' => $ip,
+                    ]);
+            }
 
             $query = '';
             $query .= " INSERT INTO tbtemp_pluidm ( ";
@@ -279,6 +374,8 @@ class HistoryProdukController extends Controller
             $this->insertData('TBTEMP_PRODUK_BARU1', $dataCSV, $this->getPeriodNewProduct($request->filename, 1), $this->getPeriodNewProduct($request->filename, 2));
         }
 
+        return ApiFormatter::success(200, "UPLOAD CSV BERHASIL!");
+
         //! END FUNCTION prosesData
     }
 
@@ -291,7 +388,7 @@ class HistoryProdukController extends Controller
         foreach($data as $item){
             DB::table($table)
                 ->insert([
-                    'KODEIGR' => $item['KODEIGR'],
+                    'KODEIGR' => session("KODECABANG"),
                     'TGL_SHELF' => date('Y-m-d', strtotime($item['tglFS'])),
                     'PLUIDM' => $item['PLUIDM'],
                     'PLUIGR' => $item['PLUIGR'],
