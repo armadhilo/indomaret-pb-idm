@@ -7253,6 +7253,7 @@ class KlikIgrController extends Controller
         $data['kodemember'] = $kodemember;
         $data['tanggaltrans'] = $tanggal_trans;
         $data['notrans'] = $no_trans;
+        $data['perusahaan'] = DB::table('tbmaster_perusahaan')->select("prs_namacabang")->first();
 
         $query = '';
         $query .= "SELECT row_number() OVER () as no, ";
@@ -7382,61 +7383,71 @@ class KlikIgrController extends Controller
     }
 
     protected function updateIntransit($flagTambah, $noTrans, $tglTrans){
-        $query = '';
-        $query .= "MERGE INTO ( ";
-        $query .= "  SELECT * FROM tbmaster_stock ";
-        $query .= "  WHERE st_lokasi = '01' ";
-        $query .= "  AND EXISTS ( ";
-        $query .= "	   SELECT 1 ";
-        $query .= "	   FROM tbtr_obi_d ";
-        $query .= "	   WHERE SUBSTR(obi_prdcd, 1, 6) || '0' = st_prdcd ";
-        $query .= "	   AND obi_notrans = '" . $noTrans . "' ";
-        $query .= "	   AND DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" . $tglTrans . "','DD-MM-YYYY') ";
-        $query .= ") ";
-        $query .= ") t ";
-        $query .= "USING ( ";
-        $query .= "  SELECT SUBSTR(obi_prdcd, 1, 6) || '0' obi_prdcd, ";
-        $query .= "		    SUM (COALESCE(obi_qtyrealisasi,0)) obi_qtyrealisasi ";
-        $query .= "  FROM tbtr_obi_d  ";
-        $query .= "  WHERE obi_notrans = '" . $noTrans . "'  ";
-        $query .= "  AND DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" . $tglTrans . "','DD-MM-YYYY')  ";
-        $query .= "  AND obi_recid is null  ";
-        $query .= "  GROUP BY SUBSTR(obi_prdcd, 1, 6) || '0' ";
-        $query .= ") s ";
-        $query .= "ON ( ";
-        $query .= "  t.st_prdcd = s.obi_prdcd ";
-        $query .= ") ";
-        $query .= "WHEN MATCHED THEN ";
-        if($flagTambah){
-            $query .= "  UPDATE SET t.st_intransit = t.st_intransit - s.obi_qtyrealisasi, ";
-            $query .= "             t.st_saldoakhir = COALESCE(t.st_saldoawal, 0)  ";
-            $query .= "		                          + COALESCE(t.st_trfin, 0)  ";
-            $query .= "						          - COALESCE(t.st_trfout, 0)  ";
-            $query .= "						          - COALESCE(t.st_sales, 0)  ";
-            $query .= "						          + COALESCE(t.st_retur, 0)  ";
-            $query .= "						          + COALESCE(t.st_adj, 0)  ";
-            $query .= "						          + COALESCE(t.st_selisih_so, 0)  ";
-            $query .= "						          + COALESCE(t.st_selisih_soic, 0)  ";
-            $query .= "						          + COALESCE(t.st_intransit, 0) ";
-            $query .= "						          - s.obi_qtyrealisasi, ";
 
-        }else{
-            $query .= "  UPDATE SET t.st_intransit = t.st_intransit + s.obi_qtyrealisasi, ";
-            $query .= "             t.st_saldoakhir = COALESCE(t.st_saldoawal, 0)  ";
-            $query .= "		                          + COALESCE(t.st_trfin, 0)  ";
-            $query .= "						          - COALESCE(t.st_trfout, 0)  ";
-            $query .= "						          - COALESCE(t.st_sales, 0)  ";
-            $query .= "						          + COALESCE(t.st_retur, 0)  ";
-            $query .= "						          + COALESCE(t.st_adj, 0)  ";
-            $query .= "						          + COALESCE(t.st_selisih_so, 0)  ";
-            $query .= "						          + COALESCE(t.st_selisih_soic, 0)  ";
-            $query .= "						          + COALESCE(t.st_intransit, 0) ";
-            $query .= "						          + s.obi_qtyrealisasi, ";
+        $query = "WITH source_data AS ( ";
+        $query .= "    SELECT SUBSTR(obi_prdcd, 1, 6) || '0' AS obi_prdcd, ";
+        $query .= "           SUM(COALESCE(obi_qtyrealisasi, 0)) AS obi_qtyrealisasi ";
+        $query .= "    FROM tbtr_obi_d ";
+        $query .= "    WHERE obi_notrans = '" . $noTrans . "' ";
+        $query .= "      AND DATE_TRUNC('DAY', obi_tgltrans) = TO_DATE('" . $tglTrans . "', 'YYYY-MM-DD') ";
+        $query .= "      AND obi_recid IS NULL ";
+        $query .= "    GROUP BY SUBSTR(obi_prdcd, 1, 6) || '0' ";
+        $query .= "), filtered_tbmaster_stock AS ( ";
+        $query .= "    SELECT * ";
+        $query .= "    FROM tbmaster_stock ";
+        $query .= "    WHERE st_lokasi = '01' ";
+        $query .= "      AND EXISTS ( ";
+        $query .= "          SELECT 1 ";
+        $query .= "          FROM tbtr_obi_d ";
+        $query .= "          WHERE SUBSTR(obi_prdcd, 1, 6) || '0' = st_prdcd ";
+        $query .= "            AND obi_notrans = '" . $noTrans . "' ";
+        $query .= "            AND DATE_TRUNC('DAY', obi_tgltrans) = TO_DATE('" . $tglTrans . "', 'YYYY-MM-DD') ";
+        $query .= "      ) ";
+        $query .= ") ";
+        $query .= "UPDATE tbmaster_stock AS t ";
+        $query .= "SET ";
+
+        if($flagTambah) {
+            $query .= "    st_intransit = t.st_intransit - s.obi_qtyrealisasi, ";
+            $query .= "    st_saldoakhir = COALESCE(t.st_saldoawal, 0) ";
+            $query .= "                     + COALESCE(t.st_trfin, 0) ";
+            $query .= "                     - COALESCE(t.st_trfout, 0) ";
+            $query .= "                     - COALESCE(t.st_sales, 0) ";
+            $query .= "                     + COALESCE(t.st_retur, 0) ";
+            $query .= "                     + COALESCE(t.st_adj, 0) ";
+            $query .= "                     + COALESCE(t.st_selisih_so, 0) ";
+            $query .= "                     + COALESCE(t.st_selisih_soic, 0) ";
+            $query .= "                     + COALESCE(t.st_intransit, 0) ";
+            $query .= "                     - s.obi_qtyrealisasi, ";
+        } else {
+            $query .= "    st_intransit = t.st_intransit + s.obi_qtyrealisasi, ";
+            $query .= "    st_saldoakhir = COALESCE(t.st_saldoawal, 0) ";
+            $query .= "                     + COALESCE(t.st_trfin, 0) ";
+            $query .= "                     - COALESCE(t.st_trfout, 0) ";
+            $query .= "                     - COALESCE(t.st_sales, 0) ";
+            $query .= "                     + COALESCE(t.st_retur, 0) ";
+            $query .= "                     + COALESCE(t.st_adj, 0) ";
+            $query .= "                     + COALESCE(t.st_selisih_so, 0) ";
+            $query .= "                     + COALESCE(t.st_selisih_soic, 0) ";
+            $query .= "                     + COALESCE(t.st_intransit, 0) ";
+            $query .= "                     + s.obi_qtyrealisasi, ";
         }
-        $query .= "			 t.st_modify_by = '" . session('KODECABANG') . "', ";
-        $query .= "			 t.st_modify_dt = NOW() ";
+
+        $query .= "    st_modify_by = '" . session('KODECABANG') . "', ";
+        $query .= "    st_modify_dt = NOW() ";
+        $query .= "FROM source_data AS s ";
+        $query .= "WHERE t.st_prdcd = s.obi_prdcd ";
+        $query .= "  AND t.st_lokasi = '01' ";
+        $query .= "  AND EXISTS ( ";
+        $query .= "      SELECT 1 ";
+        $query .= "      FROM tbtr_obi_d ";
+        $query .= "      WHERE SUBSTR(obi_prdcd, 1, 6) || '0' = t.st_prdcd ";
+        $query .= "        AND obi_notrans = '" . $noTrans . "' ";
+        $query .= "        AND DATE_TRUNC('DAY', obi_tgltrans) = TO_DATE('" . $tglTrans . "', 'YYYY-MM-DD') ";
+        $query .= "  );";
         DB::insert($query);
 
+        $query = '';
         $query .= "UPDATE tbtr_obi_d ";
         if($flagTambah){
             $query .= "SET obi_qtyintransit = obi_qtyrealisasi ";
@@ -7444,7 +7455,7 @@ class KlikIgrController extends Controller
             $query .= "SET obi_qtyintransit = 0 ";
         }
         $query .= "WHERE obi_notrans = '" . $noTrans . "' ";
-        $query .= "AND DATE_TRUNC('DAY',obi_tgltrans) = ".Carbon::parse($tglTrans)->format('Y-m-d H:i:s')." ";
+        $query .= "AND DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" . $tglTrans . "', 'YYYY-MM-DD') ";
         $query .= "AND obi_recid is null ";
         DB::update($query);
 

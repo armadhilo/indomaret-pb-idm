@@ -155,7 +155,7 @@ class KlikIgrFooterController extends KlikIgrController
             $query .= "       obi_qtyorder AS QTY_Order, ";
             $query .= "       COALESCE(obi_qtyrealisasi,0) AS QTY_Realisasi ";
             $query .= "FROM tbtr_obi_d ";
-            $query .= "LEFT JOIN tbmaster_prodmast p ON p.prd_prdcd = obi_prdcd LIMIT 15";
+            $query .= "LEFT JOIN tbmaster_prodmast p ON p.prd_prdcd = obi_prdcd ";
             $query .= "WHERE obi_notrans = '" . $request->no_trans . "' ";
             $query .= "AND obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_nopb = '" . $request->nopb . "') ";
             $query .= "AND obi_recid IS NULL ";
@@ -260,7 +260,9 @@ class KlikIgrFooterController extends KlikIgrController
         $query = "";
         $query .= "SELECT d.obi_prdcd, p.prd_deskripsipendek, b.obi_qtyrealisasi, ";
         $query .= "       d.obi_tiperak, d.obi_koderak, d.obi_kodesubrak, d.obi_shelvingrak ";
-        $query .= "FROM tbtr_obi_d AS d, tbmaster_prodmast AS p, tbhistory_obi_batal AS b ";
+        $query .= "FROM tbtr_obi_d AS d ";
+        $query .= "JOIN tbhistory_obi_batal AS b on d.obi_prdcd = b.obi_prdcd AND d.obi_notrans = b.obi_notrans AND d.obi_tgltrans = b.obi_tgltrans ";
+        $query .= "JOIN tbmaster_prodmast AS p on b.obi_prdcd = p.prd_prdcd ";
         $query .= "WHERE d.obi_notrans = '" . $request->no_trans . "' ";
         $query .= "  AND b.obi_qtyrealisasi > 0 ";
         $query .= "  AND d.obi_tgltrans = (SELECT obi_tgltrans FROM tbtr_obi_h WHERE obi_nopb = '" . $request->nopb . "') ";
@@ -1301,37 +1303,59 @@ class KlikIgrFooterController extends KlikIgrController
     }
 
     public function actionF12(Request $request){
-        if($request->status == 'Konfirmasi Pembayaran' OR $request->status == 'Siap Struk'){
-            $query = '';
-            $query .= "SELECT * FROM TBTR_TRANSAKSI_VA ";
-            $query .= "WHERE TVA_TRXID = '" . substr($request->nopb, 0, 6) . "' ";
-            $query .= "    AND TVA_TGLPB = '" . Carbon::parse($request->tanggal_pb)->format('Y-m-d H:i:s') . "' ";
-            $query .= "    AND COALESCE(TVA_BANK, 'BANG') != 'BANG' ";
 
-            $data = DB::select($query);
+        DB::beginTransaction();
+        try{
 
-            //! Kalo transaksi COD-VA tidak bisa batal DSP
-            if(!count($data)){
-                //* nanti ada login manager dengan form -> frmPassword
-                if( json_decode($request->pass_password_manager) === false){
-                    return ApiFormatter::success(201, "Edit Transaksi No." . $request->no_trans . " yang sudah keluar DSP?", "isManager");
+            if($request->status == 'Konfirmasi Pembayaran' OR $request->status == 'Siap Struk'){
+                $query = '';
+                $query .= "SELECT * FROM TBTR_TRANSAKSI_VA ";
+                $query .= "WHERE TVA_TRXID = '" . substr($request->nopb, 0, 6) . "' ";
+                $query .= "    AND TVA_TGLPB = '" . Carbon::parse($request->tanggal_pb)->format('Y-m-d H:i:s') . "' ";
+                $query .= "    AND COALESCE(TVA_BANK, 'BANG') != 'BANG' ";
+
+                $data = DB::select($query);
+
+                //! Kalo transaksi COD-VA tidak bisa batal DSP
+                if(!count($data)){
+                    //* nanti ada login manager dengan form -> frmPassword
+                    if( json_decode($request->pass_password_manager) === false){
+                        return ApiFormatter::success(201, "Edit Transaksi No." . $request->no_trans . " yang sudah keluar DSP?", "isManager");
+                    }
+                    $this->batalDSP($request->tanggal_trans, $request->no_trans, $request->nopb, $request->kode_member);
+
+                    DB::commit();
+
+                    return ApiFormatter::success(200, 'DSP Berhasil Dibatalkan!');
                 }
-                $this->batalDSP($request->tanggal_trans, $request->no_trans, $request->nopb, $request->kode_member);
+            }elseif($request->status == $request->status_siap_packing){
+                //* nanti ada login manager dengan form -> frmPassword
+                if(json_decode($request->pass_password_manager) === false){
+                    return ApiFormatter::success(201, "Kembali ke Proses Picking untuk Transaksi No." . $request->no_trans . "?", "isAdmin");
+                }
 
-                return ApiFormatter::success(200, 'DSP Berhasil Dibatalkan!');
+                $this->ulangPicking($request->no_trans, $request->nopb);
+
+                DB::commit();
+
+                return ApiFormatter::success(200, 'Proses Picking Transaksi ' . $request->no_trans);
+
+            }else{
+                return ApiFormatter::error(400, 'Bukan data yang bisa dibatalkan!');
             }
-        }elseif($request->status == $request->status_siap_packing){
-            //* nanti ada login manager dengan form -> frmPassword
-            if(json_decode($request->pass_password_manager) === false){
-                return ApiFormatter::success(201, "Kembali ke Proses Picking untuk Transaksi No." . $request->no_trans . "?", "isAdmin");
-            }
 
-            $this->ulangPicking($request->no_trans, $request->nopb);
 
-            return ApiFormatter::success(200, 'Proses Picking Transaksi ' . $request->no_trans);
+        } catch (HttpResponseException $e) {
+            // Handle the custom response exception
+            throw new HttpResponseException($e->getResponse());
 
-        }else{
-            return ApiFormatter::error(400, 'Bukan data yang bisa dibatalkan!');
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
         }
     }
 
