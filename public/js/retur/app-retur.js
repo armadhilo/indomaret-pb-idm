@@ -1,36 +1,44 @@
 let selectedTable,
     selectedData  =  [],
     selectedToko =[],
-    dataToko =[],
+    dataNRB =[],
+    dataKoli =[],
     listToko =[],
     search  =  false,
     page = 1,
     field = null,
+    fieldKoli = null,
     formData = null,
     cabang = null;
 
 $(document).ready(function(){
       /**
-       * table_plu
+       * table_nrb
        */
-      // $('#table_plu input[type="checkbox"]').click(function () {
-      //       // Toggle the 'selected' class on the parent row
-      //       $(this).closest('tr').toggleClass('selected-row', this.checked);
-      // });
-      // $('#table_plu tbody').on('click', 'tr', function () {
+         $('#table_NRB tbody').on('click', 'tr', function () {
+            
+            $('#table_NRB tbody tr').removeClass('selected-row');
+            $(this).addClass('selected-row');
 
-      //    $(this).toggleClass('selected-row');
-      //    selectedTablePLU = $(this).find('td').map(function (data) {
-      //          return $(this).text();
-      //    }).get();
-      //    $(this).find('input[type="checkbox"]').prop('checked', function (i, oldProp) {
-      //       if ($(this).is(':checked')) {
-      //          addPlu(selectedTablePLU[1],false)
-      //    } else {
-      //          addPlu(selectedTablePLU[1],true)
-      //    }
-      //       return !oldProp;
-      //    });
+            selectedTable = $(this).find('td').map(function (data) {
+                  return $(this).text();
+            }).get();
+            get_data_koli();
+
+         });
+      /**
+       * table_koli
+       */
+         $('#table_koli tbody').on('click', 'tr', function () {
+            
+            $('#table_koli tbody tr').removeClass('selected-row');
+            $(this).addClass('selected-row');
+
+            selectedTable = $(this).find('td').map(function (data) {
+                  return $(this).text();
+            }).get();
+
+         });
          
 
       // });
@@ -39,12 +47,6 @@ $(document).ready(function(){
          allowClear: false
       }); 
       get_toko()
-      // $("#datepicker").datepicker({
-      //    format: "dd-MM-yyyy",
-      //    autoclose: true,
-      //    todayHighlight: true
-      // });
-      
       $('#form_wt').submit(function(e){
          e.preventDefault();
            formData = new FormData(this)
@@ -72,78 +74,128 @@ get_toko=()=>{
       })
 }
 
-submit_wt =()=>{
+get_data_nrb =()=>{
+   let select = "",
+       toko = $("#toko").val();
+      param = toko?"toko="+toko:'';
+      field = '';
+   $('#retur_card').loading('toggle');
+   $.getJSON(link + "/api/retur/data/nrb?"+param, function(data) {
+     
+       
+      // if(data.data){
+         $.each(data.data,function(key,value) {
+            field+=`
+                     <tr>
+                           <td>${value.docno?value.docno:'-'}</td>
+                           <td>${value.tgl1?value.tgl1:'-'}</td>
+                           <td>${value.istype?value.istype:'-'}</td>
+                     </tr>
+                  `;
+                  dataNRB[value.docno] = value;
+         });
 
-   $('#proses-wt').loading('toggle');
-
-      $.ajax({
-            url: link+'/api/proseswt/send',
-            method: 'POST',
-            data: formData,
-
-            success: function (response) {
-            },
-            error: function (xhr) {
-            },
-            cache: false,
-            contentType: false,
-            processData: false,
-            dataType: "json"
-      }).fail(function (e) {
          
-         $('#proses-wt').loading('toggle');
-      })
-      .done(function (data) {
-         
-         if (data.data.data_toko) {
-         let no = 1;
-            field = null;
+         $("#table-content-nrb").append(field);
 
-            $.each(data.data.data_toko,function(key,value) {
-               field+=`
-                        <tr>
-   
-                              <td>
-                                 ${no++}
-                              </td>
-                              <td>${value.toko?value.toko:'-'}</td>
-                              <td>${value.nama_toko?value.nama_toko:'-'}</td>
-                              <td>${value.hari_bln?value.hari_bln:'-'}</td>
-                              <td>${value.file_wt?value.file_wt:'-'}</td>
-                        </tr>
-                     `;
-                     dataToko[value.toko] = value;
-            });
-   
-            
-            $("#table-content-proseswt").append(field);
-            $('.dpp_idm').val(format_currency(data.data.dpp_idm));
-            $('.ppn_idm').val(format_currency(data.data.ppn_idm));
-            $('.total_idm').val(format_currency(data.data.total_idm));
-            $('.dpp_igr').val(format_currency(data.data.dpp_igr));
-            $('.ppn_igr').val(format_currency(data.data.ppn_igr));
-            $('.total_igr').val(format_currency(data.data.total_igr));
-            $('.retur_fisik').val(format_currency(data.data.retur_fisik));
-            $('.retur_peforma').val(format_currency(data.data.retur_performa));
-         //    $(".rupiah").keyup(function(){
-         //       if ($(".rupiah").val().trim().length === 0) {
-         //               $(".rupiah").val(0);
-         //       }
-         //       if ($('input[name="hargaMRC"]').val().trim().length === 0) {
-         //               $('input[name="hargaMRC"]').val(0);
-         //       }
-         //       var n = parseInt($(this).val().replace(/\D/g, ''), 10);
-         //       $(this).val(n.toLocaleString());
-         //       //do something else as per updated question
-         //   });
-         var selisih = data.data.total_idm - data.data.total_igr;
-         $('.total_selisih').html(format_currency(selisih));
-         
-           
+      // }
+
+   }).fail(function(data) {
+      Swal.fire({
+         title: data.responseJSON.messages,
+         html: '',
+         icon: 'warning',
+         allowOutsideClick: false,
+         onOpen: () => {
+                  swal.hideLoading()
          }
-         $('#proses-wt').loading('toggle');
-      }); 
+      });
+      
+      $('#retur_card').loading('toggle');
+   }).done(function() {
+      $('#retur_card').loading('toggle');
+   }); 
 
+}
+modalKoli=()=>{
+   $('#modalKoli').modal({
+      backdrop: 'static',
+      keyboard: false
+    });
+}
+get_data_koli =()=>{
+   console.log(dataNRB[selectedTable[0]])
+   let select = "",
+       toko = btoa(JSON.stringify(dataNRB[selectedTable[0]]));
+      param = "toko="+toko;
+      fieldKoli = '';
+   $('.modal').loading('toggle');
+   $.getJSON(link + "/api/retur/data/koli?"+param, function(data) {
+     
+       
+      // if(data.data){
+         $.each(data.data,function(key,value) {
+            fieldKoli+=`
+                     <tr>
+                           <td>${value.nokoli?value.nokoli:'-'}</td>
+                           <td>${value.plu?value.plu:'-'}</td>
+                           <td>${value.qty_dspb?value.qty_dspb:'-'}</td>
+                     </tr>
+                  `;
+                  dataNRB[value.kodetoko] = value;
+         });
+
+         
+         $("#table-content-koli").append(field);
+
+      // }
+
+   }).fail(function(data) {
+      Swal.fire({
+         title: data.responseJSON.messages,
+         html: '',
+         icon: 'warning',
+         allowOutsideClick: false,
+         onOpen: () => {
+                  swal.hideLoading()
+         }
+      });
+      
+      $('.modal').loading('toggle');
+   }).done(function() {
+      modalKoli();
+      $('.modal').loading('toggle');
+   }); 
+
+}
+
+
+selected_modal_table=(value)=>{
+   let selected_so = null;
+   if ( value == undefined) {
+       Swal.fire({
+          title: 'Data SO blm di pilih',
+          html: '',
+          icon: 'warning',
+          allowOutsideClick: false,
+          onOpen: () => {
+                  swal.hideLoading()
+          }
+ 
+       });
+       kodeso = null;
+       tglso = null;
+       tahap = null;
+       return false;
+   }
+   selected_so = dataSO[value[0]],
+   condition = selected_so.mso_flagcetak === selected_so.mso_flagtahap? true:false;
+   kodeso = selected_so.mso_kodeso;
+   tglso = selected_so.mso_tglso;
+   tahap = selected_so.mso_flagtahap;
+   txtTahap = 'Tahap '+parseInt(value[2]);
+   
+   $('#modalSO').modal('hide')
 }
 
 format_currency=(data)=>{

@@ -6,29 +6,14 @@
 @section('css')
 <style>
     /** max width card */
-        .max-width-card {
-            max-width: 156px;
-            min-width: 156px;
-        }
+    .max-width-card {
+        max-width: 156px;
+        min-width: 156px;
+    }
     /* Add your styling table_plu_seasonal */
-    #table_plu {
-        border-collapse: collapse;
-        width: 100%;
-    }
-
-    #table_plu th,
-    #table_plu td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-    }
-
-    #table_plu th {
-        background-color: #f2f2f2;
-    }
-
-    #table_plu tbody tr.selected {
-        background-color: #a6e7ff; /* Change the background color when selected */
+    .selected-row {
+        background-color: #007bff;
+        color: #ffffff;
     }
 
 </style>
@@ -39,7 +24,6 @@
     <script> $(".nav-item-home").addClass("active"); </script>
    
     <div class="container-fluid">
-        <!--  <h4 class="monitoring-label">Example Label <span class="badge badge-secondary monitoring-count">0</span></h4> -->
         <div class="card shadow mb-4">
             <div class="card-body" id="retur_card">
             <br>
@@ -51,7 +35,7 @@
                                             @csrf 
                                             <div class="form-group ">
                                                 <label for="katb">Toko</label>
-                                                <select class="form-control form-control-sm select2" name="toko" id="toko">
+                                                <select class="form-control form-control-sm select2" name="toko" id="toko" onchange="get_data_nrb()">
                                                     <option value="" disabled selected>Pilih Toko</option>
                                                     <!-- <option value="all">All</option> -->
                                                 
@@ -91,7 +75,7 @@
                                                 <!--             Table            -->
                                                 <!-- ============================ -->
                                                 <div class="table-container table-responsive" id="scrollContainer">
-                                                    <table class="table table-bordered" id="table_proseswt">
+                                                    <table class="table table-bordered" id="table_NRB">
                                                     <thead>
                                                         <tr>
                                                         <th style="min-width: 50px;" scope="col">No. NRB</th>
@@ -100,7 +84,7 @@
                                                         <!-- Add more headers as needed -->
                                                         </tr>
                                                     </thead>
-                                                    <tbody id="table-content-proseswt" style="height:420px;">
+                                                    <tbody id="table-content-nrb" style="height:420px;">
                                                     
                                                     </tbody>
                                                     </table>
@@ -144,6 +128,39 @@
 
                 </div>
 
+            </div>
+        </div>
+    </div>
+    <div class="modal" role="dialog" id="modalKoli">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">No Koli</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                
+                    <table class="table table-bordered" id="table_koli">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 100px;" scope="col">NO KOLI</th>
+                            <th style="min-width: 100px;" scope="col">PLU</th>
+                            <th style="min-width: 100px;" scope="col">QTY_DSPB</th>
+                        <!-- Add more headers as needed -->
+                        </tr>
+                    </thead>
+                    <tbody id="table-content-koli">
+                        
+                    </tbody>
+                    </table>
+                        
+                </div>
+                <div class="modal-footer">
+                    <button type="button" onclick="selected_modal_table(selectedTable)" class="btn btn-primary">OK</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
             </div>
         </div>
     </div>

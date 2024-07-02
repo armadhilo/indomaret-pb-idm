@@ -40,6 +40,54 @@ class MonitoringController extends Controller
         return view("menu.monitoring.index",compact('flag'));
     }
 
+    public function create_table_log_npb(){
+
+        $tableName = 'log_npb';
+
+        $tableExists = $this->DB_PGSQL->select("SELECT * FROM information_schema.tables WHERE UPPER(table_name) = UPPER('$tableName')");
+
+        if (empty($tableExists)) {
+            $createTableQuery = "
+                CREATE TABLE log_npb (
+                    npb_tgl_proses  DATE,
+                    npb_kodetoko    VARCHAR(5),
+                    npb_nopb        VARCHAR(20),
+                    npb_tglpb       DATE,
+                    npb_nodspb      VARCHAR(20),
+                    npb_file        VARCHAR(100),
+                    npb_jenis       VARCHAR(10),
+                    npb_url         VARCHAR(100),
+                    npb_response    TEXT,
+                    npb_jml_item    NUMERIC,
+                    npb_create_web  VARCHAR(12),
+                    npb_create_csv  VARCHAR(12),
+                    npb_kirim       VARCHAR(12),
+                    npb_confirm     VARCHAR(30),
+                    npb_tgl_retry   DATE,
+                    npb_jml_retry   NUMERIC,
+                    npb_create_by   VARCHAR(20),
+                    npb_create_dt   DATE,
+                    npb_modify_by   VARCHAR(20),
+                    npb_modify_dt   DATE
+                )
+            ";
+
+            $this->DB_PGSQL->statement($createTableQuery);
+
+            return response()->json(['message' => 'Table created successfully!']);
+        } else {
+            // Uncomment and modify if you need to delete old records
+            // $deleteOldRecordsQuery = "DELETE FROM log_npb WHERE DATE_TRUNC('day', npb_create_dt) < DATE_TRUNC('day', NOW() - 40)";
+            // DB::statement($deleteOldRecordsQuery);
+
+            return ['message' => 'Table already exists!'];
+        }
+    }
+
+    public function create_table_log_omi(){
+        return true;    
+    }
+
     public function monitoring_load(Request $request){
         $param = isset($request->param)?$request->param:null;
         $report_zona = isset($request->report_zona)?$request->report_zona:false;
@@ -47,6 +95,9 @@ class MonitoringController extends Controller
         $tanggal = isset($request->tanggal)?$request->tanggal:null;
         $zona = isset($request->zona)?$request->zona:null;
         $mode_omi = !(session()->get('flagIGR'))?true:false;
+
+        $this->create_table_log_npb();
+        $this->create_table_log_omi();
 
         $data_card = $this->initial($param,$report_zona,$flag_detail,$tanggal,$zona,$mode_omi);
         $data_zona = $this->load_zona();
@@ -79,31 +130,44 @@ class MonitoringController extends Controller
         $jmlhPb = 0;
         $selesaiLoading = 0;
         $dtTrans = $tanggal?date('Y-m-d',strtotime($tanggal)): date('Y-m-d');
-        $today = date('Y-m-d');
+        $dtTrans = date('Y-m-d');
+        $debug_condition = false;
+        $command_for_debug = $debug_condition?"-- ":'';
+        $debug = !$debug_condition?"-- ":'';
 
         try {
 
             // Count total PB
-            $sql = "SELECT COUNT(1)
+            $sql = "SELECT COUNT(*)
+                FROM (
+                    SELECT 1
                     FROM tbtr_header_pbidm
                     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date ";
-            if ($mode_omi) {
-                $sql .= "AND TKO_KODESBU = 'O' ";
-            } else {
-                $sql .= "AND TKO_KODESBU = 'I' ";
+                    ".$command_for_debug." WHERE hpbi_tgltransaksi::date = '$dtTrans'::date 
+                    ";
+            if (!$debug_condition) {
+                if ($mode_omi) {
+                    $sql .= "AND TKO_KODESBU = 'O' ";
+                } else {
+                    $sql .= "AND TKO_KODESBU = 'I' ";
+                }
             }
+            $sql .= ") as query";
             $jmlhPb = $this->DB_PGSQL->selectOne($sql)->count;
             // Count PB SendJalur
             $sql = "SELECT COUNT(1)
                     FROM tbtr_header_pbidm
                     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
-                    AND HPBI_FLAG IS NOT NULL ";
-            if ($mode_omi) {
-                $sql .= "AND TKO_KODESBU = 'O' ";
-            } else {
-                $sql .= "AND TKO_KODESBU = 'I' ";
+                    ".$command_for_debug." WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
+                    ".$command_for_debug." AND HPBI_FLAG IS NOT NULL 
+                    ".$debug." where HPBI_FLAG IS NOT NULL 
+                    ";
+            if (!$debug_condition) {
+                if ($mode_omi) {
+                    $sql .= "AND TKO_KODESBU = 'O' ";
+                } else {
+                    $sql .= "AND TKO_KODESBU = 'I' ";
+                }
             }
             $sendJalur = $this->DB_PGSQL->selectOne($sql)->count;
 
@@ -111,16 +175,19 @@ class MonitoringController extends Controller
             $sql = "SELECT COUNT(1)
                     FROM tbtr_header_pbidm
                     JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
-                    WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
-                    AND HPBI_FLAG <> '5' ";
+                    ".$command_for_debug."WHERE hpbi_tgltransaksi::date = '$dtTrans'::date
+                    ".$command_for_debug."AND HPBI_FLAG <> '5' 
+                    ".$debug."AND HPBI_FLAG <> '5' 
+                    ";
             if ($mode_omi) {
                 $sql .= "AND TKO_KODESBU = 'O'
                         AND EXISTS (
                             SELECT 1
                             FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab
                                 FROM dpd_idm_ora
-                                WHERE tglupd::date = '$today'::date
-                                AND (FMRCID = '1' OR FMRCID = '2')
+                                ".$command_for_debug." WHERE tglupd::date = '$dtTrans'::date
+                                ".$command_for_debug." AND (FMRCID = '1' OR FMRCID = '2')
+                                ".$debug." where (FMRCID = '1' OR FMRCID = '2')
                             ) q
                             WHERE fmkcab = HPBI_KODETOKO
                             AND tglpb = HPBI_TGLPB
@@ -132,8 +199,9 @@ class MonitoringController extends Controller
                             SELECT 1
                             FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan
                                 FROM dpd_idm_ora
-                                WHERE tglupd::date = '$today'::date
-                                AND (FMRCID = '1' OR FMRCID = '2')
+                                ".$command_for_debug."WHERE tglupd::date = '$dtTrans'::date
+                                ".$command_for_debug."AND (FMRCID = '1' OR FMRCID = '2')
+                                ".$debug."where (FMRCID = '1' OR FMRCID = '2')
                             ) q
                             WHERE fmkcab = HPBI_KODETOKO
                             AND tglpb = HPBI_TGLPB
@@ -156,8 +224,9 @@ class MonitoringController extends Controller
                             SELECT 1
                             FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab
                                 FROM dpd_idm_ora
-                                WHERE tglupd::date = '$today'::date
-                                AND FMRCID = '3'
+                                ".$command_for_debug." WHERE tglupd::date = '$dtTrans'::date
+                                ".$command_for_debug." AND FMRCID = '3'
+                                ".$debug." where FMRCID = '3'
                             ) t
                             WHERE fmkcab = HPBI_KODETOKO
                             AND tglpb = HPBI_TGLPB
@@ -169,8 +238,9 @@ class MonitoringController extends Controller
                             SELECT 1
                             FROM (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan
                                 FROM dpd_idm_ora
-                                WHERE tglupd::date = '$today'::date
-                                AND FMRCID = '3'
+                                ".$command_for_debug."WHERE tglupd::date = '$dtTrans'::date
+                                ".$command_for_debug."AND FMRCID = '3'
+                                ".$debug." where FMRCID = '3'
                             ) t
                             WHERE fmkcab = HPBI_KODETOKO
                             AND tglpb = HPBI_TGLPB
@@ -266,7 +336,7 @@ class MonitoringController extends Controller
                         nopicking, 
                         nosuratjalan 
                       FROM dpd_idm_ora 
-                      WHERE tglupd = '$today' 
+                      WHERE tglupd = '$dtTrans' 
                     ) p, tbtr_header_pbidm, tbmaster_tokoigr  
                    WHERE hpbi_kodetoko = tko_kodeomi 
                     AND hpbi_kodetoko = fmkcab 
@@ -295,6 +365,8 @@ class MonitoringController extends Controller
             ) t 
             WHERE total > 0 
             ORDER BY nopick 
+            ".$command_for_debug."limit 1000
+            ".$debug."limit 100
             ) dtl ";
             $data = $this->DB_PGSQL->select($sql);
 
@@ -376,6 +448,7 @@ class MonitoringController extends Controller
                 "list_data" => $dt 
             ];  
         } catch (\Exception $e) {
+            dd($e);
             // Handle the exception
             return (object)['errors' =>true,'messages'=> $e->getMessage()];
         }
@@ -383,21 +456,30 @@ class MonitoringController extends Controller
 
     
     public function initial_detail($tanggal = null,$zona = null,$report_zona = null, $flag_detail = null,$param = null,$mode_omi = null){
-        $tanggal = isset($tanggal)?$tanggal:date('Y-m-d');
-        $tmpDt =  $this->DB_PGSQL
-                       ->table("tbtr_header_pbidm")
-                       ->join("tbmaster_tokoigr",function($join){
-                            $join->on("hpbi_kodetoko","=","tko_kodeomi");
-                        })
-                       ->selectRaw("COALESCE(MAX(CAST(hpbi_tgltransaksi as DATE) - CAST(hpbi_tglpb as DATE)+5),7) datediff");
-        if ($tanggal) {
-            $tmpDt =   $tmpDt->whereRaw("hpbi_tgltransaksi = '$tanggal'::date");
-            
-        }
-        $tmpDt =   $tmpDt->get();
-
-        $datediff = $tmpDt ? $tmpDt[0]->datediff : 7;
         
+        $dateTrans = $tanggal?date("Y-m-d",strtotime($tanggal)):'';
+        $debug_condition = true;
+        $command_for_debug = $debug_condition?"-- ":'';
+        $debug = !$debug_condition?"-- ":'';
+        $data_fmkcab = '';
+
+        // Build the query
+        $query = "
+            SELECT COALESCE(MAX(CAST(hpbi_tgltransaksi AS DATE) - CAST(hpbi_tglpb AS DATE) + 5), 7) AS datediff
+            FROM tbtr_header_pbidm
+            JOIN tbmaster_tokoigr ON hpbi_kodetoko = tko_kodeomi
+            ".$command_for_debug." WHERE hpbi_tgltransaksi::date = '$dateTrans'
+        ";
+
+        // Execute the query
+        $tmpDt = $this->DB_PGSQL->select($query);
+
+        // Check if the query returned results and set the datediff
+        if (!empty($tmpDt)) {
+            $datediff = $tmpDt[0]->datediff;
+        } else {
+            $datediff = 7;
+        }
 
         if (!$report_zona) { // chck1
            
@@ -454,8 +536,9 @@ class MonitoringController extends Controller
                     $query_1 .="group by  tglupd , fmkcab , tglpb, fmndoc, nopicking, nosuratjalan) persentase ";
                 }
                 
-                $query_1 .=  "WHERE hpbi_tgltransaksi = '$tanggal'::date 
-                                AND PBO_NOPB = HPBI_NOPB AND PBO_TGLPB = TO_DATE(HPBI_TGLPB, 'YYYYMMdd') 
+                $query_1 .=  " ".$command_for_debug."WHERE hpbi_tgltransaksi = '$tanggal'::date 
+                               ".$command_for_debug."AND PBO_NOPB = HPBI_NOPB AND PBO_TGLPB = TO_DATE(HPBI_TGLPB, 'YYYYMMdd') 
+                               ".$debug."where PBO_NOPB = HPBI_NOPB AND PBO_TGLPB = TO_DATE(HPBI_TGLPB, 'YYYYMMdd') 
                                 AND COALESCE(HPBI_NOPICKING, 0) = COALESCE(PBO_NOPICKING, HPBI_NOPICKING, 0) 
                                 AND COALESCE(HPBI_NOSJ, 0) = COALESCE(PBO_NOSJ, HPBI_NOSJ, 0) ";
                 $query_1 .= "AND PBO_KODEOMI = HPBI_KODETOKO  ";
@@ -471,7 +554,8 @@ class MonitoringController extends Controller
                     $query_1 .= "AND EXISTS  
                                 (SELECT 1 FROM   
                                 (SELECT DISTINCT fmndoc, tglpb, fmkcab, nopicking, nosuratjalan FROM dpd_idm_ora     
-                                WHERE tglupd = '$tanggal' ";
+                                 ".$command_for_debug." WHERE tglupd = '$tanggal' 
+                                ";
                                 if ($param == 2) {
                                     $query_1 .= "AND (FMRCID = '1' or FMRCID = '2') ";
                                 }elseif ($param == 3) {
@@ -495,12 +579,15 @@ class MonitoringController extends Controller
 
                 $query_1 .= "  AND PBO_KODEOMI = TKO_KODEOMI
                                AND HPBI_KODETOKO = TKO_KODEOMI ";
-                if ($mode_omi == "OMI") {
+                if ($mode_omi) {
                     $query_1 .=  "  AND TKO_KODESBU = 'O' ";
                 } else {
                     $query_1 .=  "  AND TKO_KODESBU = 'I' ";
                 }
-                $query_1 .= "ORDER BY COALESCE(HPBI_NOPICKING, HPBI_NOSJ)) DTL ";
+                $query_1 .= "ORDER BY COALESCE(HPBI_NOPICKING, HPBI_NOSJ)
+                        ".$command_for_debug."limit 1000
+                        ".$debug."limit 100
+                ) DTL ";
                
 
 
@@ -511,7 +598,8 @@ class MonitoringController extends Controller
                                  FROM (SELECT   kodezona,  MAX(grak) dcp, fmkcab,  fmndoc, tglpb,   
                                         nopicking nopick, nosuratjalan nosj FROM (SELECT DISTINCT fmkcab, fmndoc, tglpb, grak,   
                                         kodezona, nopicking,  nosuratjalan FROM dpd_idm_ora   
-                                        WHERE tglupd =  '$tanggal' ) q,   
+                                        ".$command_for_debug." WHERE tglupd =  '$tanggal' 
+                                        ) q,   
                                         tbtr_header_pbidm   
                                         WHERE hpbi_kodetoko = fmkcab   
                                         AND hpbi_nopb = fmndoc   
@@ -519,13 +607,13 @@ class MonitoringController extends Controller
                                         AND hpbi_nopicking = nopicking   
                                         AND hpbi_nosj = nosuratjalan   
                                         AND HPBI_FLAG <> '5' 
-                                        AND hpbi_tgltransaksi = '$tanggal'::date
+                                         ".$command_for_debug." AND hpbi_tgltransaksi = '$tanggal'::date
                                         GROUP BY kodezona, fmkcab, fmndoc, tglpb, nopicking, nosuratjalan 
                                         ) hdr   
                                 LEFT JOIN dcp_antrian   
                                 ON fmkcab = dca_toko AND fmndoc = dca_nopb AND tglpb = dca_tglpb   
                                 AND nopick = dca_nopicking AND nosj = dca_nosj   
-                                AND dcp = dca_grouprak and fmkcab =  '" & dgv.Item(1, dgv.CurrentCell.RowIndex).Value & "' 
+                                ".$command_for_debug."AND dcp = dca_grouprak and fmkcab =  '".$data_fmkcab."' 
                                 order by kodezona ";
 
                 }
@@ -551,7 +639,7 @@ class MonitoringController extends Controller
                 } elseif ($param == 3) {
                    $query_1 .= "AND fmrcid  = '3'";
                 }
-                if ($mode_omi == "OMI") {
+                if ($mode_omi) {
                    $query_1 .= "AND coalesce(FMKSBU,'X') = 'O'";
                 } else {
                    $query_1 .= "AND coalesce(FMKSBU,'X') = 'I'";
@@ -570,7 +658,7 @@ class MonitoringController extends Controller
                                         (SELECT   fmkcab, tglpb, fmndoc, kodezona, nopicking, nosuratjalan  
                                         FROM dpd_idm_ora 
                                         WHERE tglupd = '$tanggal' ";  
-                                        if ($mode_omi == "OMI") {
+                                        if ($mode_omi) {
                                             $query_1 .= "AND coalesce(FMKSBU,'X') = 'O'";
                                          } else {
                                             $query_1 .= "AND coalesce(FMKSBU,'X') = 'I'";
@@ -598,8 +686,9 @@ class MonitoringController extends Controller
             
             
         }
+        
         $data = $this->DB_PGSQL->select ($query_1);
- 
+
         return $data;
         
 
@@ -622,7 +711,7 @@ class MonitoringController extends Controller
                           ->selectRaw("
                             KODEIGR AS KODEGUDANG, NAMAFILE, KODETOKO, CREATEDT AS TANGGAL
                           ")
-                          ->whereRaw("DATE_TRUNC('DAY', CREATEDT) = TO_DATE('$tanggal', 'yyyy-mm-dd')")
+                          ->whereRaw("CREATEDT = '$tanggal'::date")
                           ->get();
         foreach ($data_csv as $key => $value) {
             $array_csv[] = [

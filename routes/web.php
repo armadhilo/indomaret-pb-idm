@@ -204,6 +204,8 @@ Route::middleware(['mylogin'])->group(function () {
         Route::prefix('/retur')->group(function () {
 
             Route::get('/data/toko', [ReturController::class, 'get_data_toko']);
+            Route::get('/data/nrb', [ReturController::class, 'isiDataNRB']);
+            Route::get('/data/koli', [ReturController::class, 'koliLoad']);
 
         });
         /*  Report */
