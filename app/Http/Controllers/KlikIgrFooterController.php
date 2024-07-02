@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\GeneralExcelExport;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Http;
 
@@ -1334,25 +1335,112 @@ class KlikIgrFooterController extends KlikIgrController
         }
     }
 
+    private function alasanbatalKlik($no_trans, $tanggal_trans, $nopb, $alasan){
+        $apiName = '';
+        $apiKey = '';
+        $dt = DB::select("SELECT ws_url, ws_aktif FROM tbmaster_webservice WHERE ws_nama = 'WS_KLIK'");
+        if(count($dt) < 1){
+            throw new HttpResponseException(ApiFormatter::error(400, "API Tidak Ditemukan"));
+        }
+
+        if($dt[0]->ws_url !== ''){
+            $urlKlik = $dt[0]->ws_url;
+            $flagAktif = $dt[0]->ws_aktif;
+        } else {
+            throw new HttpResponseException(ApiFormatter::error(400, "API KLIK Kosong"));
+        }
+
+        if($flagAktif == "0"){
+            return "SUCCESS";
+        }
+
+        $dt = DB::table('tbmaster_credential')->selectRaw("cre_name as api_name, cre_key as api_key")->first();
+        if(count($dt) > 0){
+            $apiName = $dt[0]->api_name;
+            $apiKey = $dt[0]->api_key;
+        }
+
+        $splitTrans = explode('/', $nopb);
+        $trxid = $splitTrans[0];
+
+        $postData = [
+            'trx_id' => $trxid,
+            'desc' => $alasan
+        ];
+
+        // Convert postData to JSON
+        try {
+            $strPostData = json_encode($postData);
+        } catch (\Exception $ex) {
+            throw new HttpResponseException(ApiFormatter::error(400, "Failed to create JSON Request"));
+        }
+
+        $urlKlik .= "/getcancelinfo";
+
+        $strResponse = $this->ConToWebServiceNew($urlKlik, $apiName, $apiKey, $strPostData);
+
+        $query = "";
+        $query .= "INSERT INTO log_alasan_batal ( ";
+        $query .= "  notrans, ";
+        $query .= "  tgltrans, ";
+        $query .= "  nopb, ";
+        $query .= "  alasan_batal, ";
+        $query .= "  url, ";
+        $query .= "  response, ";
+        $query .= "  create_by, ";
+        $query .= "  create_dt ";
+        $query .= ") VALUES ( ";
+        $query .= "  '" . $no_trans . "', ";
+        $query .= "  TO_DATE('" . $tanggal_trans . "','DD-MM-YYYY'), ";
+        $query .= "  '" . $nopb . "', ";
+        $query .= "  '" . $alasan . "', ";
+        $query .= "  '" . $urlKlik . "', ";
+        $query .= "  '" . $strResponse . "', ";
+        $query .= "  '" . session("USERID") . "', ";
+        $query .= "  NOW() ";
+        $query .= ") ";
+
+        DB::insert($query);
+
+        if (strtoupper($strResponse) === "CONNECTION FAILED") {
+            return "CONNECTION FAILED";
+        }
+
+        try {
+            $cResponse = json_decode($strResponse);
+            if ($cResponse->response_code === "200") {
+                return "SUCCESS";
+            } else {
+                return $cResponse->response_message;
+            }
+        } catch (Exception $ex) {
+            return "Gagal Read JSON Response";
+        }
+
+
+
+
+    }
+
     public function actionDelete(Request $request){
         $strHasil = "";
         $noPb = "";
         DB::beginTransaction();
         try {
-            $query = "SELECT obi_nopb, SUBSTRING(COALESCE(obi_recid,'0'), -1, 1) AS obi_recid ";
-            $query .= "FROM tbtr_obi_h AS h ";
-            $query .= "WHERE SUBSTRING(COALESCE(obi_recid, '0'), -1, 1) IN ('4','5') ";
-            $query .= "AND h.obi_notrans = '" . $request->no_trans . "' ";
-            $query .= "AND h.obi_nopb = '" . $request->nopb . "' ";
-            $query .= "AND DATE_FORMAT(h.obi_tgltrans, '%d-%m-%Y') = '" . $request->tanggal_trans . "' ";
-            $query .= "AND UPPER(obi_attribute2) IN ('KLIKIGR', 'CORP', 'SPI') ";
-
-            $check = DB::select($query);
+            $check = DB::table('tbtr_obi_h as h')
+                ->select('obi_nopb', DB::raw("SUBSTRING(COALESCE(obi_recid,'0'), -1, 1) AS obi_recid"))
+                ->whereRaw("SUBSTRING(COALESCE(obi_recid, '0'), -1, 1) IN ('4','5')")
+                ->where('h.obi_notrans', $request->no_trans)
+                ->where('h.obi_nopb', $request->nopb)
+                ->whereDate('h.obi_tgltrans', '=', date('Y-m-d', strtotime($request->tanggal_trans)))
+                ->whereIn(DB::raw('UPPER(obi_attribute2)'), ['KLIKIGR', 'CORP', 'SPI'])
+                ->get();
 
             if(count($check) > 0){
                 if($check[0]->obi_recid == "5"){
                     $tempHasil = "";
                     if(session("flagSPI")){
+                        $tempHasil = "SUCCESS";
                         //hasil = cancelPickup_SPI(row.Cells(1).Value.ToString, row.Cells(2).Value.ToString, row.Cells(0).Value.ToString)
                     } else {
                         $tempHasil = $this->cancelPickup_KLIK($request->no_trans, $request->tanggal_trans, $request->nopb);
@@ -1467,9 +1555,10 @@ class KlikIgrFooterController extends KlikIgrController
             DB::insert($query);
 
             if(session("flagSPI")){
+                $tempHasil = "SUCCESS";
                 //hasil = cancelPickup_SPI(row.Cells(1).Value.ToString, row.Cells(2).Value.ToString, row.Cells(0).Value.ToString)
             } else {
-                $tempHasil = $this->alasanbatalKlik($request->no_trans, $request->tanggal_trans, $request->nopb);
+                $tempHasil = $this->alasanbatalKlik($request->no_trans, $request->tanggal_trans, $request->nopb, $request->alasanValue);
             }
 
             if ($tempHasil !== "SUCCESS") {
@@ -1501,6 +1590,7 @@ class KlikIgrFooterController extends KlikIgrController
             return ApiFormatter::success(200, "PB Berhasil Dibatalkan");
         } catch (QueryException $e) {
             DB::rollBack();
+            return $e;
             return ApiFormatter::error(500, "Error Pembatalan PB");
         } catch (\Exception $e) {
             DB::rollBack();

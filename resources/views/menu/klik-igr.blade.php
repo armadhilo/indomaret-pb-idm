@@ -329,10 +329,21 @@
                                 <div class="detail-info text-light" style="background: #bf0000 !important; width: 50%; height: 40px; font-weight: bold; font-size: .9rem" id="label_item_batal">*Ada Item Belum Dikembalikan Ke Rak</div>
                             </div>
                             <div class="table-responsive position-relative">
-                                <table class="table table-striped table-hover datatable-dark-primary w-100" id="tb">
+                                <table class="table table-striped table-hover datatable-dark-primary display nowrap" id="tb" style="width:100%">
                                     <thead>
                                         <tr>
+                                            <th>NO</th>
+                                            <th>STATUS</th>
+                                            <th>KODE MEMBER</th>
+                                            <th>TIPE MEMBER</th>
+                                            <th>NO PB</th>
+                                            <th>NO TRANS</th>
+                                            <th>NO PO</th>
+                                            <th>ONGKIR</th>
+                                            <th>TIPE BAYAR</th>
                                             <th>SERVICE</th>
+                                            <th>TGL & JAM PB</th>
+                                            <th>MAX SERAH TERIMA</th>
                                             <th>STATUS SEND JALUR</th>
                                             <th>DETAIL</th>
                                         </tr>
@@ -1687,9 +1698,9 @@
                 }
             });
         } else {
-            TimerSendHHKlik_Tick();
             initializeDatatablesMain();
             actionPbBatal();
+            TimerSendHHKlik_Tick();
         }
 
         tb_edit_pb = $('#tb_edit_pb').DataTable({
@@ -1961,16 +1972,28 @@ function initializeDatatablesMain(){
             type: 'GET'
         },
         columnDefs: [
-            { className: 'text-center', targets: [0,1] },
+            { className: 'text-center', targets: '_all' },
         ],
         order: [],
         "paging": false,
         "searching": false,
         "scrollY": "calc(100vh - 440px)",
         "scrollCollapse": true,
+        scrollX: true,
         ordering: false,
         columns: [
+            { data: 'no' },
+            { data: 'status' },
+            { data: 'kode_member' },
+            { data: 'tipe_member' },
+            { data: 'no_pb' },
+            { data: 'no_trans' },
+            { data: 'no_po' },
+            { data: 'ongkir' },
+            { data: 'tipe_bayar' },
             { data: 'service' },
+            { data: 'TGL & JAM PB' },
+            { data: 'MAX SERAH TERIMA' },
             { data: 'STATUS SEND JALUR' },
             {
                 data: null,
@@ -2151,6 +2174,75 @@ $(document).on('change', '#cek_item_bermasalah', function() {
         tb_edit_pb.clear().rows.add(originalDataPLU).draw();
     }
 });
+
+function actionSendHandheld(DonePilihJalurPicking = false){
+    var selectedRow = tb.row(".select-r").data();
+    var flagSPI = @json($flagSPI ?? false);
+    if(DonePilihJalurPicking || flagSPI){
+        $('#modal_loading').modal('show');
+        $('input[name="input_jalur_picking"]:checked').val();
+        $("#modal_pilih_jalur_picking").modal("hide");
+        if(flagSPI){
+            var pilihan = 2;
+        } else {
+            var pilihan = $('input[name="input_jalur_picking"]:checked').val();
+        }
+        $.ajax({
+            url: currentURL + `/action/SendHandHelt`,
+            type: "POST",
+            data: {no_trans: selectedRow.no_trans, status: selectedRow.status, statusSiapPicking: statusSiapPicking, pilihan: pilihan, nopb: selectedRow.no_pb, tanggal_pb: selectedRow.tgl_pb, kode_member: selectedRow.kode_member, tanggal_trans: $("#tanggal_trans").val(), pickRakToko: $("#pick_rak_toko").val()},
+            success: function(response) {
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                Swal.fire('Success!', response.message,'success');
+                if(response.data.content !== "noTXT"){
+                    var blob = new Blob([response.data.content], { type: "text/plain" });
+                    var link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = response.data.nama_file;
+                    link.click();
+                }
+            }, error: function(jqXHR, textStatus, errorThrown) {
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                if(jqXHR.responseJSON.code === 401){
+                    Swal.fire('Peringatan!', jqXHR.responseJSON.message,'error');
+                    var blob = new Blob([jqXHR.responseJSON.data.content], { type: "text/plain" });
+                    var link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = jqXHR.responseJSON.data.nama_file;
+                    link.click();
+                } else {
+                    Swal.fire({
+                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                        ? jqXHR.responseJSON.message
+                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                        icon: "error"
+                    });
+                }
+            }
+        });
+    } else {
+        Swal.fire({
+            title: 'Yakin?',
+            text: "Send Jalur No Trans " + selectedRow.no_trans + " ini ?",
+            icon: 'info',
+            showCancelButton: true,
+        })
+        .then((result) => {
+            if (result.value) {
+                if(statusSiapPicking !== selectedRow.status){
+                    Swal.fire("Peringatan!", "Bukan Data Yang Siap Send Jalur!", "warning");
+                    return;
+                }
+                if($("#tanggal_trans").val() == ''){
+                    Swal.fire("Peringatan!", "Pilih Tanggal Trans Terlebih Dahulu", "warning");
+                    return;
+                }
+                $('input[name="input_jalur_picking"]').first().prop("checked", true).trigger('change');
+                $("#modal_pilih_jalur_picking").modal("show");
+            }
+        });
+    }
+}
 </script>
 @endpush
 

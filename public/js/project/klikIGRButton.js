@@ -1100,68 +1100,7 @@ function detailTransaksi(element){
     });
 }
 
-function actionSendHandheld(DonePilihJalurPicking = false){
-    var selectedRow = tb.row(".select-r").data();
-    if(DonePilihJalurPicking){
-        $('#modal_loading').modal('show');
-        $('input[name="input_jalur_picking"]:checked').val();
-        $("#modal_pilih_jalur_picking").modal("hide");
-        $.ajax({
-            url: currentURL + `/action/SendHandHelt`,
-            type: "POST",
-            data: {no_trans: selectedRow.no_trans, status: selectedRow.status, statusSiapPicking: statusSiapPicking, pilihan: $('input[name="input_jalur_picking"]:checked').val(), nopb: selectedRow.no_pb, tanggal_pb: selectedRow.tgl_pb, kode_member: selectedRow.kode_member, tanggal_trans: $("#tanggal_trans").val(), pickRakToko: $("#pick_rak_toko").val()},
-            success: function(response) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                Swal.fire('Success!', response.message,'success');
-                if(response.data.content !== "noTXT"){
-                    var blob = new Blob([response.data.content], { type: "text/plain" });
-                    var link = document.createElement('a');
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = response.data.nama_file;
-                    link.click();
-                }
-            }, error: function(jqXHR, textStatus, errorThrown) {
-                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                if(jqXHR.responseJSON.code === 401){
-                    Swal.fire('Peringatan!', jqXHR.responseJSON.message,'error');
-                    var blob = new Blob([jqXHR.responseJSON.data.content], { type: "text/plain" });
-                    var link = document.createElement('a');
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = jqXHR.responseJSON.data.nama_file;
-                    link.click();
-                } else {
-                    Swal.fire({
-                        text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
-                        ? jqXHR.responseJSON.message
-                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
-                        icon: "error"
-                    });
-                }
-            }
-        });
-    } else {
-        Swal.fire({
-            title: 'Yakin?',
-            text: "Send Jalur No Trans " + selectedRow.no_trans + " ini ?",
-            icon: 'info',
-            showCancelButton: true,
-        })
-        .then((result) => {
-            if (result.value) {
-                if(statusSiapPicking !== selectedRow.status){
-                    Swal.fire("Peringatan!", "Bukan Data Yang Siap Send Jalur!", "warning");
-                    return;
-                }
-                if($("#tanggal_trans").val() == ''){
-                    Swal.fire("Peringatan!", "Pilih Tanggal Trans Terlebih Dahulu", "warning");
-                    return;
-                }
-                $('input[name="input_jalur_picking"]').first().prop("checked", true).trigger('change');
-                $("#modal_pilih_jalur_picking").modal("show");
-            }
-        });
-    }
-}
+//! SEND HANDHELT FUNCTION ADA DI BLADE FILE
 
 function actionOngkosKirim(){
     var selectedRow = tb.row(".select-r").data();
