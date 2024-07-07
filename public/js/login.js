@@ -66,7 +66,9 @@ $(document).ready(function () {
             }
         });
 
+        
         if (validation) {
+            $("#modal_loading").modal("show");
             $.ajax({
                 headers: {
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr(
@@ -89,6 +91,7 @@ $(document).ready(function () {
                 },
                 dataType: "JSON",
                 success: function (response) {
+                    $("#modal_loading").modal("hide");
                     window.location.replace("home");
                 },
                 error: function (xhr, status, error) {

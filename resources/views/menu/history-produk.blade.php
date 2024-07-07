@@ -40,7 +40,10 @@
             <div class="card shadow mb-4">
                 <div class="card-body">
                     <div class="header mb-4">
-                        <div class="detail-info" style="width: 750px; height: 44px; margin-bottom: 20px" id="status_text">Status : Pilih Path History Produk!</div>
+                        <div class="d-flex w-100" style="gap: 20px">
+                            <div class="detail-info w-100" style="height: 44px; margin-bottom: 20px" id="status_text">Status : Pilih Path History Produk!</div>
+                            <div class="detail-info w-100" style="height: 44px; margin-bottom: 20px" id="status_text2">* Kosongkan Periode Untuk Menampilkan Semua Data</div>
+                        </div>
                         <div class="d-flex" style="gap: 15px;">
                             <div class="form-group d-flex" style="gap: 15px; flex: 5;">
                                 <label for="file_input" style="white-space: nowrap; width: 150px" class="detail-info">Pilih Path &nbsp;:&nbsp;</label>
@@ -95,7 +98,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header br">
-                <h5 class="modal-title" style="color: #012970; font-weight: 600" id="modal_csv_title">Upload File CSV</h5>
+                <h5 class="modal-title" style="color: #012970; font-weight: 600" id="modal_csv_title">UPLOAD FILE CSV</h5>
                 <button type="button" class="close clearButton" data-dismiss="modal" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
                 </button>
@@ -153,15 +156,43 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" role="dialog" id="modal_absensi_file" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header br">
+                <h5 class="modal-title" style="color: #012970; font-weight: 600">Absensi File History Produk</h5>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive position-relative">
+                    <table class="table table-striped table-hover datatable-dark-primary w-100" id="tb_absensi_file">
+                        <thead>
+                            <tr>
+                                <th>Kode Toko</th>
+                                <th>Nama Toko</th>
+                                <th>Status File</th>
+                                <th>Nama File</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" style="width: 150px; height: 44px" class="btn btn-lg btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('page-script')
 <script>
-    let tb;
-    let tb_report;
+    let tb, tb_report, tb_absensi_file;
     let kodeIGR = "{{ session('KODECABANG') }}";
     $(document).ready(function(){
-        $("#periode").val(moment().format('YYYY-MM'))   
+        // $("#periode").val(moment().format('YYYY-MM'))   
         tb = $('#tb').DataTable({
             ajax: {
                 url: currentURL + "/datatables",
@@ -173,8 +204,8 @@
             columns: [
                 { data: 'kodetk'},
                 { data: 'namatk'},
-                { data: null, defaultContent: '' },
-                { data: null, defaultContent: '' },
+                { data: 'stat', defaultContent: '' },
+                { data: 'periode', defaultContent: '' },
 
             ],
             columnDefs: [
@@ -199,6 +230,46 @@
             ],
             rowCallback: function (row, data) {
                 $('td:eq(0)', row).html(`<input type="checkbox" class="form-control checkbox-table d-inline checkbox-group" value="${data.periode}" name="periode-checkbox"><span class="periode-text">${data.periode}</span>`);
+            }
+            
+        });
+
+        tb_absensi_file = $('#tb_absensi_file').DataTable({
+            processing: true,
+            columnDefs: [
+                { className: 'text-center', targets: '_all' },
+            ],
+            order: [],
+            "paging": false, 
+            "searching": false,
+            "scrollY": "calc(100vh - 400px)",
+            "scrollCollapse": true,
+            ordering: false,
+            columns: [
+                { data: 'kodeToko' },
+                { data: 'namaToko' },
+                {
+                    data: 'isFound',
+                    render: function(data) {
+                        return data == 1 ? 'OK' : 'File Tidak Ditemukan';
+                    }
+                },
+                { data: 'filename' },
+            ],
+            rowCallback: function(row, data) {
+                if (data.isFound == 1) {
+                    $(row).css({
+                        'background-color': 'green',
+                        'color': 'white',
+                        'font-weight': 'bold'
+                    });
+                } else {
+                    $(row).css({
+                        'background-color': '#a11111',
+                        'color': 'white',
+                        'font-weight': 'bold'
+                    });
+                }
             }
             
         });
@@ -240,6 +311,14 @@
             $("#btn_proses").attr("disabled", false);
         });
 
+        $("#tipe_upload").on("change", function(){
+            if($(this).val() == "MINOR"){
+                $("#modal_csv_title").text("UPLOAD MINOR TOKO");
+            } else {
+                $("#modal_csv_title").text("UPLOAD FILE CSV");
+            }
+        })
+
         $("#btn_upload").on("click", function(){
             var mode = $("#mode").val();
             $("#modal_csv").modal("show");
@@ -251,7 +330,7 @@
                 $("#btn_browse").text("BROWSE");
                 $("#tipe_upload").append(`<option value="MINOR">MINOR</option>`);
                 $("#tipe_upload").append(`<option value="PLUIDM">PLUIDM</option>`);
-                $("#modal_csv_title").text("Upload File CSV");
+                $("#modal_csv_title").text("UPLOAD FILE CSV");
             } else if(mode === "PRODUK BARU"){
                 $("#btn_ftp").css("display", "none");
                 $("#btn_browse").addClass("btn-warning");
@@ -265,7 +344,7 @@
                 $("#btn_browse").addClass("btn-info");
                 $("#btn_browse").text("HISTORY PINDAH SUPPLY");
                 $("#tipe_upload").append(`<option value="PINDAH SUPPLY">PINDAH SUPPLY</option>`);
-                $("#modal_csv_title").text("Upload File CSV Pindah Supply");
+                $("#modal_csv_title").text("UPLOAD FILE CSV PINDAH SUPPLY");
             }
         });
 
@@ -274,8 +353,47 @@
         });
     });
 
+    $('#modal_absensi_file').on('shown.bs.modal', function() {
+        tb_absensi_file.columns.adjust();
+    });
+
+    $('#modal_report').on('shown.bs.modal', function() {
+        tb_report.columns.adjust();
+    });
+
     function actionBrowse(){
         $("#file_input").click();
+    }
+
+    function actionGlobalDownloadPdf(fileName){
+        $('#modal_loading').modal('show');
+        $.ajax({
+            url: currentURL + `/action/download-pdf`,
+            type: "POST",
+            data: {fileName: fileName},
+            xhrFields: {
+                responseType: 'blob' // Important for binary data
+            },
+            success: function(response) {
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                var blob = new Blob([response], { type: 'application/pdf' }); // Corrected line
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, 
+            error: function(jqXHR, textStatus, errorThrown) {
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                Swal.fire({
+                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                        ? jqXHR.responseJSON.message
+                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                    icon: "error"
+                });
+            }
+        });
     }
 
     $('#file_input').on('change', function() {
@@ -288,13 +406,66 @@
     });
     
     function actionCheckPath(){
-        $('#btn_browse_main').text('Ubah Path');
-        $('#btn_proses').prop('disabled', false);
+        var files = $('#file_input')[0].files;
+        if (!files || files.length === 0) {
+            Swal.fire("Peringatan!", "Path Kosong!", "warning");
+            return;
+        }
+        
+        $('#modal_loading').modal('show');
+        var periode = $("#periode").val();
+        var periodeParts = periode.split('-');
+
+        var formData = new FormData();
+        
+        formData.append('blnPeriode', parseInt(periodeParts[1], 10));
+        formData.append('thnPeriode', periodeParts[0]);
+        formData.append('periode', periode);
+        $.each(files, function(index, file) {
+            formData.append('files[]', file);
+        });
+
+        tb_absensi_file.clear().draw();
+
+        $.ajax({
+            url: currentURL + `/action/checkPath`,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                if(response.data.checkAbsensi == 0){
+                    $("#file_input").val('').trigger("change");
+                    $("#status_text").text("Status : Pilih Path History Produk!");
+                    Swal.fire("Peringatan!", "Masih ada file toko yang tidak terpenuhi. Proses Tidak Dapat Dilanjutkan..", "warning").then(function(){
+                        $("#modal_absensi_file").modal("show");
+                        tb_absensi_file.rows.add(response.data.matchingDt).draw();
+                    });
+                } else {
+                    $('#btn_browse_main').text('Ubah Path');
+                    $('#btn_proses').prop('disabled', false);
+                    Swal.fire("Success!", response.message, "warning");
+                    $("#status_text").text("Status : File Berhasil Diupload! Klik Button Proses Untuk Melanjutkan");
+                }
+            }, error: function(jqXHR, textStatus, errorThrown) {
+                setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
+                $("#file_input").val('').trigger("change");
+                $("#status_text").text("Status : Pilih Path History Produk!");
+                Swal.fire({
+                    text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
+                        ? jqXHR.responseJSON.message
+                        : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                    icon: "error"
+                });
+            }
+        });
     }
 
     function actionProses(){
-        if ($("#file_input").val() === '') {
-            Swal.fire('Peringatan!', 'File Path Masih Kosong..!', 'warning');
+        var files = $('#file_input')[0].files;
+        if (!files || files.length === 0) {
+            Swal.fire("Peringatan!", "Path Kosong!", "warning");
             return;
         } else if ($("#periode").val() === '') {
             Swal.fire('Peringatan!', 'Harap pilih Periode Terlebih Dahulu...!', 'warning');
@@ -309,10 +480,12 @@
         })
         .then((result) => {
             if (result.value) {
+                var periode = $("#periode").val();
                 var formData = new FormData();
-                formData.append('txtFile', $("#file_input").val()[0]);
-                formData.append('date', $("#periode").val());
-                formData.append('mode', $("#mode").val());
+                $.each(files, function(index, file) {
+                    formData.append('files[]', file);
+                });
+                formData.append('periode', periode);
                 $('#modal_loading').modal('show');
                 $.ajax({
                     url: currentURL + `/action/proses`,
@@ -322,7 +495,11 @@
                     contentType: false,
                     success: function(response) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                        Swal.fire('Success!', response.message,'success');
+                        Swal.fire('Success!', response.message,'success').then(function(){
+                            tb.ajax.reload();
+                            $("#status_text").text("Status : Data Has Been Updated!");
+                            isiData();
+                        });
                     }, error: function(jqXHR, textStatus, errorThrown) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                         Swal.fire({
@@ -331,6 +508,8 @@
                                 : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
                             icon: "error"
                         });
+                        $("#file_input").val('').trigger("change");
+                        $("#status_text").text("Status : Pilih Path History Produk!");
                     }
                 });
             }
@@ -412,7 +591,10 @@
                     data: {periode: priodeValue},
                     success: function(response) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
-                        Swal.fire('Success!', response.message,'success');
+                        actionGlobalDownloadPdf(response.data);
+                        Swal.fire('Success!', response.message,'success').then(function(){
+                            $("#modal_report").modal("hide");
+                        });
                     }, error: function(jqXHR, textStatus, errorThrown) {
                         setTimeout(function () { $('#modal_loading').modal('hide'); }, 500);
                         Swal.fire({
@@ -552,6 +734,38 @@
                     text: (jqXHR.responseJSON && jqXHR.responseJSON.code === 400)
                         ? jqXHR.responseJSON.message
                         : "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
+                    icon: "error"
+                });
+            }
+        });
+    }
+
+    $("#periode").change(function(){
+        isiData();
+    });
+
+    function isiData(){
+        var periode = $("#periode").val();
+        var periodeRequest = 0;
+        if(periode !== ''){
+            var periodeParts = periode.split('-');
+            periodeRequest = parseInt(periodeParts[1], 10) + periodeParts[0];
+        }
+        tb.clear().draw();
+        $('.datatable-no-data').css('color', '#F2F2F2');
+        $('#loading_datatable').removeClass('d-none');
+        $.ajax({
+            url: currentURL + "/isi-data-datatables/" + periodeRequest,
+            type: "GET",
+            success: function(response) {
+                $('#loading_datatable').addClass('d-none');
+                $('.datatable-no-data').css('color', '#ababab');
+                tb.rows.add(response.data).draw();
+            }, error: function(jqXHR, textStatus, errorThrown) {
+                setTimeout(function () { $('#loading_datatable').addClass('d-none'); }, 500);
+                $('.datatable-no-data').css('color', '#ababab');
+                Swal.fire({
+                    text: "Oops! Terjadi kesalahan segera hubungi tim IT (" + errorThrown + ")",
                     icon: "error"
                 });
             }

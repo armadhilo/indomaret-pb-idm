@@ -35,7 +35,7 @@ class KlikIgrController extends Controller
     public function index(){
         try {
             $this->createTableIPP_ONL();
-            // $this->getKonversiItemPerishable(true);
+            $this->getKonversiItemPerishable(true);
 
             if(session('flagSPI')){
                 $this->createTablePSP_SPI();
@@ -371,16 +371,15 @@ class KlikIgrController extends Controller
         $query .= "    LEFT JOIN tbmaster_customer ON obi_kdmember = cus_kodemember ";
         $query .= "    LEFT JOIN tbtr_transaksi_va ON SUBSTR(obi_nopb, 0, 6)= tva_trxid AND obi_tglpb = tva_tglpb ";
         
-        //! DUMMY
-        // $query .= "   WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($tanggal_trans)->format('Y-m-d H:i:s')."'  ";
+        $query .= "   WHERE DATE_TRUNC('DAY',obi_tgltrans) = '".Carbon::parse($tanggal_trans)->format('Y-m-d H:i:s')."'  ";
 
-        // // Adding conditional clause
-        // if (session('flagSPI') == true) {
-        //     $query .= "     AND UPPER(obi_nopb) LIKE '%SPI%' ";
-        // } else {
-        //     $query .= "     AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
-        // }
-        $query .= ") p LIMIT 25";
+        // Adding conditional clause
+        if (session('flagSPI') == true) {
+            $query .= "     AND UPPER(obi_nopb) LIKE '%SPI%' ";
+        } else {
+            $query .= "     AND UPPER(obi_nopb) NOT LIKE '%SPI%' ";
+        }
+        $query .= ") p ";
 
 
         $data = DB::select($query);

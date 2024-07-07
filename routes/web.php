@@ -161,10 +161,13 @@ Route::middleware(['mylogin'])->group(function () {
     Route::group(['prefix' => 'history-produk'], function(){
         Route::get('/', [HistoryProdukController::class, 'index']);
         Route::get('/datatables', [HistoryProdukController::class, 'datatables']);
+        Route::get('/isi-data-datatables/{periode}', [HistoryProdukController::class, 'isiDataDatatables']);
 
         Route::get('/datatables-report', [HistoryProdukController::class, 'datatablesReportKPH']);
 
         Route::group(['prefix' => 'action'], function(){
+            Route::post("/download-pdf", [KlikIgrController::class, 'actionGlobalDownloadPdf']);
+            Route::post('/checkPath', [HistoryProdukController::class, 'actionCheckPath']);
             Route::post('/proses', [HistoryProdukController::class, 'actionProses']);
             Route::post('/hit-kph', [HistoryProdukController::class, 'actionHitKPH']);
             Route::post('/report-kph', [HistoryProdukController::class, 'actionReportKPH']);
