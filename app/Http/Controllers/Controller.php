@@ -103,24 +103,23 @@ class Controller extends BaseController
     //? FR KEVIN (INFO PAK EVAN 02/05/2024)
     public function ConToWebService($endpoint, $postData = []){
 
+        // $headers = [
+        //     'X-Authorization' => '4b8bf8518b027f7adbf0e6c367ccb204b397566e',
+        // ];
 
-        $headers = [
-            'X-Authorization' => '4b8bf8518b027f7adbf0e6c367ccb204b397566e',
-        ];
+        // $body = $postData;
 
-        $body = $postData;
+        // //* Make the HTTP request
+        // $response = Http::withHeaders($headers)
+        //     ->post($endpoint, $body);
 
-        //* Make the HTTP request
-        $response = Http::withHeaders($headers)
-            ->post($endpoint, $body);
-
-        //* get data
-        if($response->status() == 200){
-            return true;
-        }else{
-            $message = "Proses update status gagal, terjadi kesalahan pada Web Service ($response)";
-            throw new HttpResponseException(ApiFormatter::error(400, $message));
-        }
+        // //* get data
+        // if($response->status() == 200){
+        //     return true;
+        // }else{
+        //     $message = "Proses update status gagal, terjadi kesalahan pada Web Service ($response)";
+        //     throw new HttpResponseException(ApiFormatter::error(400, $message));
+        // }
 
         return true;
     }
@@ -1031,7 +1030,8 @@ class Controller extends BaseController
         $query .= " FROM dpd_idm_ora ";
         $query .= " WHERE fmndoc = '" . $PSP_NoPB . "' ";
         $query .= " AND fmkcab = 'SPI0' ";
-        $query .= " AND tglpb = TO_CHAR(TO_DATE('" . date('d-m-Y', strtotime($PSP_TglPB)) . "','DD-MM-YYYY'), 'YYYYMMDD') ";
+        //? DI DB MEMANG TYPE DATA tglpb ADALAH 20230607
+        $query .= " AND tglpb = TO_CHAR(TO_DATE('" . date('Y-m-d', strtotime($PSP_TglPB)) . "','YYYY-MM-DD'), 'YYYYMMDD') ";
         $dtCek = DB::select($query);
 
         if(count($dtCek)){
@@ -2008,7 +2008,7 @@ class Controller extends BaseController
                     $query .= "VALUES ( ";
                     $query .= "  '" . $item->zon_printer . "', ";
                     $query .= "  '" . $PSP_NoPick . "', ";
-                    $query .= "  '" . date("d-m-Y") . "', ";
+                    $query .= "  '" . date("Ymd") . "', ";
                     $query .= "  '" . str_pad($noContainer, 3, "0", STR_PAD_LEFT) . "-" . $item->zon_kode . "', ";
                     $query .= "  '" . $PSP_GATE . "', ";
                     $query .= "  '" . $KodeToko . "', ";
@@ -2024,7 +2024,7 @@ class Controller extends BaseController
 
                         $this->CetakContainerPSP($item->zon_printer,
                             $PSP_NoPick,
-                            date("d-m-Y"),
+                            date("Ymd"),
                             str_pad($noContainer, 3, "0", STR_PAD_LEFT) . "-" . $item->zon_kode,
                             $PSP_GATE,
                             $PSP_NamaToko,
@@ -2050,7 +2050,8 @@ class Controller extends BaseController
                         $query .= "UPDATE Picking_Container ";
                         $query .= "SET Pico_RecordID = '1' ";
                         $query .= "WHERE PICO_NoPICK = '" . $PSP_NoPick . "' ";
-                        $query .= "AND TO_DATE(PICO_TglPick,'DD-MM-YYYY') >= CURRENT_DATE - 7 ";
+                        //? karena bentuk data PICO_TglPick = 20240116
+                        $query .= "AND TO_DATE(PICO_TglPick, 'YYYYMMDD') >= CURRENT_DATE - INTERVAL '7 days' ";
                         $query .= "AND PICO_BarcodeKoli = '" . $BarcodeContainer . "' ";
                         DB::update($query);
                     }
@@ -2081,7 +2082,7 @@ class Controller extends BaseController
                     $query .= "VALUES ( ";
                     $query .= "  '" . $item->zon_printer . "', ";
                     $query .= "  '" . $PSP_NoPick . "', ";
-                    $query .= "  '" . date("d-m-Y") . "', ";
+                    $query .= "  '" . date("Ymd") . "', ";
                     $query .= "  '" . str_pad($noBronjong, 3, "0", STR_PAD_LEFT) . "-" . $item->zon_kode . "', ";
                     $query .= "  '" . $PSP_GATE . "', ";
                     $query .= "  '" . $PSP_KodeToko . "', ";
@@ -2094,10 +2095,10 @@ class Controller extends BaseController
 
                     if($SudahAdaCetakBarcodeHariIni == false){
 
-                        $this->CetakBronjongPSP($row[3],
+                        $this->CetakBronjongPSP($item->zon_printer,
                             $PSP_NoPick,
-                            date("d-m-Y"),
-                            str_pad($noBronjong, 3, "0", STR_PAD_LEFT) . "-" . $row[0],
+                            date("Ymd"),
+                            str_pad($noBronjong, 3, "0", STR_PAD_LEFT) . "-" . $item->zon_kode,
                             $PSP_GATE,
                             $PSP_NamaToko,
                             $PSP_NoPB,
@@ -2123,7 +2124,8 @@ class Controller extends BaseController
                         $query .= "UPDATE Picking_Container ";
                         $query .= "SET Pico_RecordID = '1' ";
                         $query .= "WHERE PICO_NoPICK = '" . $PSP_NoPick . "' ";
-                        $query .= "AND TO_DATE(PICO_TglPick,'DD-MM-YYYY') >= CURRENT_DATE - 7  ";
+                        //? karena bentuk data PICO_TglPick = 20240116
+                        $query .= "AND TO_DATE(PICO_TglPick, 'YYYYMMDD') >= CURRENT_DATE - INTERVAL '7 days' ";
                         $query .= "AND PICO_BarcodeKoli = '" . $BarcodeContainer . "' ";
                         DB::update($query);
                     }

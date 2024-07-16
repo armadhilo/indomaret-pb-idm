@@ -1,11 +1,22 @@
 let selectedTable,
     selectedData  =  [],
     selectedToko =[],
+    listToko =[],
     dataToko =[],
     dataInput =[],
     search  =  false,
     page = 1,
+    dpp_idm = 0,
+    ppn_idm = 0,
+    total_idm = 0,
+    dpp_igr = 0,
+    ppn_igr = 0,
+    total_igr = 0,
+    retur_fisik = 0,
+    retur_peforma = 0,
+    selisih = 0,
     field = null,
+    dtKey = [],
     formData = null,
     cabang = null;
 
@@ -13,16 +24,32 @@ $(document).ready(function(){
       /**
        * table_wt
        */
-      
+      $('#table_proseswt input[type="checkbox"]').click(function () {
+            // Toggle the 'selected' class on the parent row
+            $(this).closest('tr').toggleClass('selected-row', this.checked);
+      });
       $('#table_proseswt tbody').on('click', 'tr', function () {
 
          $(this).toggleClass('selected-row');
          selectedTable = $(this).find('td').map(function (data) {
                return $(this).text();
          }).get();
+         $(this).find('input[type="checkbox"]').prop('checked', function (i, oldProp) {
+            
+            if ($(this).is(':checked')) {
+               addDataFile(selectedTable[1],false)
+               $(this).addClass('selected-row');
+            } else {
+               $(this).removeClass('selected-row');
+               addDataFile(selectedTable[1],true)
+            }
+            return !oldProp;
+         });
          
 
       });
+      
+     
 
       // $('.select2').select2({
       //    allowClear: false
@@ -33,23 +60,93 @@ $(document).ready(function(){
       })
 });
 
-click_table=(toko = null)=>{
 
+addDataFile=(plu,status)=>{
+   if (status) {
+      if (listToko.indexOf(plu) === -1) {
+         listToko.push(plu)
+     }
+
+     click_table()
+      
+   } else {
+      // remove array by value
+      Array.prototype.remove = function() {
+         var what, a = arguments, L = a.length, ax;
+         while (L && this.length) {
+             what = a[--L];
+             while ((ax = this.indexOf(what)) !== -1) {
+                 this.splice(ax, 1);
+             }
+         }
+         return this;
+     };
+      listToko.remove(plu)
+
+      $(".checkbox-all").prop('checked',false)
+   }
+}
+
+click_table=()=>{
+   console.log(selectedTable)
+   let formDataTable = new FormData(); 
+      formDataTable.append('kodetoko', selectedTable[1]);
+      formDataTable.append('nama_toko', selectedTable[2]);
+      formDataTable.append('hari_bulan', selectedTable[3]);
+      formDataTable.append('file_wt', selectedTable[4]);
    $('#proses-wt').loading('toggle');
-  let inputData = dataInput[toko][0];
-   $('.dpp_idm').val(format_currency(inputData.dpp_idm));
-   $('.ppn_idm').val(format_currency(inputData.ppn_idm));
-   $('.total_idm').val(format_currency(inputData.total_idm));
-   $('.dpp_igr').val(format_currency(inputData.dpp_igr));
-   $('.ppn_igr').val(format_currency(inputData.ppn_igr));
-   $('.total_igr').val(format_currency(inputData.total_igr));
-   $('.retur_fisik').val(format_currency(inputData.retur_fisik));
-   $('.retur_peforma').val(format_currency(inputData.retur_performa));
+   $.ajax({
+         url: link+'/api/proseswt/read',
+         method: 'POST',
+         data: formDataTable,
 
-var selisih = inputData.total_idm - inputData.total_igr;
-$('.total_selisih').html(format_currency(selisih));
+         success: function (response) {
+         },
+         error: function (xhr) {
+         },
+         cache: false,
+         contentType: false,
+         processData: false,
+         dataType: "json"
+   }).fail(function (e) {
+         Swal.fire({
+            title: 'Gagal',
+            html: 'Data kosong',
+            icon: 'warning',
+            allowOutsideClick: false,
+            onOpen: () => {
+                  swal.hideLoading()
+            }
+      });
+      $('#proses-wt').loading('toggle');
+   }).done(function (data) {
+      
 
-$('#proses-wt').loading('toggle');
+        let inputData = data.data;
+            dpp_idm += inputData.dppIdm;
+            ppn_idm += inputData.ppnIdm;
+            total_idm += inputData.dppIdm+inputData.ppnIdm;
+            dpp_igr += inputData.dppIgr;
+            ppn_igr += inputData.ppnIgr;
+            total_igr += inputData.dppIgr+inputData.ppnIgr;
+            retur_fisik += inputData.returFisik;
+            retur_peforma += inputData.returPerforma;
+            dtKey.push(inputData.dtKey);
+
+         $('.dpp_idm').val(format_currency(dpp_idm));
+         $('.ppn_idm').val(format_currency(ppn_idm));
+         $('.total_idm').val(format_currency(total_idm));
+         $('.dpp_igr').val(format_currency(dpp_igr));
+         $('.ppn_igr').val(format_currency(ppn_igr));
+         $('.total_igr').val(format_currency(total_igr));
+         $('.retur_fisik').val(format_currency(retur_fisik));
+         $('.retur_peforma').val(format_currency(retur_peforma));
+   
+       selisih += total_idm - total_igr;
+      $('.total_selisih').html(format_currency(selisih));
+      $('#proses-wt').loading('toggle');
+   }); 
+
   
 
 }
@@ -60,11 +157,6 @@ submit_wt =()=>{
    $('#form_wt').submit()
 
    $("#table-content-proseswt").html('');
-   // let csrf = $('meta[name="csrf-token"]').attr('content'),
-   //       file = $("#file").val();
-   //       formWT = new FormData();
-   //    formWT.append('_token', csrf);
-   //    formWT.append("file",file);
 
       $.ajax({
             url: link+'/api/proseswt/send',
@@ -98,11 +190,9 @@ submit_wt =()=>{
 
             $.each(data.data.data_toko,function(key,value) {
                field+=`
-                        <tr onclick="click_table('${value.toko}')">
+                        <tr class="row-checkbox">
    
-                              <td>
-                                 ${no++}
-                              </td>
+                              <td><input type="checkbox" value="1" class="colm-checkbox">${no++}</td>
                               <td>${value.toko?value.toko:'-'}</td>
                               <td>${value.nama_toko?value.nama_toko:'-'}</td>
                               <td>${value.hari_bln?value.hari_bln:'-'}</td>
@@ -115,17 +205,6 @@ submit_wt =()=>{
    
             
             $("#table-content-proseswt").append(field);
-            // $('.dpp_idm').val(format_currency(data.data.dpp_idm));
-            // $('.ppn_idm').val(format_currency(data.data.ppn_idm));
-            // $('.total_idm').val(format_currency(data.data.total_idm));
-            // $('.dpp_igr').val(format_currency(data.data.dpp_igr));
-            // $('.ppn_igr').val(format_currency(data.data.ppn_igr));
-            // $('.total_igr').val(format_currency(data.data.total_igr));
-            // $('.retur_fisik').val(format_currency(data.data.retur_fisik));
-            // $('.retur_peforma').val(format_currency(data.data.retur_performa));
-
-            // var selisih = data.data.total_idm - data.data.total_igr;
-            // $('.total_selisih').html(format_currency(selisih));
          
            
          }else{
@@ -157,16 +236,16 @@ proses_wt=()=>{
        retur_fisik = $('.retur_fisik').val(),
        retur_peforma = $('.retur_peforma').val();
        formData.append('_token', csrf);
-       formData.append('file', file);
-       formData.append('dpp_idm',dpp_idm);
-       formData.append('ppn_idm',ppn_idm);
-       formData.append('total_idm',total_idm);
-       formData.append('dpp_igr',dpp_igr);
-       formData.append('ppn_igr',ppn_igr);
-       formData.append('total_igr',total_igr);
-       formData.append('retur_fisik',retur_fisik);
-       formData.append('retur_peforma',retur_peforma);
-       
+       formData.append('dtKey', btoa(JSON.stringify(dtKey)));
+       formData.append('namafile', selectedTable[4]);
+       formData.append('ppn_idm',back_to_integer(ppn_idm));
+       formData.append('dpp_idm',back_to_integer(dpp_idm));
+       formData.append('total_idm',back_to_integer(total_idm));
+       formData.append('dpp_igr',back_to_integer(dpp_igr));
+       formData.append('ppn_igr',back_to_integer(ppn_igr));
+       formData.append('total_igr',back_to_integer(total_igr));
+       formData.append('retur_fisik',back_to_integer(retur_fisik));
+       formData.append('retur_peforma',back_to_integer(retur_peforma));
    Swal.fire({
       title: "Anda Yakin melakukan Proses WT?",
       showDenyButton: true,
@@ -200,6 +279,7 @@ proses_wt=()=>{
                       messages,
                       'success'
                   ) 
+                  download_txt(response.data_struk)
                   $('proses-wt').loading('toggle');
               
               },
@@ -249,35 +329,10 @@ strPad=(str, width, char = " ", left = false)=>{
    return str.padEnd(width, char);
  }
 
-download_txt=()=>{
+download_txt=(data)=>{
    // $('#downloadBtn').click(function(){
-      var textData = '',
+      var textData = data,
           no = 1;
-      textData += "=====================================================================================================\n";
-      textData += strCenter("LISTING ITEM SO", 101) + "\n";
-      textData += "=====================================================================================================\n";
-      textData += strPad(`ID               : ${id?id:'-'}`, 101) + "\n";
-      textData += strPad(`CAB              : ${cab?cab:'-'}`, 101) + "\n";
-      textData += strPad(`STT              : ${stt?stt:'-'}`, 101) + "\n";
-      textData += strPad(`NO.TR            : ${no_tr?no_tr:'-'}`, 101) + "\n";
-      textData += "=====================================================================================================\n";
-      textData += ' NO. NAMA BARANG                            PLU       QTY    H.SATUAN    DISC.            TOTAL ' + "\n";
-      textData += "=====================================================================================================\n";
-      $.each(dataPrint,function(key,row) {
-         const qtyCTN = Math.floor(row.lso_qty / row.prd_frac);
-         const qtyPCS = row.lso_qty % row.prd_frac;
-
-         textData += strPad(no++, 3, " ", true) + "   " + strPad(row.prd_deskripsipendek, 22) + "(" + strPad(row.prd_prdcd, 7) + ")   \n";
-         textData += strPad(row.prd_unit, 14, " ", true) + " / " + strPad(Number(row.prd_frac).toFixed(0), 8) + strPad(Number(qtyCTN).toFixed(0), 5, " ", true) + strPad(Number(qtyPCS).toFixed(0), 8, " ", true) + "  \n";
-      });
-      textData += "=====================================================================================================\n";
-      textData += strPad(`Total Item        : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`Total (+ PPN)     : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`Pembayaran Kredit : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`Total Pembayaran  : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`Member            : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`No Koli           : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
-      textData += strPad(`Selesai           : ${lokasiPrint?lokasiPrint:'-'}`, 101) + "\n";
       
       // Create a blob with the text data
       var blob = new Blob([textData], { type: 'text/plain;charset=utf-8' });
@@ -290,7 +345,7 @@ download_txt=()=>{
       a.href = url;
       
       // Set the download attribute to specify the filename
-      a.download = 'LISTING ITEM SO '+waktuPrint+'.txt';
+      a.download = 'LISTING ITEM SO.txt';
       
       // Programmatically click the anchor element to trigger the download
       a.click();
@@ -305,5 +360,9 @@ format_currency=(data)=>{
    n = parseInt(value.replace(/\D/g, ''), 10);
    return n.toLocaleString();
 
+}
+back_to_integer = (input) =>{
+   let results = input.replace(/\,/g,'');
+   return parseInt(results);
 }
 

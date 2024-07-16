@@ -73,6 +73,7 @@ Route::middleware(['mylogin'])->group(function () {
             Route::post("/proses-main", [ActionProsesController::class, 'listPB']);
             Route::post('/action-approve', [KlikIgrController::class, 'action_approve']);
             Route::post('/SendHH-Tick', [KlikIgrController::class, 'SendHH_Tick']);
+            Route::post('/actionReprintKoli', [KlikIgrController::class, 'actionReprintKoli']);
 
             //* KeysFunction Additional
             Route::get("/f1-download-excel", [KlikIgrFooterController::class, 'actionF1DownloadCSV']);
@@ -160,13 +161,18 @@ Route::middleware(['mylogin'])->group(function () {
     Route::group(['prefix' => 'history-produk'], function(){
         Route::get('/', [HistoryProdukController::class, 'index']);
         Route::get('/datatables', [HistoryProdukController::class, 'datatables']);
+        Route::get('/isi-data-datatables/{periode}', [HistoryProdukController::class, 'isiDataDatatables']);
 
         Route::get('/datatables-report', [HistoryProdukController::class, 'datatablesReportKPH']);
 
         Route::group(['prefix' => 'action'], function(){
+            Route::post("/download-pdf", [KlikIgrController::class, 'actionGlobalDownloadPdf']);
+            Route::post('/checkPath', [HistoryProdukController::class, 'actionCheckPath']);
             Route::post('/proses', [HistoryProdukController::class, 'actionProses']);
             Route::post('/hit-kph', [HistoryProdukController::class, 'actionHitKPH']);
             Route::post('/report-kph', [HistoryProdukController::class, 'actionReportKPH']);
+
+            Route::post('/uploadCsvBrowse', [HistoryProdukController::class, 'actionUploadCsvBrowse']);
         });
     });
 
@@ -197,6 +203,7 @@ Route::middleware(['mylogin'])->group(function () {
         Route::prefix('/proseswt')->group(function () {
 
             Route::post('/send', [ProsesWTController::class, 'list_file']);
+            Route::post('/read', [ProsesWTController::class, 'read_csv']);
             Route::post('/proseswt', [ProsesWTController::class, 'proses_wt']);
 
         });
@@ -205,7 +212,11 @@ Route::middleware(['mylogin'])->group(function () {
 
             Route::get('/data/toko', [ReturController::class, 'get_data_toko']);
             Route::get('/data/nrb', [ReturController::class, 'isiDataNRB']);
+            Route::get('/data/list', [ReturController::class, 'list_data_retur']);
             Route::get('/data/koli', [ReturController::class, 'koliLoad']);
+            Route::get('/print/report/{data}', [ReturController::class, 'print_report']);
+            Route::get('/print/cek_kks', [ReturController::class, 'print_cek_kks']);
+            
 
         });
         /*  Report */

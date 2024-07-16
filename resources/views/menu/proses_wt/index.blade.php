@@ -114,7 +114,7 @@
                                         @if((int)session()->get('flagIGR'))
                                         <form action="{{url('api/proseswt/send')}}" method="post" id="form_wt">
                                             @csrf
-                                            <input type="file" name="file" id="file" onchange="submit_wt()">
+                                            <input type="file" name="files[]" multiple id="file" onchange="submit_wt()">
                                         </form>
                                         <button type="button" class="btn btn-md btn-primary" onclick="proses_wt()"> Proses WT</button>
                                         @else

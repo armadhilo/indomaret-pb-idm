@@ -71,7 +71,7 @@ class FormBaRusakController extends KlikIgrController
         $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
         $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
         $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
-        $query .= " AND DATE_TRUNC('DAY', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'DD-MM-YYYY') ";
+        $query .= " AND DATE_TRUNC('DAY', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'YYYY-MM-DD') ";
         $query .= " AND d.obi_recid IS NULL ";
         $query .= " AND d.obi_qtyrealisasi > 0 ";
         $query .= " ORDER BY prd_deskripsipanjang ";
@@ -108,6 +108,11 @@ class FormBaRusakController extends KlikIgrController
     }
 
     public function actionHitungUlang(Request $request){
+
+        if(!isset($request->datatable) OR !count($request->datatable)){
+            return ApiFormatter::error(400, 'Datatable kosong');
+        }
+
         DB::beginTransaction();
         try{
             $selectedRow = $request->selectedRow;
@@ -124,7 +129,7 @@ class FormBaRusakController extends KlikIgrController
                 $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
                 $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
                 $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
-                $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'DD-MM-YYYY') ";
+                $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'YYYY-MM-DD') ";
                 $query .= " AND d.obi_recid IS NULL ";
                 $query .= " AND d.obi_qtyrealisasi > 0 ";
                 $query .= " AND d.obi_prdcd = '" . $prdcd . "' ";
@@ -279,7 +284,7 @@ class FormBaRusakController extends KlikIgrController
             $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
             $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
             $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
-            $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'DD-MM-YYYY') ";
+            $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "', 'YYYY-MM-DD') ";
             $query .= " AND d.obi_recid IS NULL ";
             $query .= " AND d.obi_qtyrealisasi > 0 ";
             $query .= " AND d.obi_prdcd = '" . $plu . "' ";
@@ -330,7 +335,7 @@ class FormBaRusakController extends KlikIgrController
                     $query .= "   'DRAFT', ";
                     $query .= "   '" . $selectedRow['tipe_bayar'] . "', ";
                     $query .= "   '" . $selectedRow['no_pb'] . "', ";
-                    $query .= "   TO_DATE('" . $selectedRow['tgltrans'] . "', 'DD-MM-YYYY'), ";
+                    $query .= "   TO_DATE('" . $selectedRow['tgltrans'] . "', 'YYYY-MM-DD'), ";
                     $query .= "   '" . $selectedRow['kode_member'] . "', ";
                     $query .= "   '" . $plu . "', ";
                     $query .= "   '" . $qtyBA . "', ";
@@ -424,7 +429,7 @@ class FormBaRusakController extends KlikIgrController
                 $query .= " WHERE h.obi_nopb = '" . $selectedRow["no_pb"] . "' ";
                 $query .= " AND h.obi_notrans = '" . $selectedRow["no_trans"] . "' ";
                 $query .= " AND h.obi_kdmember = '" . $selectedRow["kode_member"] . "' ";
-                $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "','DD-MM-YYYY') ";
+                $query .= " AND DATE_TRUNC('day', h.obi_tgltrans) = TO_DATE('" . $selectedRow["tgltrans"] . "','YYYY-MM-DD') ";
                 $query .= " AND d.obi_recid IS NULL ";
                 $query .= " AND d.obi_qtyrealisasi > 0 ";
                 $query .= " AND d.obi_prdcd = '" . $plu . "' ";
@@ -528,7 +533,7 @@ class FormBaRusakController extends KlikIgrController
         $query = '';
         $query .= " UPDATE tbtr_obi_d ";
         $query .= " SET obi_qtyrealisasi = obi_qtyrealisasi - " . $qty . " ";
-        $query .= " WHERE obi_tgltrans = TO_DATE('" . $tgltrans . "','DD-MM-YYYY') ";
+        $query .= " WHERE DATE_TRUNC('DAY',obi_tgltrans) = TO_DATE('" . $tgltrans . "','YYYY-MM-DD') ";
         $query .= " AND obi_notrans = '" . $notrans . "' ";
         $query .= " AND obi_prdcd = '" . $plu . "' ";
         DB::update($query);
@@ -537,7 +542,7 @@ class FormBaRusakController extends KlikIgrController
         $query = '';
         $query .= " UPDATE tbtr_packing_obi ";
         $query .= " SET pobi_qty = pobi_qty - " . $qty . " ";
-        $query .= " WHERE DATE_TRUNC('DAY',pobi_tgltransaksi) = TO_DATE('" . $tgltrans . "','DD-MM-YYYY') ";
+        $query .= " WHERE DATE_TRUNC('DAY',pobi_tgltransaksi) = TO_DATE('" . $tgltrans . "','YYYY-MM-DD') ";
         $query .= " AND pobi_notransaksi = '" . $notrans . "' ";
         $query .= " AND pobi_prdcd = '" . $plu . "' ";
         DB::update($query);

@@ -849,7 +849,7 @@ function action_delete(passPasswordManager = false){
         }
         Swal.fire({
             title: 'Yakin?',
-            html: "Anda yakin akan membatalkan Transaksi No." & selectedRow.no_trans & " ?",
+            html: "Anda yakin akan membatalkan Transaksi No." + selectedRow.no_trans + " ?",
             icon: 'info',
             showCancelButton: true,
         })

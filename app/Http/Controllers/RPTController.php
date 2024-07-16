@@ -695,7 +695,7 @@ class RPTController extends Controller
             $msg = "";
             $tglTran = null;
             $STT = "";
-            $StationMODUL = session()->get('KODECABANG');
+            $StationMODUL = session("SPI_STATION");
 
             $toko = $kodetoko;
             $noPb = $nopb;    
@@ -2022,7 +2022,7 @@ class RPTController extends Controller
             $msg = "";
             $tglTran = null;
             $STT = "";
-            $StationMODUL = session()->get('KODECABANG');
+            $StationMODUL = session("SPI_STATION");
         
 
             //     $headerData = $this->DB_PGSQL->select("
@@ -2407,7 +2407,7 @@ class RPTController extends Controller
                 $noSJ = null;
                 $tglSJ = null;
                 $JumFMNDOC = null;
-                $StationMODUL = session()->get('KODECABANG');
+                $StationMODUL = session("SPI_STATION");
                 $UserMODUL = session()->get('userid');
                 $flagIGR = true;
                 $flagPunyaICM = false;

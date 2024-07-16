@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+ini_set('max_execution_time', '0');
+ini_set('memory_limit', '-1');
 
 use App\Helper\ApiFormatter;
 use App\Helper\DatabaseConnection;
@@ -11,6 +13,12 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\GeneralExcelImport;
+use Illuminate\Support\Facades\File;
+use ZipArchive;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class HistoryProdukController extends Controller
 {
@@ -25,7 +33,6 @@ class HistoryProdukController extends Controller
     }
 
     public function index(){
-
         $this->jmlToko = DB::select("select COUNT(DISTINCT TKO_KODEOMI) from tbmaster_tokoigr where tko_kodesbu = 'I' and tko_kodeigr = '" . session('KODECABANG') . "' and TKO_FLAGKPH = 'Y' ")[0]->count;
 
         //* untuk mode ada 2 yaitu KPH MEAN dan PRODUK BARU
@@ -38,14 +45,17 @@ class HistoryProdukController extends Controller
     }
 
     public function datatables(){
-
         $query = '';
-        $query .= "select DISTINCT TKO_KODEOMI KODETK, TKO_NAMAOMI NAMATK ";
-        $query .= "from tbmaster_tokoigr ";
-        $query .= "where tko_kodesbu = 'I'  ";
-        $query .= "and TKO_FLAGKPH = 'Y' ";
-        // $query .= "and tko_kodeigr = '" . session('KODECABANG') . "'   ";
-        $query .= "order by 1  ";
+        $query .= "SELECT DISTINCT ";
+        $query .= "TKO_KODEOMI AS KODETK, ";
+        $query .= "TKO_NAMAOMI AS NAMATK, ";
+        $query .= "NULL AS stat, ";   // Add stat column with NULL value
+        $query .= "NULL AS periode "; // Add periode column with NULL value
+        $query .= "FROM tbmaster_tokoigr ";
+        $query .= "WHERE tko_kodesbu = 'I' ";
+        $query .= "AND TKO_FLAGKPH = 'Y' ";
+        $query .= "AND tko_kodeigr = '" . session('KODECABANG') . "' ";
+        $query .= "ORDER BY 1";
         $data = DB::select($query);
 
         return DataTables::of($data)
@@ -56,67 +66,445 @@ class HistoryProdukController extends Controller
         //                       data.Rows(i).Item("NAMATK").ToString)
     }
 
-    public function actionProses(HistoryProdukRequest $request){
-        $formattedDate = $request->date . '-01';
-        $dtCek = DB::table('tbtemp_hp')
-            ->whereDate('tgl', '>=', $formattedDate)
-            ->whereDate('tgl', '<', date('Y-m-d', strtotime($formattedDate . ' +1 month')))
-            ->count();
+    public function isiDataDatatables($periode){
+        $countTempHP1 = DB::select("SELECT COUNT(*) FROM tbtemp_hp1")[0]->count;
 
-        if($dtCek){
-            return ApiFormatter::error(400, "File history periode " . $request->pilBulan . $request->pilTahun . " sudah pernah diupload!");
+        if($countTempHP1 > 0){
+            $query = "";
+            $query .= "SELECT DISTINCT TKO_KODEOMI AS KODETK, TKO_NAMAOMI AS NAMATK, ";
+            $query .= "CASE ";
+            $query .= "WHEN KODETOKO IS NOT NULL THEN 'OK' ";
+            $query .= "WHEN KODETOKO IS NULL THEN 'BELUM TRANSFER' ";
+            $query .= "END AS STAT, TGL AS PERIODE ";
+            $query .= "FROM tbmaster_tokoigr ";
+            $query .= "LEFT JOIN tbtemp_hp1 ON tko_kodeomi = kodetoko ";
+            $query .= "WHERE tko_kodesbu = 'I' ";
+            $query .= "AND TKO_FLAGKPH = 'Y' ";
+            $query .= "AND recid IS NULL ";
+            $query .= "AND tko_kodeigr = '" . session("KODECABANG") . "' ";
+            if($periode !== "0"){
+                $query .= "AND tgl = '" . $periode . "' ";
+            }
+            $query .= "ORDER BY 1";
+        } else {
+            $query = "";
+            $query .= "SELECT DISTINCT TKO_KODEOMI AS KODETK, TKO_NAMAOMI AS NAMATK, ";
+            $query .= "CASE ";
+            $query .= "WHEN KODETOKO IS NOT NULL THEN 'OK' ";
+            $query .= "WHEN KODETOKO IS NULL THEN 'BELUM TRANSFER' ";
+            $query .= "END AS STAT, TGL AS PERIODE ";
+            $query .= "FROM tbmaster_tokoigr ";
+            $query .= "LEFT JOIN tbtemp_hp ON tko_kodeomi = kodetoko ";
+            $query .= "WHERE tko_kodesbu = 'I' ";
+            $query .= "AND TKO_FLAGKPH = 'Y' ";
+            $query .= "AND recid IS NULL ";
+            $query .= "AND tko_kodeigr = '" . session("KODECABANG") . "' ";
+            if($periode !== "0"){
+                $query .= "AND tgl = '" . $periode . "' ";
+            }
+            $query .= "ORDER BY 1";
+        }
+        $data = DB::select($query);
+
+        return ApiFormatter::success(200, "success isi data", $data);
+    }
+
+    public function actionGlobalDownloadPdf(Request $request){
+        $fileName = $request->fileName;
+        $userDirectory = storage_path('temp_pdf') . "/" . session("userid");
+        $filePath = $userDirectory . "/" . $fileName;
+
+        if (!File::exists($filePath)) {
+            return ApiFormatter::error(400, "File Not found.");
         }
 
-        if((int)$request->pilBulan < 10 ){
-            $blnPeriode = (int)$request->pilBulan;
-        }else{
-            if($request->pilBulan == 10){
-                $blnPeriode = 'A';
-            }elseif($request->pilBulan == 11){
-                $blnPeriode = 'B';
-            }else{
-                $blnPeriode = 'C';
+        $fileContent = file_get_contents($filePath);
+
+        File::deleteDirectory($userDirectory, false);
+
+        return response($fileContent)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+
+    }
+
+
+    public function actionCheckPath(Request $request){
+        $Periode = $request->blnPeriode . $request->thnPeriode;
+        $numProses = $this->getCountLOG($Periode);
+
+        if($numProses == 3){
+            return ApiFormatter::error(400, "Periode " . $request->periode . " sudah pernah di proses..");
+        }
+
+        if($this->ORADataFound('tbmaster_kph', "pid = '$Periode' AND t_spd > '0' ")){
+            return ApiFormatter::error(400, "Bersihkan data terlebih dahulu di TBMASTER_KPH");
+        }
+
+        $combined = $request->blnPeriode . $request->thnPeriode;
+        if((int)$request->blnPeriode < 10 ){
+            $blnPeriode = substr($combined, 0, 1);
+        } else {
+            $blnPeriode = substr($combined, 0, 2);
+            if ($blnPeriode == "10") {
+                $blnPeriode = "A";
+            } elseif ($blnPeriode == "11") {
+                $blnPeriode = "B";
+            } else {
+                $blnPeriode = "C";
             }
         }
 
-        switch ($request->pilTahun) {
+        switch ($request->thnPeriode) {
             case '2015':
                 $thnPeriode = 'F';
+                break;
             case '2016':
                 $thnPeriode = 'G';
+                break;
             case '2017':
                 $thnPeriode = 'H';
+                break;
             case '2018':
                 $thnPeriode = 'I';
+                break;
             case '2019':
                 $thnPeriode = 'J';
+                break;
             case '2020':
                 $thnPeriode = 'K';
+                break;
             case '2021':
                 $thnPeriode = 'L';
+                break;
             case '2022':
                 $thnPeriode = 'M';
+                break;
             case '2023':
                 $thnPeriode = 'N';
+                break;
             case '2024':
                 $thnPeriode = 'O';
+                break;
             case '2025':
                 $thnPeriode = 'P';
-              break;
+                break;
             default:
-              $thnPeriode = '-';
-          }
+                $thnPeriode = '-';
+        }
 
-        $this->initializeFile($blnPeriode, $thnPeriode, $request->pilTahun);
+        $kodeCabang = session('KODECABANG');
 
-        return ApiFormatter::success(200, 'Proses berhasil dilakukan');
+        $query = "";
+        $query .= "SELECT DISTINCT TKO_KODEOMI KODETK, TKO_NAMAOMI NAMATK ";
+        $query .= "FROM tbmaster_tokoigr ";
+        $query .= "WHERE tko_kodesbu = 'I' ";
+        $query .= "AND tko_kodeigr = '" . $kodeCabang . "' ";
+        $query .= "AND tko_flagkph = 'Y' ";
+        $query .= "ORDER BY 1";
+
+        // Execute the query and get the results
+        $dt = DB::select($query);
+
+        if(count($dt) < 1){
+            return ApiFormatter::error(400, "Master Toko IGR Kosong!");
+        }
+
+        $matchingFiles = [];
+        foreach ($request->file('files') as $file) {
+            $filename = $file->getClientOriginalName();
+            $pattern = "/^HP....{$blnPeriode}{$thnPeriode}/";
+
+            if (preg_match($pattern, $filename)) {
+                $matchingFiles[] = [
+                    'filename' => $filename,
+                ];
+            }
+        }
+
+        if(count($matchingFiles) < 1){
+            return ApiFormatter::error(400, "File dengan Periode Tidak Valid");
+        }
+
+        $data['checkAbsensi'] = 1;
+        $matchingDt = [];
+        foreach ($dt as $keyDt => $item){
+            $matchingDt[] = [
+                'kodeToko' => $item->kodetk,
+                'namaToko' => $item->namatk,
+                'filename' => '-',
+                'isFound' => 0
+            ];
+            foreach($matchingFiles as $key => $file){
+                $fName = "";
+                $fName = explode('.', $file['filename'], 2)[0];
+                if($item->kodetk == substr($fName, 2, 4)){
+                    $matchingDt[$keyDt]['filename'] = $file['filename'];
+                    $matchingDt[$keyDt]['isFound'] = 1;
+                } else {
+                    $data['checkAbsensi'] = 0;
+                }
+            }
+        }
+
+        $data['matchingDt'] = $matchingDt;
+
+        return ApiFormatter::success(200, 'Check Path berhasil dilakukan', $data);
     }
 
-    private function initializeFile($blnPeriode, $thnPeriode, $pilTahun){
+    public function actionProses(HistoryProdukRequest $request){
+        DB::beginTransaction();
+        try{
+            $formattedDate = $request->periode . '-01';
+            $dtCek = DB::table('tbtemp_hp')
+                ->whereDate('tgl', '>=', $formattedDate)
+                ->whereDate('tgl', '<', date('Y-m-d', strtotime($formattedDate . ' +1 month')))
+                ->count();
 
+            if($dtCek){
+                return ApiFormatter::error(400, "File history periode " . $request->pilBulan . $request->pilTahun . " sudah pernah diupload!");
+            }
+
+            if((int)$request->pilBulan < 10 ){
+                $blnPeriode = (int)$request->pilBulan;
+            }else{
+                if($request->pilBulan == 10){
+                    $blnPeriode = 'A';
+                }elseif($request->pilBulan == 11){
+                    $blnPeriode = 'B';
+                }else{
+                    $blnPeriode = 'C';
+                }
+            }
+
+            switch ($request->pilTahun) {
+                case '2015':
+                    $thnPeriode = 'F';
+                    break;
+                case '2016':
+                    $thnPeriode = 'G';
+                    break;
+                case '2017':
+                    $thnPeriode = 'H';
+                    break;
+                case '2018':
+                    $thnPeriode = 'I';
+                    break;
+                case '2019':
+                    $thnPeriode = 'J';
+                    break;
+                case '2020':
+                    $thnPeriode = 'K';
+                    break;
+                case '2021':
+                    $thnPeriode = 'L';
+                    break;
+                case '2022':
+                    $thnPeriode = 'M';
+                    break;
+                case '2023':
+                    $thnPeriode = 'N';
+                    break;
+                case '2024':
+                    $thnPeriode = 'O';
+                    break;
+                case '2025':
+                    $thnPeriode = 'P';
+                    break;
+                default:
+                    $thnPeriode = '-';
+            }
+
+            $this->initializeFile($blnPeriode, $thnPeriode, $request->file('files'));
+            DB::commit();
+            return ApiFormatter::success(200, 'Proses berhasil dilakukan');
+        } catch (HttpResponseException $e) {
+            throw new HttpResponseException($e->getResponse());
+        }catch(\Exception $e){
+
+            DB::rollBack();
+
+            $message = "Oops! Something wrong ( $e )";
+            throw new HttpResponseException(ApiFormatter::error(400, $message));
+            return ApiFormatter::error(400, $message);
+        }
     }
 
-    //! NOTE KEVIN | AMBIL FILE DARI FTP (TIDAK DICOBA) 
+    private function initializeFile($blnPeriode, $thnPeriode, $files){
+        $filePath = storage_path('temp_history_produk');
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        }
+        $filePath = storage_path('temp_history_produk') . "/" . session("userid");
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        } else {
+            File::deleteDirectory($filePath, false);
+            File::makeDirectory($filePath, 0755, true);
+        }
+        foreach ($files as $file) {
+            $filename = $file->getClientOriginalName();
+            //! NOTE KEVIN | blnPriode Dummy {5}
+            $pattern = "/^HP....{$blnPeriode}{$thnPeriode}/";
+
+            if (preg_match($pattern, $filename)) {
+                $newName = pathinfo($filename, PATHINFO_FILENAME) . '.csv';
+                $file->move($filePath, $newName);
+            }
+        }
+
+        $filePaths = File::files($filePath);
+
+        foreach($filePaths as $matchingFile){
+            $filename = pathinfo($matchingFile, PATHINFO_BASENAME);
+            $fName = "";
+            $fName = explode('.', $filename, 2)[0];
+
+            $charAtPos7 = substr($filename, 6, 1);
+            if ($charAtPos7 === "A") {
+                $tglFile = "10" . $thnPeriode;
+            } elseif ($charAtPos7 === "B") {
+                $tglFile = "11" . $thnPeriode;
+            } elseif ($charAtPos7 === "C") {
+                $tglFile = "12" . $thnPeriode;
+            } else {
+                $tglFile = $charAtPos7 . $thnPeriode;
+            }
+
+            $substring = substr($fName, 2, 4);
+            $isDataExists = $this->ORADataFound('tbtemp_hp1', "tgl = '$tglFile' and kodetoko = '$substring' ");
+
+            if(!$isDataExists){
+                foreach ($filePaths as $file) {
+                    $filePath = $file->getPathname();
+                    $data = Excel::toArray([], $filePath);
+
+                    // Process your data as needed
+                    $headerRow = $data[0][0];
+                    $dataRows = array_slice($data[0], 1);
+                    $dataCSV = [];
+
+                    foreach ($dataRows as $rowData) {
+                        $rowDataAssoc = [];
+                        foreach ($headerRow as $index => $header) {
+                            $rowDataAssoc[$header] = $rowData[$index] ?? null;
+                        }
+
+                        $dataCSV[] = $rowDataAssoc;
+                    }
+                }
+
+                if($this->ORADataFound('tbmaster_tokoigr', "tko_kodeomi = '$substring' AND tko_flagkph = 'Y'")){
+                    if($this->ORADataFound('tbtemp_hp1', "kodetoko = '$substring'") == false){
+                        if(count($dataCSV) > 0){
+                            foreach ($dataCSV as $row){
+                                DB::table('tbtemp_hp1')->insert([
+                                    'recid' => $row['RECID'],
+                                    'prdcd' => $row['PRDCD'],
+                                    'ptag' => $row['PTAG'],
+                                    'kons' => $row['KONS'],
+                                    'hpp' => $row['HPP'],
+                                    'min_disp' => $row['MIN_DISP'],
+                                    'kap_disp' => $row['KAP_DISP'],
+                                    'minor' => $row['MINOR'],
+                                    'spd' => $row['SPD'],
+                                    'hp' => $row['HP'],
+                                    'aqty' => $row['AQTY'],
+                                    'bqty' => $row['BQTY'],
+                                    'cqty' => $row['CQTY'],
+                                    'arp' => $row['ARP'],
+                                    'brp' => $row['BRP'],
+                                    'crp' => $row['CRP'],
+                                    'st01' => $row['ST01'],
+                                    'st02' => $row['ST02'],
+                                    'st03' => $row['ST03'],
+                                    'saldo' => $row['SALDO'],
+                                    'kodetoko' => $substring,
+                                    'tgl' => $tglFile,
+                                ]);
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        $query = "";
+        $query .= "SELECT COUNT(DISTINCT TKO_KODEOMI) ";
+        $query .= "FROM tbmaster_tokoigr ";
+        $query .= "WHERE tko_kodesbu = 'I' ";
+        $query .= "AND tko_kodeigr = '" . session("KODECABANG") . "' ";
+        $query .= "AND TKO_FLAGKPH = 'Y' ";
+        $jmlToko = DB::select($query);
+
+        $countTempHp1 = DB::select("select COUNT(DISTINCT KODETOKO) from tbtemp_hp1");
+
+        if($countTempHp1[0]->count !== $jmlToko[0]->count){
+            throw new HttpResponseException(ApiFormatter::error(400, "Data Toko IDM Tidak sesuai dengan master toko IGR!"));
+        }
+
+        $data = DB::select("
+            SELECT
+                RECID,
+                PRDCD,
+                PTAG,
+                KONS,
+                TO_NUMBER(HPP,'99999999.9999') AS HPP1,
+                MIN_DISP::numeric AS MIN_DISP,
+                KAP_DISP::numeric AS KAP_DISP,
+                MINOR,
+                TO_NUMBER(SPD,'9999999.999999999') AS SPD1,
+                HP,
+                AQTY,
+                BQTY,
+                CQTY,
+                ARP,
+                BRP,
+                CRP,
+                ST01,
+                ST02,
+                ST03,
+                SALDO,
+                KODETOKO,
+                TGL
+            FROM TBTEMP_HP1
+        ");
+
+        foreach ($data as $row) {
+            DB::table('tbtemp_hp')->insert([
+                'recid' => $row->recid,
+                'prdcd' => $row->prdcd,
+                'ptag' => $row->ptag,
+                'kons' => $row->kons,
+                'hpp' => $row->hpp1,
+                'min_disp' => $row->min_disp,
+                'kap_disp' => $row->kap_disp,
+                'minor' => $row->minor,
+                'spd' => $row->spd1,
+                'hp' => $row->hp,
+                'aqty' => $row->aqty,
+                'bqty' => $row->bqty,
+                'cqty' => $row->cqty,
+                'arp' => $row->arp,
+                'brp' => $row->brp,
+                'crp' => $row->crp,
+                'st01' => $row->st01,
+                'st02' => $row->st02,
+                'st03' => $row->st03,
+                'saldo' => $row->saldo,
+                'kodetoko' => $row->kodetoko,
+                'tgl' => $row->tgl,
+            ]);
+        }
+
+        DB::statement($query);
+
+        DB::table('tbtemp_hp1')->truncate();
+        return true;
+    }
+
+    //! NOTE KEVIN | AMBIL FILE DARI FTP (TIDAK DICOBA)
     // public function actionUploadCsvFtp(){
     //     //* Update File PLU IDM via FTP?
 
@@ -180,9 +568,11 @@ class HistoryProdukController extends Controller
     }
 
     public function actionUploadCsvBrowse(Request $request){
+        $request->validate([
+            'excel_file' => 'required|file',
+        ]);
 
         //? function ini hanya untuk checking
-
         if($request->pilUpload == 'PLUIDM'){
             if(substr($request->filename, 0, 3) != 'IDM'){
                 return ApiFormatter::error(400, 'File tidak sesuai dengan kode cabang');
@@ -192,8 +582,8 @@ class HistoryProdukController extends Controller
                 return ApiFormatter::error(400, 'Nama File Tidak Sesuai. Tidak bisa ambil periode!');
             }
 
-            $dtCek1 = DB::table('TBHISTORY_PRODUK_BARU')
-                ->where('HPB_PERIODE_FILE', $this->getPeriodNewProduct($request->filename, 2))
+            $dtCek1 = DB::table('tbhistory_produk_baru')
+                ->where('hpb_periode_file', $this->getPeriodNewProduct($request->filename, 2))
                 ->count();
 
             $dtCek2 = $this->getFileRevision($request->filename);
@@ -203,15 +593,98 @@ class HistoryProdukController extends Controller
             }
         }
 
+        $file = $request->file('excel_file');
+
+        $originalName = $file->getClientOriginalName();
+        $newName = pathinfo($originalName, PATHINFO_FILENAME) . '.zip';
+
+        $filePath = storage_path('temp_extract_zip');
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        }
+        $filePath = storage_path('temp_extract_zip') . "/" . session("userid");
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        } else {
+            File::deleteDirectory($filePath, false);
+            File::makeDirectory($filePath, 0755, true);
+        }
+
+        if($request->pilUpload !== "PINDAH SUPPLY"){
+            $rarPath = $filePath . "/" . $newName;
+            $file->move($filePath, $newName);
+
+            $zip = new ZipArchive;
+            if ($zip->open($rarPath) === TRUE) {
+                $zip->extractTo($filePath);
+                $zip->close();
+            } else {
+                return response()->json(['error' => 'Failed to open ZIP file'], 400);
+            }
+
+            File::delete($rarPath);
+
+        } else {
+            $file->move($filePath, $file->getClientOriginalName());
+        }
+
+        $filePaths = File::files($filePath);
+
+        foreach ($filePaths as $file) {
+            $filePath = $file->getPathname();
+
+            $data = Excel::toArray([], $filePath);
+
+            // Process your data as needed
+            $headerRow = $data[0][0];
+            $dataRows = array_slice($data[0], 1);
+            $dataCSV = [];
+
+            foreach ($dataRows as $rowData) {
+                $rowDataAssoc = [];
+                foreach ($headerRow as $index => $header) {
+                    $rowDataAssoc[$header] = $rowData[$index] ?? null;
+                }
+
+                $dataCSV[] = $rowDataAssoc;
+            }
+        }
+
         //! START FUNCTION prosesData
-
         if($request->pilUpload == 'MINOR'){
+            $columns = ['PRDCD', 'DESC', 'FRAC', 'MINOR'];
 
-            DB::select("DELETE FROM TBTEMP_MINORTK");
+            $processedData = [];
 
-            foreach($request->filename as $item){
+            foreach ($dataCSV as $row) {
+                $processedRow = [];
+                foreach ($columns as $index => $column) {
+                    switch ($column) {
+                        case 'PRDCD':
+                            $processedRow[$column] = str_replace([",", "'"], [".", ""], $row['PLUIDM']);
+                            break;
+                        case 'DESC':
+                            $processedRow[$column] = str_replace([",", "'"], [".", ""], $row['PLUIGR']);
+                            break;
+                        case 'FRAC':
+                            $value = str_replace([",", "'"], [".", ""], $row['TAG']);
+                            $processedRow[$column] = $value === "" ? 0 : (double)$value;
+                            break;
+                        case 'MINOR':
+                            $value = str_replace([",", "'"], [".", ""], $row['MINOR']);
+                            $processedRow[$column] = $value === "" ? 0 : (double)$value;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                $processedData[] = $processedRow;
+            }
+
+            DB::delete("DELETE FROM tbtemp_minortk");
+            foreach($processedData as $item){
                 //! INSERT TBTEMP_MINORTK - PENGGANTI BULKCOPY
-                DB::table('tbtemp_minortk') 
+                DB::table('tbtemp_minortk')
                     ->insert([
                         'prdcd' => $item['PRDCD'],
                         'desc2' => $item['DESC'],
@@ -219,24 +692,29 @@ class HistoryProdukController extends Controller
                         'minor' => $item['MINOR'],
                     ]);
             }
+
+
         }elseif($request->pilUpload == 'PLUIDM'){
             //! FILE DALAM BENTUK ZIP MULTIPLE CSV
 
-            DB::select("DELETE FROM TBTEMP_PLUIDM");
-            DB::select("DELETE FROM TBTEMP_PLUIDM2 WHERE ip = '" . $this->getIP() . "' ");
+            DB::select("DELETE FROM tbtemp_pluidm");
+            DB::select("DELETE FROM tbtemp_pluidm2 WHERE ip = '" . $this->getIP() . "' ");
 
 
-            //! INSERT TBTEMP_PLUIDM2 - PENGGANTI BULKCOPY
-            DB::table('TBTEMP_PLUIDM2')
-                ->insert([
-                    'idm_pluidm' => $item['IDM_PLUIDM'],
-                    'idm_pluigr' => $item['IDM_PLUIGR'],
-                    'idm_tag' => $item['IDM_TAG'],
-                    'idm_renceng' => $item['IDM_RENCENG'],
-                    'idm_minor' => $item['IDM_MINOR'],
-                    'idm_kdidm' => $item['IDM_KDIDM'],
-                    'ip' => $item['IP'],
-                ]);
+            $ip = $this->getIP();
+            foreach($dataCSV as $item){
+                //! INSERT TBTEMP_PLUIDM2 - PENGGANTI BULKCOPY
+                DB::table('tbtemp_pluidm2')
+                    ->insert([
+                        'idm_pluidm' => $item['PLUIDM'],
+                        'idm_pluigr' => $item['PLUIGR'],
+                        'idm_tag' => $item['TAG'],
+                        'idm_renceng' => $item['RENCENG'],
+                        'idm_minor' => $item['MINOR'],
+                        'idm_kdidm' => $item['KDIDM'],
+                        'ip' => $ip,
+                    ]);
+            }
 
             $query = '';
             $query .= " INSERT INTO tbtemp_pluidm ( ";
@@ -277,7 +755,44 @@ class HistoryProdukController extends Controller
             }
 
             $this->insertData('TBTEMP_PRODUK_BARU1', $dataCSV, $this->getPeriodNewProduct($request->filename, 1), $this->getPeriodNewProduct($request->filename, 2));
+        } else {
+            //? PINDAH SUPPLY
+            $today = Carbon::today();
+
+            if (count($dataCSV) > 0) {
+                foreach ($dataCSV as $row) {
+                    $cekTgl = $row['TGLPINDAH'];
+                    $newTgl = null;
+
+                    try {
+                        $newTgl = Carbon::createFromFormat('d-m-Y', $cekTgl);
+                    } catch (\Exception $e) {
+                        return ApiFormatter::error(400, 'Format Tanggal Pindah Supply DD-MM-YYYY');
+                    }
+
+                    // Check date condition
+                    if ($newTgl->copy()->subDays(2)->isAfter($today)) {
+                        return ApiFormatter::error(400, 'Tanggal Pindah Supply tidak boleh lebih dari 2 hari dari Tanggal Upload');
+                    }
+                }
+
+                // Truncate the table
+                DB::table('temp_pindahsupply')->truncate();
+
+                // force to lowercase
+                $dataCSV = array_map(function($item) {
+                    return array_change_key_case($item, CASE_LOWER);
+                }, $dataCSV);
+
+                // Insert dataCSV
+                DB::table('temp_pindahsupply')->insert($dataCSV);
+            } else {
+                return ApiFormatter::error(400, 'Tidak ada Data!');
+            }
+
         }
+
+        return ApiFormatter::success(200, "UPLOAD CSV BERHASIL!");
 
         //! END FUNCTION prosesData
     }
@@ -291,7 +806,7 @@ class HistoryProdukController extends Controller
         foreach($data as $item){
             DB::table($table)
                 ->insert([
-                    'KODEIGR' => $item['KODEIGR'],
+                    'KODEIGR' => session("KODECABANG"),
                     'TGL_SHELF' => date('Y-m-d', strtotime($item['tglFS'])),
                     'PLUIDM' => $item['PLUIDM'],
                     'PLUIGR' => $item['PLUIGR'],
@@ -465,7 +980,7 @@ class HistoryProdukController extends Controller
             return ApiFormatter::error(400, "Hitung KPH mean periode " . $periode . " tidak sempurna! bersihkan data terlebih dahulu kemudian ulangi prosesnya");
         }
 
-        $dtCek = DB::table('TBMASTER_KPH')
+        $dtCek = DB::table('tbmaster_kph')
             ->where('pid', $periode)
             ->where('t_spd', '>', '0')
             ->count();
@@ -572,16 +1087,17 @@ class HistoryProdukController extends Controller
             $query .= "P.PRD_KODETAG TAG_PRD, coalesce(P.PRD_MINORDER,0) MINOR_IGR,  ";
             $query .= "R.PRC_MINORDER MINOR_CRM, coalesce(P.PRD_FRAC,0) FRAC,  ";
             $query .= "H.KSL_MEAN * 3 KPH_3, ";
+            $query .= "H.KSL_MEAN * 4 KPH_4, ";
             $query .= "H.KSL_MEAN * PRS_KPHCONST KPH_CONST,  ";
             $query .= "CASE WHEN T_SPD = 0 THEN '*' ELSE '' END PRD ";
-            $query .= "FROM TBMASTER_KPH H ";
+            $query .= "FROM tbmaster_kph H ";
             $query .= "LEFT JOIN TBMASTER_PRODCRM R ";
             $query .= "  ON H.PRDCD = R.PRC_PLUIDM ";
             $query .= "LEFT JOIN TBMASTER_PRODMAST P ";
             $query .= "  ON R.PRC_PLUIGR = P.PRD_PRDCD  ";
             $query .= "LEFT JOIN TBMASTER_PERUSAHAAN ";
             $query .= "  ON PRS_KODEIGR = H.KODEIGR";
-            $query .= " WHERE H.PID = '" . $periode . "' ORDER BY 13,2  ";
+            $query .= " WHERE H.PID = '" . $periode . "' ORDER BY 13,2 ";
         }else{
             $query = '';
             $query .= "SELECT H.PRDCD PLUIDM, R.PRC_PLUIGR PLUIGR,   ";
@@ -590,32 +1106,58 @@ class HistoryProdukController extends Controller
             $query .= "P.PRD_KODETAG TAG_PRD, coalesce(P.PRD_MINORDER,0) MINOR_IGR,  ";
             $query .= "R.PRC_MINORDER MINOR_CRM, coalesce(P.PRD_FRAC,0) FRAC,  ";
             $query .= "H.KSL_MEAN * 3 KPH_3, ";
+            $query .= "H.KSL_MEAN * 4 KPH_4, ";
             $query .= "H.KSL_MEAN * PRS_KPHCONST KPH_CONST,  ";
             $query .= "CASE WHEN T_SPD = 0 THEN '*' ELSE '' END PRD ";
-            $query .= "FROM TBMASTER_KPH H ";
+            $query .= "FROM tbmaster_kph H ";
             $query .= "LEFT JOIN TBMASTER_PRODCRM R ";
             $query .= "  ON H.PRDCD = R.PRC_PLUIDM ";
             $query .= "LEFT JOIN TBMASTER_PRODMAST P ";
             $query .= "  ON R.PRC_PLUIGR = P.PRD_PRDCD  ";
             $query .= "LEFT JOIN TBMASTER_PERUSAHAAN ";
             $query .= "  ON PRS_KODEIGR = H.KODEIGR";
-            $query .= "WHERE H.PID = '" . $periode . "' ORDER BY 13,2  ";
+            $query .= "WHERE H.PID = '" . $periode . "' ORDER BY 13,2 ";
         }
 
         $data['data'] = DB::select($query);
         $data['perusahaan'] = DB::select("select prs_kodeigr kode_igr, PRS_NAMACABANG, coalesce(PRS_KPHCONST,1) V_KPH from tbmaster_perusahaan");
-        $data['jmltoko'] = DB::select("select count(distinct kodetoko) JML_TOKO_PROSES from tbtemp_hp where tgl = '" . $periode . "'");
-        $data['periode'] = DB::select("SELECT coalesce(JML_TOKO,0) JMLTOKO, PERIODE FROM TEMP_LOG_HP WHERE PERIODE = '" . $periode . "' AND PROSES = 'P2'");
+        $data['jmltokoProses'] = DB::select("select count(distinct kodetoko) JML_TOKO_PROSES from tbtemp_hp where tgl = '" . $periode . "'");
+        $dt = DB::select("SELECT coalesce(JML_TOKO,0) JMLTOKO, PERIODE FROM TEMP_LOG_HP WHERE PERIODE = '" . $periode . "' AND PROSES = 'P2'");
+        $periode = $dt[0]->periode;
+        $length = strlen($periode);
+        $lastFourDigits = substr($periode, -4);
+        $remainingPart = substr($periode, 0, $length - 4);
+        $data['periode'] = $remainingPart . '-' . $lastFourDigits;
+        $data['jmlToko'] = $dt[0]->jmltoko;
 
-        // return view('report', $data);
-        return $data;
+        $nama_file = "REPORT_KPH_" . Carbon::now()->format('Ymd_His') . ".pdf";
+        $pdf = PDF::loadView('pdf.history-produk-report-kph', $data);
+        $pdf->setPaper('letter', 'landscape');
+
+        $filePath = storage_path('temp_pdf');
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        }
+        $filePath = storage_path('temp_pdf') . "/" . session("userid");
+        if (!file_exists($filePath)) {
+            File::makeDirectory($filePath);
+        } else {
+            File::deleteDirectory($filePath, false);
+            File::makeDirectory($filePath, 0755, true);
+        }
+
+        $filePath = $filePath . "/" . $nama_file;
+
+        file_put_contents($filePath, $pdf->output());
+
+        return ApiFormatter::success(200, "Report KPH Berhasil Didownload", $nama_file);
     }
 
     public function datatablesReportKPH(){
         if($this->setKode == 'KPH'){
             $query = "Select distinct coalesce(TGL,'X') PERIODE FROM TBTEMP_HP";
         }else{
-            $query = "select distinct CAST(coalesce(PID,'X')as INT) PERIODE FROM TBMASTER_KPH ORDER BY 1";
+            $query = "select distinct CAST(coalesce(PID,'X')as INT) PERIODE FROM tbmaster_kph ORDER BY 1";
         }
 
         $data = DB::select($query);

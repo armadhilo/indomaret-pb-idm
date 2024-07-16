@@ -43,7 +43,7 @@
                                             </div>
                                             <div class="form-group row">
                                                 <div class="col-md-4"></div>
-                                                <button type="button" class="btn btn-sm btn-primary col-md-4 "> Cek KKS</button>
+                                                <button type="button" class="btn btn-sm btn-primary col-md-4 " onclick="cetak_report('cek_kks')"> Cek KKS</button>
                                                 <div class="col-md-4"></div>
                                             </div>
                                             <div class="form-group row">
@@ -69,7 +69,7 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="card">
-                                        <div class="card-header" style="height:61px;">Table</div>
+                                        <div class="card-header" style="height:61px;"></div>
                                         <div class="card-body">
                                                <!-- ============================ -->
                                                 <!--             Table            -->
@@ -96,23 +96,63 @@
                                     </div>
                                 </div>
                                 <div class="col-md-8">
-                                <div class="card">
-                                        <div class="card-header" style="height:61px;">Table</div>
+                                        <div class="card">
+                                            <div class="card-header" style="height:61px;"></div>
                                             <div class="card-body">
                                                     <!-- ============================ -->
                                                     <!--             Table            -->
                                                     <!-- ============================ -->
                                                     <div class="table-container table-responsive" id="scrollContainer">
-                                                        <table class="table table-bordered" id="table_proseswt">
+                                                        <table class="table table-bordered" id="table_retur">
                                                         <thead>
-                                                            <tr>
-                                                            <th style="min-width: 50px;" scope="col">No. NRB</th>
-                                                            <th style="min-width: 100px;" scope="col">Tgl NRB</th>
-                                                            <th style="min-width: 120px;" scope="col">Tipe</th>
+                                                            <div class="NonF">
+                                                                    <tr class="NonF">
+                                                                        <th style="min-width: 80px;">NO</th>
+                                                                        <th style="min-width: 80px;">PLU</th>
+                                                                        <th style="min-width: 80px;">KETERANGAN</th>
+                                                                        <th style="min-width: 80px;">RETUR</th>
+                                                                        <div class="RECID_S">
+                                                                            <th class="RECID_S" style="min-width: 80px;">FISIK</th>
+                                                                            <th class="RECID_S" style="min-width: 80px;">BAIK</th>
+                                                                            <th class="RECID_S" style="min-width: 80px;">LAYAKRETUR</th>
+                                                                        </div>
+                                                                        <th style="min-width: 80px;">BA</th>
+                                                                        <th style="min-width: 80px;">PRICE</th>
+                                                                        <th style="min-width: 80px;">PPN</th>
+                                                                        <th style="min-width: 80px;">STATUS</th>
+                                                                        <th style="min-width: 80px;">TAG</th>
+                                                                        <th style="min-width: 80px;">AVGCOST</th>
+                                                                        <th style="min-width: 80px;">RETMAJALAH</th>
+                                                                        <th style="min-width: 80px;">LOKASI</th>
+                                                                        <div class="RECID_S">
+                                                                            <th style="min-width: 80px;">EXP_DT</th>
+                                                                        </div>
+                                                                        <th style="min-width: 80px;">FLAGPINDAH</th>
+                                                                    </tr>
+                                                            </div>
                                                             <!-- Add more headers as needed -->
-                                                            </tr>
+                                                            <div class="F">
+                                                                <tr  class="F">
+                                                                    <th style="min-width: 80px;">'NO</th>
+                                                                    <th style="min-width: 80px;">'PLU</th>
+                                                                    <th style="min-width: 80px;">'QTY DSPB</th>
+                                                                    <th style="min-width: 80px;">'RETUR</th>
+                                                                    <th style="min-width: 80px;">'BA</th>
+                                                                    <th style="min-width: 80px;">'BEBAN IDM</th>
+                                                                    <th style="min-width: 80px;">'BEBAN IGR</th>
+                                                                    <th style="min-width: 80px;">'PRICE</th>
+                                                                    <th style="min-width: 80px;">'PPN</th>
+                                                                    <th style="min-width: 80px;">'TOTREF</th>
+                                                                    <th style="min-width: 80px;">'TAG</th>
+                                                                    <th style="min-width: 80px;">'STATUS</th>
+                                                                    <th style="min-width: 80px;">'AVGCOST</th>
+                                                                    <th style="min-width: 80px;">'RETMAJALAH</th>
+                                                                    <th style="min-width: 80px;">'KETERANGAN RETUR</th>
+                                                                    <th style="min-width: 80px;">'NO BA KONTAINER TERTINGGAL</th>
+                                                                </tr>
+                                                            </div>
                                                         </thead>
-                                                        <tbody id="table-content-proseswt" style="height:420px;">
+                                                        <tbody id="table-content-retur" style="height:420px;">
                                                         
                                                         </tbody>
                                                         </table>
