@@ -722,24 +722,10 @@ class ReturController extends Controller
     public function data_kksf(){
 
     }
+    
     public function data_kksp(){
 
-    $kodeDCIDM = '';
-    $flagPLUIDM = false;
-
-    // CHECK AND GET KODEDC
-    $dtCek = DB::select("SELECT msi_kodedc FROM master_supply_idm WHERE msi_kodetoko = ?", [$txtTokoID]);
-
-    if (count($dtCek) > 0) {
-        $kodeDCIDM = $dtCek[0]->msi_kodedc;
-
-        // CHECK PLUIDM
-        $dtCek = DB::select("SELECT idm_pluidm FROM tbmaster_pluidm WHERE idm_kodeidm = ?", [$kodeDCIDM]);
-
-        $flagPLUIDM = count($dtCek) > 0;
-    }
-
-    $subItem2 = $lvNrb[$no]['subitems'][2];
+        $subItem2 = $lvNrb[$no]['subitems'][2];
         // if ($subItem2 == "F") {
             $oRpt = new rptKKSP;
 
