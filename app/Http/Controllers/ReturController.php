@@ -574,15 +574,16 @@ class ReturController extends Controller
         $data = json_decode(base64_decode($data));
         $jenis_page = null;
         $folder_page = null;
+        $orientation_page = "portrait";
         $filename = $data->filename;
         $title_report = 'default-'.date('Y-m-d');
         $header_cetak_custom = false;
         $postiion_page_number_x = 63;
         $postiion_page_number_y = 615;
-        
+        dd($data);
         switch ($data->filename) {
 
-                case 'cetak-ulang-dsp':
+                case 'kksf':
                     $jenis_page = $data->jenis_page;
                     $folder_page = $data->folder_page;
                     $title_report = $data->title_report;
@@ -591,11 +592,11 @@ class ReturController extends Controller
                         $data = null;
                     }
                     break;
-                case 'cetak-ulang-sj':
+                case 'kksp':
                     $jenis_page = $data->jenis_page;
                     $folder_page = $data->folder_page;
                     $title_report = $data->title_report;
-                    $data->data = (object)$this->data_cetak_ulang_sj($data->kodetoko,$data->nopb,$data->tglpb);
+                    $data->data =$this->data_cetak_ulang_dsp($data->kodetoko,$data->nopb,$data->tglpb);
                     if (isset($data->data->errors)) {
                         $data = null;
                     }
@@ -636,8 +637,15 @@ class ReturController extends Controller
                            ->get();
         $perusahaan = $perusahaan[0];
         if ($jenis_page == 'default-page') {
+            if ($orientation_page == 'landscape') {
+                $pdf = PDF::loadview('menu.retur.'.$folder_page.'.'.$filename, compact('data','tanggal','perusahaan','header_cetak_custom'))->setPaper('letter', 'landscape');
+                
+            } else {
+                $pdf = PDF::loadview('menu.retur.'.$folder_page.'.'.$filename, compact('data','tanggal','perusahaan','header_cetak_custom'));
+                
+            }
+            
               
-            $pdf = PDF::loadview('menu.rpt.'.$folder_page.'.'.$filename, compact('data','tanggal','perusahaan','header_cetak_custom'));
             $pdf->output();
             $dompdf = $pdf->getDomPDF()->set_option("enable_php", true);
             $canvas = $dompdf->get_canvas();
@@ -651,7 +659,7 @@ class ReturController extends Controller
         } elseif ($jenis_page == 'struk-page') {
            
             $dompdf = new PDF();
-            $pdf = PDF::loadview('menu.rpt.'.$folder_page.'.'.$filename,compact(['perusahaan','data']));
+            $pdf = PDF::loadview('menu.retur.'.$folder_page.'.'.$filename,compact(['perusahaan','data']));
             error_reporting(E_ALL ^ E_DEPRECATED);
             $pdf->output();
             $dompdf = $pdf->getDomPDF()->set_option("enable_php", true);
@@ -666,24 +674,224 @@ class ReturController extends Controller
     }
 
     public function print_cek_kks(Request $request){
-        // $kodetoko = $request->toko;
-        // $nopb = explode(" / ",$request->nopb)[0];
-        // $tglpb = explode(" / ",$request->nopb)[1];
-        
+
+        $nrb = json_decode(base64_decode($request->nrb));
+        $kodeDCIDM = null;
+        $dtCek = DB::select("SELECT msi_kodedc FROM master_supply_idm WHERE msi_kodetoko = '".$nrb->shop."'");
+
+        if (count($dtCek) > 0) {
+            $kodeDCIDM = $dtCek[0]->msi_kodedc;
+
+            // CHECK PLUIDM
+            $dtCek = DB::select("SELECT idm_pluidm FROM tbmaster_pluidm WHERE idm_kodeidm = '$kodeDCIDM'");
+
+            if (count($dtCek) > 0) {
+                $flagPLUIDM = true;
+            } else {
+                $flagPLUIDM = false;
+            }
+        } else {
+            $flagPLUIDM = false;
+        }
+        $nrb->flagPLUIDM = $flagPLUIDM;
+        $nrb->kodeDCIDM = $kodeDCIDM;
+
         $data_report =[];
-        // dd($data_report);
-        // $data_report['kodetoko'] = $kodetoko;
-        // $data_report['nopb'] = $nopb;
-        // $data_report['tglpb'] = $tglpb;
-        $data_report['filename'] = 'cetak-ulang-sj';
+        $data_report['nrb'] = $nrb;
+        
+        if ($nrb->type == 'F') {
+            $data_report['orientation'] = 'landscape';
+            $data_report['filename'] = 'kksf';
+            $data_report['folder_page'] = 'report';
+            $data_report['title_report'] = 'CETAK-KKSF';
+        } else {
+            $data_report['orientation'] = 'landscape';
+            $data_report['filename'] = 'kksp';
+            $data_report['folder_page'] = 'report';
+            $data_report['title_report'] = 'CETAK-KKSP';
+        }
+        
         $data_report['jenis_page'] = 'default-page';
-        $data_report['folder_page'] = 'omi';
-        $data_report['title_report'] = 'CETAK-ULANG-SJ';
         $encrypt_data = base64_encode(json_encode($data_report));
         //    $decrypt_data = json_decode(base64_decode($encrypt_data));
         $link = url('/api/retur/print/report/'.$encrypt_data);
 
         return response()->json(['errors'=>false,'messages'=>'Berhasil','url'=>$link],200);
     }
+
+    public function data_kksf(){
+
+    }
+    public function data_kksp(){
+
+    $kodeDCIDM = '';
+    $flagPLUIDM = false;
+
+    // CHECK AND GET KODEDC
+    $dtCek = DB::select("SELECT msi_kodedc FROM master_supply_idm WHERE msi_kodetoko = ?", [$txtTokoID]);
+
+    if (count($dtCek) > 0) {
+        $kodeDCIDM = $dtCek[0]->msi_kodedc;
+
+        // CHECK PLUIDM
+        $dtCek = DB::select("SELECT idm_pluidm FROM tbmaster_pluidm WHERE idm_kodeidm = ?", [$kodeDCIDM]);
+
+        $flagPLUIDM = count($dtCek) > 0;
+    }
+
+    $subItem2 = $lvNrb[$no]['subitems'][2];
+        // if ($subItem2 == "F") {
+            $oRpt = new rptKKSP;
+
+            if ($flagPLUIDM) {
+                // BACA DARI TBMASTER_PLUIDM
+                $sql = "SELECT DISTINCT prd_kodeigr kode_igr, prd_prdcd plu, TGL1, 
+                        docno nrb, qty qtynrb, prd_deskripsipendek ";
+                if ($FlagPsp) {
+                    $sql .= "|| ' - ' || grak ";
+                }
+                $sql .= "ket ,date_trunc('day',IKL_CREATE_DT) tglkoli, 
+                        (SELECT rpb_idsuratjalan FROM tbtr_realpb 
+                        WHERE rpb_nodokumen = pbo_nopb 
+                        AND rpb_tgldokumen = pbo_tglpb 
+                        AND rpb_kodeomi = pbo_kodeomi 
+                        AND rpb_nokoli = pbo_nokoli 
+                        AND rpb_plu1 = pbo_pluomi LIMIT 1) dspb,
+                        pbo_nokoli, pbo_qtyorder qtypb, pbo_qtyrealisasi, 
+                        pbo_jamupdatechecker, pbo_userupdatechecker, 
+                        pbo_nopb, pbo_tglpb, pbo_kodeomi 
+                        FROM tbtr_wt_interface 
+                        LEFT JOIN tbmaster_pluidm ON prdcd = idm_pluidm AND idm_kodeidm = ? 
+                        LEFT JOIN tbmaster_prodmast ON idm_pluigr = prd_prdcd OR prdcd = prd_plumcg 
+                        LEFT JOIN tbtr_realpb ON prdcd = rpb_plu1 
+                            AND shop = rpb_kodeomi 
+                            AND docno2 = rpb_idsuratjalan 
+                        LEFT JOIN tbmaster_pbomi ON rpb_nodokumen = pbo_nopb 
+                            AND rpb_tgldokumen = pbo_tglpb 
+                            AND rpb_kodeomi = pbo_kodeomi 
+                            AND rpb_plu1 = pbo_pluomi 
+                        LEFT JOIN tbtr_idmkoli ON pbo_nopb = ikl_nopb 
+                            AND pbo_kodeomi = ikl_kodeidm 
+                            AND pbo_nokoli = ikl_nokoli 
+                            AND TO_CHAR(pbo_tglpb, 'YYYYMMdd') = ikl_tglpb ";
+                if ($FlagPsp) {
+                    $sql .= "LEFT JOIN DPD_IDM_ORA c ON SUBSTR(pbo_pluigr, 1, 6) || '1' = c.prdcd 
+                            AND pbo_nopb = c.fmndoc 
+                            AND pbo_kodeomi = c.fmkcab 
+                            AND TO_CHAR(pbo_tglpb, 'YYYYMMdd') = c.tglpb ";
+                }
+                $sql .= "WHERE p_id = ? 
+                        AND SHOP = ? 
+                        AND RECID = 'A' 
+                        AND ISTYPE = '01' 
+                        AND SUBSTR(PRD_PRDCD, 7, 1) = '0' 
+                        ORDER BY 2";
+                $params = [$kodeDCIDM, $lvNrb[$no]['subitems'][3], $txtTokoID];
+            } else {
+                // BACA DARI TBMASTER_PRODCRM
+                $sql = "SELECT DISTINCT prd_kodeigr kode_igr, prd_prdcd plu, TGL1, 
+                        docno nrb, qty qtynrb, prd_deskripsipendek ";
+                if ($FlagPsp) {
+                    $sql .= "|| ' - ' || grak ";
+                }
+                $sql .= "ket ,date_trunc('day',IKL_CREATE_DT) tglkoli, 
+                        (SELECT rpb_idsuratjalan FROM tbtr_realpb 
+                        WHERE rpb_nodokumen = pbo_nopb 
+                        AND rpb_tgldokumen = pbo_tglpb 
+                        AND rpb_kodeomi = pbo_kodeomi 
+                        AND rpb_nokoli = pbo_nokoli 
+                        AND rpb_plu1 = pbo_pluomi LIMIT 1) dspb,
+                        pbo_nokoli, pbo_qtyorder qtypb, pbo_qtyrealisasi, 
+                        pbo_jamupdatechecker, pbo_userupdatechecker, 
+                        pbo_nopb, pbo_tglpb, pbo_kodeomi 
+                        FROM tbtr_wt_interface 
+                        LEFT JOIN tbmaster_prodcrm ON prdcd = prc_pluidm 
+                        LEFT JOIN tbmaster_prodmast ON prc_pluigr = prd_prdcd OR prdcd = prd_plumcg 
+                        LEFT JOIN tbtr_realpb ON prdcd = rpb_plu1 
+                            AND shop = rpb_kodeomi 
+                            AND docno2 = rpb_idsuratjalan 
+                        LEFT JOIN tbmaster_pbomi ON rpb_nodokumen = pbo_nopb 
+                            AND rpb_tgldokumen = pbo_tglpb 
+                            AND rpb_kodeomi = pbo_kodeomi 
+                            AND rpb_plu1 = pbo_pluomi 
+                        LEFT JOIN tbtr_idmkoli ON pbo_nopb = ikl_nopb 
+                            AND pbo_kodeomi = ikl_kodeidm 
+                            AND pbo_nokoli = ikl_nokoli 
+                            AND TO_CHAR(pbo_tglpb, 'YYYYMMdd') = ikl_tglpb ";
+                if ($FlagPsp) {
+                    $sql .= "LEFT JOIN DPD_IDM_ORA c ON SUBSTR(pbo_pluigr, 1, 6) || '1' = c.prdcd 
+                            AND pbo_nopb = c.fmndoc 
+                            AND pbo_kodeomi = c.fmkcab 
+                            AND TO_CHAR(pbo_tglpb, 'YYYYMMdd') = c.tglpb ";
+                }
+                $sql .= "WHERE p_id = ? 
+                        AND SHOP = ? 
+                        AND RECID = 'A' 
+                        AND ISTYPE = '01' 
+                        AND SUBSTR(PRD_PRDCD, 7, 1) = '0' 
+                        ORDER BY 2";
+                $params = [$lvNrb[$no]['subitems'][3], $txtTokoID];
+            }
+
+            $myDs = DB::select($sql, $params);
+
+            if (count($myDs) > 0) {
+                $companyData = DB::select("SELECT prs_kodeigr kode_igr, PRS_NAMACABANG FROM tbmaster_perusahaan");
+                $storeData = DB::select("SELECT tko_kodeigr kode_igr, TKO_NAMAOMI, TKO_KODEOMI, 
+                                        ? AS RETURID, ? AS TGLNRB 
+                                        FROM tbmaster_tokoigr 
+                                        WHERE TKO_KODEOMI = ? AND TKO_NAMASBU = 'INDOMARET'", [
+                    $lvNrb[$no]['subitems'][0],
+                    $lvNrb[$no]['subitems'][1],
+                    $txtTokoID
+                ]);
+
+                $myDsXml = [
+                    'DATA' => $myDs,
+                    'PERUSAHAAN' => $companyData,
+                    'TOKO' => $storeData
+                ];
+
+                // Simulate writing to XML and generating the report
+                $xmlPath = base_path('reporting2.xml');
+                file_put_contents($xmlPath, json_encode($myDsXml)); // Replace with actual XML writing logic if needed
+
+                $oRpt->SetDataSource($myDsXml);
+                $oRpt->SetParameterValue("USERID", $UserMODUL);
+
+                // Assuming you have a way to render and display the report
+                // Render the report here
+
+                echo "Report loaded!";
+            } else {
+                echo "Tidak Ada Data!";
+            }
+        // }
+        
+    }
+
+    // public function print_cek_kks(Request $request){
+    //     $nrb = json_decode(base64_decode($request->nrb));
+    //     $data_report =[];
+    //     $data_report['nrb'] = $nrb;
+    //     if ($nrb->type == 'F') {
+    //         $data_report['orientation'] = 'landscape';
+    //         $data_report['filename'] = 'kksf';
+    //         $data_report['folder_page'] = 'report';
+    //         $data_report['title_report'] = 'CETAK-KKSF';
+    //     } else {
+    //         $data_report['orientation'] = 'landscape';
+    //         $data_report['filename'] = 'kksp';
+    //         $data_report['folder_page'] = 'report';
+    //         $data_report['title_report'] = 'CETAK-KKSP';
+    //     }
+        
+    //     $data_report['jenis_page'] = 'default-page';
+    //     $encrypt_data = base64_encode(json_encode($data_report));
+    //     //    $decrypt_data = json_decode(base64_decode($encrypt_data));
+    //     $link = url('/api/retur/print/report/'.$encrypt_data);
+
+    //     return response()->json(['errors'=>false,'messages'=>'Berhasil','url'=>$link],200);
+    // }
 
 }

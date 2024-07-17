@@ -105,8 +105,8 @@
                                                     <div class="table-container table-responsive" id="scrollContainer">
                                                         <table class="table table-bordered" id="table_retur">
                                                         <thead>
-                                                            <div class="NonF">
-                                                                    <tr class="NonF">
+                                                            <div class="F">
+                                                                    <tr class="F">
                                                                         <th style="min-width: 80px;">NO</th>
                                                                         <th style="min-width: 80px;">PLU</th>
                                                                         <th style="min-width: 80px;">KETERANGAN</th>
@@ -131,15 +131,15 @@
                                                                     </tr>
                                                             </div>
                                                             <!-- Add more headers as needed -->
-                                                            <div class="F">
-                                                                <tr  class="F">
+                                                            <div class="NonF">
+                                                                <tr  class="NonF">
                                                                     <th style="min-width: 80px;">'NO</th>
                                                                     <th style="min-width: 80px;">'PLU</th>
-                                                                    <th style="min-width: 80px;">'QTY DSPB</th>
+                                                                    <th style="min-width: 120px;">'QTY DSPB</th>
                                                                     <th style="min-width: 80px;">'RETUR</th>
                                                                     <th style="min-width: 80px;">'BA</th>
-                                                                    <th style="min-width: 80px;">'BEBAN IDM</th>
-                                                                    <th style="min-width: 80px;">'BEBAN IGR</th>
+                                                                    <th style="min-width: 120px;">'BEBAN IDM</th>
+                                                                    <th style="min-width: 120px;">'BEBAN IGR</th>
                                                                     <th style="min-width: 80px;">'PRICE</th>
                                                                     <th style="min-width: 80px;">'PPN</th>
                                                                     <th style="min-width: 80px;">'TOTREF</th>
@@ -147,12 +147,12 @@
                                                                     <th style="min-width: 80px;">'STATUS</th>
                                                                     <th style="min-width: 80px;">'AVGCOST</th>
                                                                     <th style="min-width: 80px;">'RETMAJALAH</th>
-                                                                    <th style="min-width: 80px;">'KETERANGAN RETUR</th>
-                                                                    <th style="min-width: 80px;">'NO BA KONTAINER TERTINGGAL</th>
+                                                                    <th style="min-width: 120px;">'KETERANGAN RETUR</th>
+                                                                    <th style="min-width: 120px;">'NO BA KONTAINER TERTINGGAL</th>
                                                                 </tr>
                                                             </div>
                                                         </thead>
-                                                        <tbody id="table-content-retur" style="height:420px;">
+                                                        <tbody id="table-content-retur" style="min-height:100px;">
                                                         
                                                         </tbody>
                                                         </table>

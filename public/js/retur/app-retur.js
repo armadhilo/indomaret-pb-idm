@@ -204,7 +204,7 @@ dataRetur =()=>{
                   dataRetur[value.plu] = value;
          });
 
-         console.log(data.type.includes("NonF"))
+         // console.log(data.type.includes("NonF"))
         if (data.type.includes("NonF")) {
          
            $('.NonF').show()
@@ -318,8 +318,11 @@ format_currency=(data)=>{
 
 cetak_report=(condition)=>{
    let url = link+'/',
+       nrb = btoa(JSON.stringify(dataNRB[selectedTable[0]])),
+       param = "?nrb="+nrb,
        title = '';
 
+   console.log(selectedTable)
    if( selectedTable.length == 0){
       Swal.fire({
          title: 'Gagal',
@@ -357,7 +360,7 @@ cetak_report=(condition)=>{
 
          $('#retur_card').loading('toggle');
          let select = '';
-         $.getJSON(url, function(data) {
+         $.getJSON(url+param, function(data) {
          }).fail(function(data) {
             $('#retur_card').loading('toggle');
             Swal.fire({
